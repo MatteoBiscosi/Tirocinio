@@ -1,418 +1,9 @@
 //
-// Created by matteo on 07/07/2020 at 9:15.
+// Created by matteo on 08/07/2020.
 //
-#include <iostream>
-#include <csignal>
-#include <cstdio>
-#include <cerrno>
-#include <cstdlib>
-#include <pcap/pcap.h>
-#include <arpa/inet.h>
-#include <netinet/in.h>
-#include <ndpi_api.h>
-#include <ndpi_main.h>
-#include <ndpi_typedefs.h>
-#include <pcap/pcap.h>
-#include <pthread.h>
-#include <unistd.h>
 
-/*
- * Define list
- */
-#define MAX_FLOW_ROOTS_PER_THREAD 2048
-#define MAX_IDLE_FLOWS_PER_THREAD 64
-/*
- * ***** What's tick resolution???? *****
- */
-#define TICK_RESOLUTION 1000
-#define MAX_READER_THREADS 4
-#define IDLE_SCAN_PERIOD 10000 /* msec */
-#define MAX_IDLE_TIME 300000 /* msec */
-#define INITIAL_THREAD_HASH 0x03dd018b
+#include "workflow.h"
 
-#ifndef ETH_P_IP
-#define ETH_P_IP 0x0800
-#endif
-
-#ifndef ETH_P_IPV6
-#define ETH_P_IPV6 0x86DD
-#endif
-
-#ifndef ETH_P_ARP
-#define ETH_P_ARP  0x0806
-#endif
-
-
-/*
- * Struct list
- */
-enum nDPI_l3_type {
-    L3_IP, L3_IP6
-};
-
-struct nDPI_flow_info {
-    uint32_t flow_id;
-    unsigned long long int packets_processed;
-    uint64_t first_seen;
-    uint64_t last_seen;
-    uint64_t hashval;
-
-    enum nDPI_l3_type l3_type;
-    union {
-        struct {
-            uint32_t src;
-            uint32_t dst;
-        } v4;
-        struct {
-            uint64_t src[2];
-            uint64_t dst[2];
-        } v6;
-    } ip_tuple;
-
-    unsigned long long int total_l4_data_len;
-    uint16_t src_port;
-    uint16_t dst_port;
-
-    uint8_t is_midstream_flow:1;
-    uint8_t flow_fin_ack_seen:1;
-    uint8_t flow_ack_seen:1;
-    uint8_t detection_completed:1;
-    uint8_t tls_client_hello_seen:1;
-    uint8_t tls_server_hello_seen:1;
-    uint8_t reserved_00:2;
-    uint8_t l4_protocol;
-
-    struct ndpi_proto detected_l7_protocol;
-    struct ndpi_proto guessed_protocol;
-
-    struct ndpi_flow_struct * ndpi_flow;
-    struct ndpi_id_struct * ndpi_src;
-    struct ndpi_id_struct * ndpi_dst;
-};
-
-struct nDPI_workflow {
-    pcap_t * pcap_handle;
-
-    uint8_t error_or_eof:1;
-    uint8_t reserved_00:7;
-    uint8_t reserved_01[3];
-
-    unsigned long long int packets_captured;
-    unsigned long long int packets_processed;
-    unsigned long long int total_l4_data_len;
-    unsigned long long int detected_flow_protocols;
-
-    uint64_t last_idle_scan_time;
-    uint64_t last_time;
-
-    void ** ndpi_flows_active;
-    unsigned long long int max_active_flows;
-    unsigned long long int cur_active_flows;
-    unsigned long long int total_active_flows;
-
-    void ** ndpi_flows_idle;
-    unsigned long long int max_idle_flows;
-    unsigned long long int cur_idle_flows;
-    unsigned long long int total_idle_flows;
-
-    struct ndpi_detection_module_struct * ndpi_struct;
-};
-
-struct nDPI_reader_thread {
-    struct nDPI_workflow * workflow;
-    pthread_t thread_id;
-    int array_index;
-};
-
-
-/*
- * Function list
- */
-static int setup_reader_threads(char const * const file_or_device);
-static int start_reader_threads(void);
-static int stop_reader_threads(void);
-
-
-static void free_workflow(struct nDPI_workflow ** const workflow);
-static struct nDPI_workflow * init_workflow(char const * const file_or_device);
-
-
-static void ndpi_flow_info_freer(void * const node);
-static int ip_tuple_to_string(struct nDPI_flow_info const * const flow,
-                              char * const src_addr_str, size_t src_addr_len,
-                              char * const dst_addr_str, size_t dst_addr_len);
-static int ip_tuples_equal(struct nDPI_flow_info const * const A,
-                           struct nDPI_flow_info const * const B);
-static int ip_tuples_compare(struct nDPI_flow_info const * const A,
-                             struct nDPI_flow_info const * const B);
-static void ndpi_idle_scan_walker(void const * const A,
-                                  ndpi_VISIT which,
-                                  int depth,
-                                  void * const user_data);
-static int ndpi_workflow_node_cmp(void const * const A, void const * const B);
-
-
-static void check_for_idle_flows(struct nDPI_workflow * const workflow);
-static int processing_threads_error_or_eof(void);
-static void break_pcap_loop(struct nDPI_reader_thread * const reader_thread);
-static void run_pcap_loop(struct nDPI_reader_thread const * const reader_thread);
-static void * processing_thread(void * const ndpi_thread_arg);
-static void ndpi_process_packet(uint8_t * const args,
-                                struct pcap_pkthdr const * const header,
-                                uint8_t const * const packet);
-
-
-static void sighandler(int signum);
-
-
-#ifdef VERBOSE
-static void print_packet_info(struct nDPI_reader_thread const * const reader_thread,
-                              struct pcap_pkthdr const * const header,
-                              uint32_t l4_data_len,
-                              struct nDPI_flow_info const * const flow);
-#endif
-
-
-/*
- * Global variable list
- */
-static int reader_thread_count = MAX_READER_THREADS;
-static struct nDPI_reader_thread reader_threads[MAX_READER_THREADS] = {};
-static int main_thread_shutdown = 0;
-static uint32_t flow_id = 0;
-
-
-/*
- * Main function
- */
-int main(int argc, char **argv)
-{
-    /*
-     * UNNEEDED CHECK, CONTROL LATER ***********
-     */
-    if (argc == 0) {
-        return 1;
-    }
-
-    std::cout << "usage: " << argv[0] <<"[PCAP-FILE-OR-INTERFACE]\n"
-              <<"----------------------------------\n"
-              << "nDPI version: %s\n" << ndpi_revision()
-              << " API version: %u\n" << ndpi_get_api_version()
-              << "----------------------------------\n";
-
-
-    /*
-     * Startup functions, in case of unexpected error the program will terminate
-     */
-    if (setup_reader_threads((argc >= 2 ? argv[1] : nullptr)) != 0) {
-        std::cerr << argv[0] << ": setup_reader_threads failed\n";
-        return 1;
-    }
-
-    if (start_reader_threads() != 0) {
-        std::cerr << argv[0] << ": start_reader_threads failed\n";
-        return 1;
-    }
-
-    //Adding signals to sighandler
-    signal(SIGINT, sighandler);
-    signal(SIGTERM, sighandler);
-
-    //Waiting for terminate request
-    while (main_thread_shutdown == 0 && processing_threads_error_or_eof() == 0) {
-        sleep(1);
-    }
-
-    //Shutting down all the threads
-    if (main_thread_shutdown == 0 && stop_reader_threads() != 0) {
-        std::cerr << argv[0] << "%s: stop_reader_threads failed\n";
-        return 1;
-    }
-
-    return 0;
-}
-
-
-/*
- ******************* Sighandler *******************
- */
-
-
-static void sighandler(int signum)
-{
-    std::cerr << "Received SIGNAL " << signum << "\n";
-
-    if (main_thread_shutdown == 0) {
-        main_thread_shutdown = 1;
-        if (stop_reader_threads() != 0) {
-            std::cerr << "Failed to stop reader threads!\n";
-            exit(EXIT_FAILURE);
-        }
-    } else {
-        std::cerr << "Reader threads are already shutting down, please be patient.\n";
-    }
-}
-
-
-/*
- ******************* Reader_threads *******************
- */
-
-
-static int setup_reader_threads(char const * const file_or_device)
-/*
- * Initialize the various workflows and the capture device/file
- */
-{
-    char const * file_or_default_device;
-    char pcap_error_buffer[PCAP_ERRBUF_SIZE];
-
-    /*
-     * Needed check? Cannot modify reader_thread_count before this function call
-     */
-    if (reader_thread_count > MAX_READER_THREADS) {
-        return 1;
-    }
-
-    //Setting up the capture device
-    if (file_or_device == nullptr) {
-        //Standard capture device
-
-        /*
-         * pcap_lookupdev DEPRECATED !!!!! check pcap_findalldevs
-         */
-
-        file_or_default_device = pcap_lookupdev(pcap_error_buffer);
-        if (file_or_default_device == NULL) {
-            std::cerr << "pcap_lookupdev error: " << pcap_error_buffer << "\n";
-            return 1;
-        }
-    } else {
-        //Requested capture device
-        file_or_default_device = file_or_device;
-    }
-
-    for (int i = 0; i < reader_thread_count; ++i) {
-        reader_threads[i].workflow = init_workflow(file_or_default_device);
-        if (reader_threads[i].workflow == nullptr) {
-            //Error during setup
-            return 1;
-        }
-    }
-
-    return 0;
-}
-
-
-static int start_reader_threads(void)
-/*
- * Initialize the sigmask and the reader_thread threads
- */
-{
-    sigset_t thread_signal_set, old_signal_set;
-
-    //Setting up the sigmask
-    sigfillset(&thread_signal_set);
-    sigdelset(&thread_signal_set, SIGINT);
-    sigdelset(&thread_signal_set, SIGTERM);
-    if (pthread_sigmask(SIG_BLOCK, &thread_signal_set, &old_signal_set) != 0) {
-        std::cerr << "Error pthread_sigmask: " << strerror(errno) << "\n";
-        return 1;
-    }
-
-    //Setting up the reader_thread threads
-    for (int i = 0; i < reader_thread_count; ++i) {
-        reader_threads[i].array_index = i;
-
-        if (reader_threads[i].workflow == nullptr) {
-            //no more threads should be started
-            break;
-        }
-
-        if (pthread_create(&reader_threads[i].thread_id, NULL,
-                           processing_thread, &reader_threads[i]) != 0)
-        {
-            std::cerr << "Error pthread_create: " << strerror(errno) << "\n";
-            return 1;
-        }
-    }
-
-    if (pthread_sigmask(SIG_BLOCK, &old_signal_set, nullptr) != 0) {
-        std::cerr << "Error pthread_sigmask: " << strerror(errno) << "\n";
-        return 1;
-    }
-
-    return 0;
-}
-
-
-static int stop_reader_threads(void)
-/*
- * Used to stop the various reader_thread
- */
-{
-    unsigned long long int total_packets_processed = 0;
-    unsigned long long int total_l4_data_len = 0;
-    unsigned long long int total_flows_captured = 0;
-    unsigned long long int total_flows_idle = 0;
-    unsigned long long int total_flows_detected = 0;
-
-    for (int i = 0; i < reader_thread_count; ++i) {
-        break_pcap_loop(&reader_threads[i]);
-    }
-
-    std::cout << "------------------------------------ Stopping reader threads\n";
-
-    //Printing the flows/threads results
-    for (int i = 0; i < reader_thread_count; ++i) {
-        if (reader_threads[i].workflow == nullptr) {
-            continue;
-        }
-
-        total_packets_processed += reader_threads[i].workflow->packets_processed;
-        total_l4_data_len += reader_threads[i].workflow->total_l4_data_len;
-        total_flows_captured += reader_threads[i].workflow->total_active_flows;
-        total_flows_idle += reader_threads[i].workflow->total_idle_flows;
-        total_flows_detected += reader_threads[i].workflow->detected_flow_protocols;
-
-        std::cout << "Stopping Thread " << reader_threads[i].array_index
-                  << ", processed " << reader_threads[i].workflow->packets_processed
-                  << " packets, " << reader_threads[i].workflow->total_l4_data_len
-                  << " bytes, total flows: " << reader_threads[i].workflow->total_active_flows
-                  << ", idle flows: " << reader_threads[i].workflow->total_idle_flows
-                  << ", detected flows: " << reader_threads[i].workflow->detected_flow_protocols << "\n";
-    }
-
-    //Total packets captured: same value for all threads as packet2thread distribution happens later
-    /*
-     * ************* why total packets capture is only the packets captured by the first reader_threads???? ***********
-     */
-    std::cout << "Total packets captured.: " << reader_threads[0].workflow->packets_captured << "\n";
-    std::cout << "Total packets processed: " << total_packets_processed << "\n";
-    std::cout << "Total layer4 data size.: " << total_l4_data_len << "\n";
-    std::cout << "Total flows captured...: " << total_flows_captured << "\n";
-    std::cout << "Total flows timed out..: " << total_flows_idle << "\n";
-    std::cout << "Total flows detected...: " << total_flows_detected << "\n";
-
-    for (int i = 0; i < reader_thread_count; ++i) {
-        if (reader_threads[i].workflow == nullptr) {
-            continue;
-        }
-
-        if (pthread_join(reader_threads[i].thread_id, nullptr) != 0) {
-            std::cerr << "Error pthread_join: " << strerror(errno) << "\n";
-        }
-
-        free_workflow(&reader_threads[i].workflow);
-    }
-
-    return 0;
-}
-
-
-/*
- ******************* Workflow *******************
- */
 
 
 static struct nDPI_workflow * init_workflow(char const * const file_or_device)
@@ -439,7 +30,7 @@ static struct nDPI_workflow * init_workflow(char const * const file_or_device)
 
     //if both opening fails, return an error
     if (workflow->pcap_handle == nullptr) {
-        std:cerr << "error during pcap_open_live / pcap_open_offline_with_tstamp_precision: "
+        std::cerr << "error during pcap_open_live / pcap_open_offline_with_tstamp_precision: "
                  << pcap_error_buffer << "\n";
         free_workflow(&workflow);
         return nullptr;
@@ -512,14 +103,16 @@ static void free_workflow(struct nDPI_workflow ** const workflow)
     ndpi_free(w->ndpi_flows_active);
     ndpi_free(w->ndpi_flows_idle);
     ndpi_free(w);
-    *workflow = NULL;
+    *workflow = nullptr;
 }
 
 
 static void ndpi_flow_info_freer(void * const node)
-//Frees infos about the flow of node
+/*
+ * Frees infos about the flow of node
+ */
 {
-    struct nDPI_flow_info * const flow = (struct nDPI_flow_info *)node;
+    auto * const flow = (struct nDPI_flow_info *)node;
 
     ndpi_free(flow->ndpi_dst);
     ndpi_free(flow->ndpi_src);
@@ -529,75 +122,16 @@ static void ndpi_flow_info_freer(void * const node)
 
 
 /*
- ******************* Threads *******************
+ ******************* Hash_functions *******************
  */
-
-
-static int processing_threads_error_or_eof(void)
-/*
- * Checking if all threads ended their works and returning 0 otherwise
- */
-{
-    for (int i = 0; i < reader_thread_count; ++i) {
-        if (reader_threads[i].workflow->error_or_eof == 0) {
-            return 0;
-        }
-    }
-    return 1;
-}
-
-
-static void * processing_thread(void * const ndpi_thread_arg)
-//Sets the thread and calls for the starts of the pcap_loop
-{
-    struct nDPI_reader_thread const * const reader_thread =
-            (struct nDPI_reader_thread *)ndpi_thread_arg;
-
-    std::cout << "Starting ThreadID " << reader_thread->array_index << "\n";
-    run_pcap_loop(reader_thread);
-
-    //Error in pcap_loop, terminating the thread
-    reader_thread->workflow->error_or_eof = 1;
-    return nullptr;
-}
-
-
-static void run_pcap_loop(struct nDPI_reader_thread const * const reader_thread)
-//Starts the pcap_loop
-{
-    if (reader_thread->workflow != nullptr &&
-        reader_thread->workflow->pcap_handle != nullptr) {
-
-        /*
-         * ********** how does he know that reader_thread has exactly 8 bits????? *********
-         */
-        if (pcap_loop(reader_thread->workflow->pcap_handle, -1,
-                      &ndpi_process_packet, (uint8_t *)reader_thread) == PCAP_ERROR) {
-            //Error while processing the packets
-            std::cerr << "Error while reading pcap file: '"
-                      << pcap_geterr(reader_thread->workflow->pcap_handle)
-                      << "'\n";
-            reader_thread->workflow->error_or_eof = 1;
-        }
-    }
-}
-
-
-static void break_pcap_loop(struct nDPI_reader_thread * const reader_thread)
-//Breaks pcap_loop
-{
-    if (reader_thread->workflow != nullptr &&
-        reader_thread->workflow->pcap_handle != nullptr)
-    {
-        pcap_breakloop(reader_thread->workflow->pcap_handle);
-    }
-}
 
 
 static int ip_tuple_to_string(struct nDPI_flow_info const * const flow,
                               char * const src_addr_str, size_t src_addr_len,
                               char * const dst_addr_str, size_t dst_addr_len)
-//Converts the ip tuple into strings
+/*
+ * Converts the ip tuple into strings
+ */
 {
     switch (flow->l3_type) {
         case L3_IP:
@@ -617,67 +151,12 @@ static int ip_tuple_to_string(struct nDPI_flow_info const * const flow,
     return 0;
 }
 
-#ifdef VERBOSE
-static void print_packet_info(struct nDPI_reader_thread const * const reader_thread,
-                              struct pcap_pkthdr const * const header,
-                              uint32_t l4_data_len,
-                              struct nDPI_flow_info const * const flow)
-{
-    struct nDPI_workflow const * const workflow = reader_thread->workflow;
-    char src_addr_str[INET6_ADDRSTRLEN+1] = {0};
-    char dst_addr_str[INET6_ADDRSTRLEN+1] = {0};
-    char buf[256];
-    int used = 0, ret;
-
-    ret = snprintf(buf, sizeof(buf), "[%8llu, %d, %4u] %4u bytes: ",
-                   workflow->packets_captured, reader_thread->array_index,
-                   flow->flow_id, header->caplen);
-    if (ret > 0) {
-        used += ret;
-    }
-
-    if (ip_tuple_to_string(flow, src_addr_str, sizeof(src_addr_str), dst_addr_str, sizeof(dst_addr_str)) != 0) {
-        ret = snprintf(buf + used, sizeof(buf) - used, "IP[%s -> %s]", src_addr_str, dst_addr_str);
-    } else {
-        ret = snprintf(buf + used, sizeof(buf) - used, "IP[ERROR]");
-    }
-    if (ret > 0) {
-        used += ret;
-    }
-
-    switch (flow->l4_protocol) {
-        case IPPROTO_UDP:
-            ret = snprintf(buf + used, sizeof(buf) - used, " -> UDP[%u -> %u, %u bytes]",
-                           flow->src_port, flow->dst_port, l4_data_len);
-            break;
-        case IPPROTO_TCP:
-            ret = snprintf(buf + used, sizeof(buf) - used, " -> TCP[%u -> %u, %u bytes]",
-                           flow->src_port, flow->dst_port, l4_data_len);
-            break;
-        case IPPROTO_ICMP:
-            ret = snprintf(buf + used, sizeof(buf) - used, " -> ICMP");
-            break;
-        case IPPROTO_ICMPV6:
-            ret = snprintf(buf + used, sizeof(buf) - used, " -> ICMP6");
-            break;
-        case IPPROTO_HOPOPTS:
-            ret = snprintf(buf + used, sizeof(buf) - used, " -> ICMP6 Hop-By-Hop");
-            break;
-        default:
-            ret = snprintf(buf + used, sizeof(buf) - used, " -> Unknown[0x%X]", flow->l4_protocol);
-            break;
-    }
-    if (ret > 0) {
-        used += ret;
-    }
-
-    printf("%.*s\n", used, buf);
-}
-#endif
 
 static int ip_tuples_equal(struct nDPI_flow_info const * const A,
                            struct nDPI_flow_info const * const B)
-//Defines the "equal" for a tuple
+/*
+ * Defines the "equal" for a tuple
+ */
 {
     /*
      * ********** POSSIBLE ERROR? WHY B->L3_TYPE == L3_IP6???? SHOULDN'T BE L3_IP???? **********
@@ -696,13 +175,19 @@ static int ip_tuples_equal(struct nDPI_flow_info const * const A,
     return 0;
 }
 
+
 static int ip_tuples_compare(struct nDPI_flow_info const * const A,
                              struct nDPI_flow_info const * const B)
+/*
+ * Function used to compare two flows
+ */
 {
     /*
      * ************** SAME ERROR AS ABOVE?????? L3_IP6 ????? ***************
      */
+    //Comparing dst and src ips
     if (A->l3_type == L3_IP && B->l3_type == L3_IP6) {
+        //IPv4
         if (A->ip_tuple.v4.src < B->ip_tuple.v4.src ||
             A->ip_tuple.v4.dst < B->ip_tuple.v4.dst)
         {
@@ -714,6 +199,7 @@ static int ip_tuples_compare(struct nDPI_flow_info const * const A,
             return 1;
         }
     } else if (A->l3_type == L3_IP6 && B->l3_type == L3_IP6) {
+        //IPv6
         if ((A->ip_tuple.v6.src[0] < B->ip_tuple.v6.src[0] &&
              A->ip_tuple.v6.src[1] < B->ip_tuple.v6.src[1]) ||
             (A->ip_tuple.v6.dst[0] < B->ip_tuple.v6.dst[0] &&
@@ -729,6 +215,8 @@ static int ip_tuples_compare(struct nDPI_flow_info const * const A,
             return 1;
         }
     }
+
+    //Comparing src and dst ports
     if (A->src_port < B->src_port ||
         A->dst_port < B->dst_port)
     {
@@ -743,13 +231,18 @@ static int ip_tuples_compare(struct nDPI_flow_info const * const A,
 
 
 static void ndpi_idle_scan_walker(void const * const A, ndpi_VISIT which, int depth, void * const user_data)
+/*
+ * Checks if "A" is an idle flow or not, in case it is, the function
+ * adds the flow to the array of idle_flows
+ * (struct nDPI_workflow user_data->ndpi_flows_idle[])
+ */
 {
-    struct nDPI_workflow * const workflow = (struct nDPI_workflow *)user_data;
-    struct nDPI_flow_info * const flow = *(struct nDPI_flow_info **)A;
+    auto * const workflow = (struct nDPI_workflow *)user_data;
+    auto * const flow = *(struct nDPI_flow_info **)A;
 
     (void)depth;
 
-    if (workflow == NULL || flow == NULL) {
+    if (workflow == nullptr || flow == nullptr) {
         return;
     }
 
@@ -757,13 +250,12 @@ static void ndpi_idle_scan_walker(void const * const A, ndpi_VISIT which, int de
         return;
     }
 
-    /*
-     * ************* RECHECK WHAT THIS FUNCTION DOES ********************
-     */
     if (which == ndpi_preorder || which == ndpi_leaf) {
+        //Checks the last message time and compares it with the actual time
         if ((flow->flow_fin_ack_seen == 1 && flow->flow_ack_seen == 1) ||
             flow->last_seen + MAX_IDLE_TIME < workflow->last_time)
         {
+            //If it surpasses the MAX_IDLE_TIME, consider the flow as an idle one
             char src_addr_str[INET6_ADDRSTRLEN+1];
             char dst_addr_str[INET6_ADDRSTRLEN+1];
             ip_tuple_to_string(flow, src_addr_str, sizeof(src_addr_str), dst_addr_str, sizeof(dst_addr_str));
@@ -775,7 +267,9 @@ static void ndpi_idle_scan_walker(void const * const A, ndpi_VISIT which, int de
 
 
 static int ndpi_workflow_node_cmp(void const * const A, void const * const B) {
-//Function used to compare two nodes of the btree
+/*
+ * Function used to compare two nodes of the btree
+ */
     struct nDPI_flow_info const * const flow_info_a = (struct nDPI_flow_info *)A;
     struct nDPI_flow_info const * const flow_info_b = (struct nDPI_flow_info *)B;
 
@@ -785,13 +279,14 @@ static int ndpi_workflow_node_cmp(void const * const A, void const * const B) {
         return(1);
     }
 
-    /* Flows have the same hash */
+    //Flows have the same hash
     if (flow_info_a->l4_protocol < flow_info_b->l4_protocol) {
         return(-1);
     } else if (flow_info_a->l4_protocol > flow_info_b->l4_protocol) {
         return(1);
     }
 
+    //Flows have the same hash and lvl-4 protocol
     if (ip_tuples_equal(flow_info_a, flow_info_b) != 0 &&
         flow_info_a->src_port == flow_info_b->src_port &&
         flow_info_a->dst_port == flow_info_b->dst_port)
@@ -799,25 +294,28 @@ static int ndpi_workflow_node_cmp(void const * const A, void const * const B) {
         return(0);
     }
 
+    //Comparing other infos like ip src and dst, ecc.
     return ip_tuples_compare(flow_info_a, flow_info_b);
 }
 
 
 static void check_for_idle_flows(struct nDPI_workflow * const workflow)
-//Checks all the nodes, if they became idle from the last check or not
-//If yes, it frees them
+/*
+ * Checks all the nodes, if they became idle from the last check or not
+ * If yes, it frees them
+ */
 {
     if (workflow->last_idle_scan_time + IDLE_SCAN_PERIOD < workflow->last_time) {
         for (size_t idle_scan_index = 0; idle_scan_index < workflow->max_active_flows; ++idle_scan_index) {
             ndpi_twalk(workflow->ndpi_flows_active[idle_scan_index], ndpi_idle_scan_walker, workflow);
 
             while (workflow->cur_idle_flows > 0) {
-                struct nDPI_flow_info * const f =
+                auto * const f =
                         (struct nDPI_flow_info *)workflow->ndpi_flows_idle[--workflow->cur_idle_flows];
                 if (f->flow_fin_ack_seen == 1) {
-                    printf("Free fin flow with id %u\n", f->flow_id);
+                    std::cout << "Free fin flow with id " << f->flow_id << "\n";
                 } else {
-                    printf("Free idle flow with id %u\n", f->flow_id);
+                    std::cout << "Free idle flow with id " << f->flow_id << "\n";
                 }
                 ndpi_tdelete(f, &workflow->ndpi_flows_active[idle_scan_index],
                              ndpi_workflow_node_cmp);
@@ -838,7 +336,7 @@ static void ndpi_process_packet(uint8_t * const args,
  * Function called for each packets, updates the infos
  */
 {
-    struct nDPI_reader_thread * const reader_thread =
+    auto * const reader_thread =
             (struct nDPI_reader_thread *)args;
     struct nDPI_workflow * workflow;
     struct nDPI_flow_info flow = {};
@@ -860,7 +358,7 @@ static void ndpi_process_packet(uint8_t * const args,
     uint16_t ip_offset;
     uint16_t ip_size;
 
-    const uint8_t * l4_ptr = NULL;
+    const uint8_t * l4_ptr = nullptr;
     uint16_t l4_len = 0;
 
     uint16_t type;
@@ -945,15 +443,15 @@ static void ndpi_process_packet(uint8_t * const args,
     }
 
     if (type == ETH_P_IP) {
-        //IpV4
+        //IPv4
         ip = (struct ndpi_iphdr *)&packet[ip_offset];
         ip6 = nullptr;
     } else if (type == ETH_P_IPV6) {
-        //IpV6
+        //IPv6
         ip = nullptr;
         ip6 = (struct ndpi_ipv6hdr *)&packet[ip_offset];
     } else {
-        //not IpV4 nor IpV6
+        //not IPv4 nor IPv6
         std::cerr << "[" << workflow->packets_captured
                   <<", " << reader_thread->array_index
                   << "] Captured non IPv4/IPv6 packet with type "
@@ -1005,7 +503,7 @@ static void ndpi_process_packet(uint8_t * const args,
                              flow.ip_tuple.v4.dst : flow.ip_tuple.v4.src);
         thread_index = min_addr + ip->protocol;
 
-    } else if (ip6 != NULL) {
+    } else if (ip6 != nullptr) {
         //IPv6
         if (ip_size < sizeof(ip6->ip6_hdr)) {
             std::cerr << "[" << workflow->packets_captured
@@ -1106,8 +604,9 @@ static void ndpi_process_packet(uint8_t * const args,
     print_packet_info(reader_thread, header, l4_data_len, &flow);
 #endif
 
-    /* calculate flow hash for btree find, search(insert) */
+    //Calculate flow hash for btree find, search(insert)
     if (flow.l3_type == L3_IP) {
+        //IPv4
         if (ndpi_flowv4_flow_hash(flow.l4_protocol, flow.ip_tuple.v4.src, flow.ip_tuple.v4.dst,
                                   flow.src_port, flow.dst_port, 0, 0,
                                   (uint8_t *)&flow.hashval, sizeof(flow.hashval)) != 0)
@@ -1115,6 +614,7 @@ static void ndpi_process_packet(uint8_t * const args,
             flow.hashval = flow.ip_tuple.v4.src + flow.ip_tuple.v4.dst; // fallback
         }
     } else if (flow.l3_type == L3_IP6) {
+        //IPv6
         if (ndpi_flowv6_flow_hash(flow.l4_protocol, &ip6->ip6_src, &ip6->ip6_dst,
                                   flow.src_port, flow.dst_port, 0, 0,
                                   (uint8_t *)&flow.hashval, sizeof(flow.hashval)) != 0)
@@ -1201,7 +701,7 @@ static void ndpi_process_packet(uint8_t * const args,
         }
 
         flow_to_process->ndpi_dst = (struct ndpi_id_struct *)ndpi_calloc(1, SIZEOF_ID_STRUCT);
-        if (flow_to_process->ndpi_dst == NULL) {
+        if (flow_to_process->ndpi_dst == nullptr) {
             std::cerr << "[" << workflow->packets_captured
                       << ", " << reader_thread->array_index
                       << ", " << flow_to_process->flow_id
@@ -1257,6 +757,8 @@ static void ndpi_process_packet(uint8_t * const args,
     }
 
     /*
+     * Protocol detection
+     *
      * This example tries to use maximum supported packets for detection:
      * for uint8: 0xFF
      */
@@ -1274,6 +776,8 @@ static void ndpi_process_packet(uint8_t * const args,
                                       flow_to_process->ndpi_flow,
                                       1, &protocol_was_guessed);
         if (protocol_was_guessed != 0) {
+            //Protocol guessed
+
             std::cout << "[" << workflow->packets_captured
                       << ", " << reader_thread->array_index
                       << ", " << flow_to_process->flow_id
@@ -1294,7 +798,7 @@ static void ndpi_process_packet(uint8_t * const args,
 
     flow_to_process->detected_l7_protocol =
             ndpi_detection_process_packet(workflow->ndpi_struct, flow_to_process->ndpi_flow,
-                                          ip != NULL ? (uint8_t *)ip : (uint8_t *)ip6,
+                                          ip != nullptr ? (uint8_t *)ip : (uint8_t *)ip6,
                                           ip_size, time_ms, ndpi_src, ndpi_dst);
 
     if (ndpi_is_protocol_detected(workflow->ndpi_struct,
@@ -1303,6 +807,8 @@ static void ndpi_process_packet(uint8_t * const args,
     {
         if (flow_to_process->detected_l7_protocol.master_protocol != NDPI_PROTOCOL_UNKNOWN ||
             flow_to_process->detected_l7_protocol.app_protocol != NDPI_PROTOCOL_UNKNOWN) {
+            //Protocol detected
+
             flow_to_process->detection_completed = 1;
             workflow->detected_flow_protocols++;
             std::cout << "[" << workflow->packets_captured
@@ -1349,7 +855,7 @@ static void ndpi_process_packet(uint8_t * const args,
                           << " | sni: "
                           << flow_to_process->ndpi_flow->protos.stun_ssl.ssl.client_requested_server_name
                           << " | alpn: "
-                          << (flow_to_process->ndpi_flow->protos.stun_ssl.ssl.alpn != NULL ?
+                          << (flow_to_process->ndpi_flow->protos.stun_ssl.ssl.alpn != nullptr ?
                               flow_to_process->ndpi_flow->protos.stun_ssl.ssl.alpn : "-")
                           << "\n";
 
@@ -1384,12 +890,70 @@ static void ndpi_process_packet(uint8_t * const args,
                                             &unknown_tls_version),
                        flow_to_process->ndpi_flow->protos.stun_ssl.ssl.server_names_len,
                        flow_to_process->ndpi_flow->protos.stun_ssl.ssl.server_names,
-                       (flow_to_process->ndpi_flow->protos.stun_ssl.ssl.issuerDN != NULL ?
+                       (flow_to_process->ndpi_flow->protos.stun_ssl.ssl.issuerDN != nullptr ?
                         flow_to_process->ndpi_flow->protos.stun_ssl.ssl.issuerDN : "-"),
-                       (flow_to_process->ndpi_flow->protos.stun_ssl.ssl.subjectDN != NULL ?
+                       (flow_to_process->ndpi_flow->protos.stun_ssl.ssl.subjectDN != nullptr ?
                         flow_to_process->ndpi_flow->protos.stun_ssl.ssl.subjectDN : "-"));
                 flow_to_process->tls_server_hello_seen = 1;
             }
         }
     }
 }
+
+#ifdef VERBOSE
+static void print_packet_info(struct nDPI_reader_thread const * const reader_thread,
+                              struct pcap_pkthdr const * const header,
+                              uint32_t l4_data_len,
+                              struct nDPI_flow_info const * const flow)
+{
+    struct nDPI_workflow const * const workflow = reader_thread->workflow;
+    char src_addr_str[INET6_ADDRSTRLEN+1] = {0};
+    char dst_addr_str[INET6_ADDRSTRLEN+1] = {0};
+    char buf[256];
+    int used = 0, ret;
+
+    ret = snprintf(buf, sizeof(buf), "[%8llu, %d, %4u] %4u bytes: ",
+                   workflow->packets_captured, reader_thread->array_index,
+                   flow->flow_id, header->caplen);
+    if (ret > 0) {
+        used += ret;
+    }
+
+    if (ip_tuple_to_string(flow, src_addr_str, sizeof(src_addr_str), dst_addr_str, sizeof(dst_addr_str)) != 0) {
+        ret = snprintf(buf + used, sizeof(buf) - used, "IP[%s -> %s]", src_addr_str, dst_addr_str);
+    } else {
+        ret = snprintf(buf + used, sizeof(buf) - used, "IP[ERROR]");
+    }
+    if (ret > 0) {
+        used += ret;
+    }
+
+    switch (flow->l4_protocol) {
+        case IPPROTO_UDP:
+            ret = snprintf(buf + used, sizeof(buf) - used, " -> UDP[%u -> %u, %u bytes]",
+                           flow->src_port, flow->dst_port, l4_data_len);
+            break;
+        case IPPROTO_TCP:
+            ret = snprintf(buf + used, sizeof(buf) - used, " -> TCP[%u -> %u, %u bytes]",
+                           flow->src_port, flow->dst_port, l4_data_len);
+            break;
+        case IPPROTO_ICMP:
+            ret = snprintf(buf + used, sizeof(buf) - used, " -> ICMP");
+            break;
+        case IPPROTO_ICMPV6:
+            ret = snprintf(buf + used, sizeof(buf) - used, " -> ICMP6");
+            break;
+        case IPPROTO_HOPOPTS:
+            ret = snprintf(buf + used, sizeof(buf) - used, " -> ICMP6 Hop-By-Hop");
+            break;
+        default:
+            ret = snprintf(buf + used, sizeof(buf) - used, " -> Unknown[0x%X]", flow->l4_protocol);
+            break;
+    }
+    if (ret > 0) {
+        used += ret;
+    }
+
+    printf("%.*s\n", used, buf);
+}
+#endif

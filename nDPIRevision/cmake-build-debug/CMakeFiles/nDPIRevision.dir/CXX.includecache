@@ -1,0 +1,42 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/matteo/tirocinio/Tirocinio/nDPIRevision/ndpiSimpleIntRevised.cpp
+iostream
+-
+csignal
+-
+cstdio
+-
+cerrno
+-
+cstdlib
+-
+pcap/pcap.h
+-
+arpa/inet.h
+-
+netinet/in.h
+-
+ndpi_api.h
+-
+ndpi_main.h
+-
+ndpi_typedefs.h
+-
+pcap/pcap.h
+-
+pthread.h
+-
+unistd.h
+-
+workflow.h
+/matteo/tirocinio/Tirocinio/nDPIRevision/workflow.h
+
+/matteo/tirocinio/Tirocinio/nDPIRevision/workflow.h
+
