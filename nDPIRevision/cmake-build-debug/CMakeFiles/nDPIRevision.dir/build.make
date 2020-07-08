@@ -70,32 +70,47 @@ CMakeFiles/nDPIRevision.dir/ndpiSimpleIntRevised.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/nDPIRevision.dir/ndpiSimpleIntRevised.cpp.s"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /matteo/tirocinio/Tirocinio/nDPIRevision/ndpiSimpleIntRevised.cpp -o CMakeFiles/nDPIRevision.dir/ndpiSimpleIntRevised.cpp.s
 
-CMakeFiles/nDPIRevision.dir/workflow.cpp.o: CMakeFiles/nDPIRevision.dir/flags.make
-CMakeFiles/nDPIRevision.dir/workflow.cpp.o: ../workflow.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/matteo/tirocinio/Tirocinio/nDPIRevision/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Building CXX object CMakeFiles/nDPIRevision.dir/workflow.cpp.o"
-	/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/nDPIRevision.dir/workflow.cpp.o -c /matteo/tirocinio/Tirocinio/nDPIRevision/workflow.cpp
+CMakeFiles/nDPIRevision.dir/lib/workflow.cpp.o: CMakeFiles/nDPIRevision.dir/flags.make
+CMakeFiles/nDPIRevision.dir/lib/workflow.cpp.o: ../lib/workflow.cpp
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/matteo/tirocinio/Tirocinio/nDPIRevision/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Building CXX object CMakeFiles/nDPIRevision.dir/lib/workflow.cpp.o"
+	/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/nDPIRevision.dir/lib/workflow.cpp.o -c /matteo/tirocinio/Tirocinio/nDPIRevision/lib/workflow.cpp
 
-CMakeFiles/nDPIRevision.dir/workflow.cpp.i: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/nDPIRevision.dir/workflow.cpp.i"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /matteo/tirocinio/Tirocinio/nDPIRevision/workflow.cpp > CMakeFiles/nDPIRevision.dir/workflow.cpp.i
+CMakeFiles/nDPIRevision.dir/lib/workflow.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/nDPIRevision.dir/lib/workflow.cpp.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /matteo/tirocinio/Tirocinio/nDPIRevision/lib/workflow.cpp > CMakeFiles/nDPIRevision.dir/lib/workflow.cpp.i
 
-CMakeFiles/nDPIRevision.dir/workflow.cpp.s: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/nDPIRevision.dir/workflow.cpp.s"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /matteo/tirocinio/Tirocinio/nDPIRevision/workflow.cpp -o CMakeFiles/nDPIRevision.dir/workflow.cpp.s
+CMakeFiles/nDPIRevision.dir/lib/workflow.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/nDPIRevision.dir/lib/workflow.cpp.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /matteo/tirocinio/Tirocinio/nDPIRevision/lib/workflow.cpp -o CMakeFiles/nDPIRevision.dir/lib/workflow.cpp.s
+
+CMakeFiles/nDPIRevision.dir/lib/flow.cpp.o: CMakeFiles/nDPIRevision.dir/flags.make
+CMakeFiles/nDPIRevision.dir/lib/flow.cpp.o: ../lib/flow.cpp
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/matteo/tirocinio/Tirocinio/nDPIRevision/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_3) "Building CXX object CMakeFiles/nDPIRevision.dir/lib/flow.cpp.o"
+	/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/nDPIRevision.dir/lib/flow.cpp.o -c /matteo/tirocinio/Tirocinio/nDPIRevision/lib/flow.cpp
+
+CMakeFiles/nDPIRevision.dir/lib/flow.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/nDPIRevision.dir/lib/flow.cpp.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /matteo/tirocinio/Tirocinio/nDPIRevision/lib/flow.cpp > CMakeFiles/nDPIRevision.dir/lib/flow.cpp.i
+
+CMakeFiles/nDPIRevision.dir/lib/flow.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/nDPIRevision.dir/lib/flow.cpp.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /matteo/tirocinio/Tirocinio/nDPIRevision/lib/flow.cpp -o CMakeFiles/nDPIRevision.dir/lib/flow.cpp.s
 
 # Object files for target nDPIRevision
 nDPIRevision_OBJECTS = \
 "CMakeFiles/nDPIRevision.dir/ndpiSimpleIntRevised.cpp.o" \
-"CMakeFiles/nDPIRevision.dir/workflow.cpp.o"
+"CMakeFiles/nDPIRevision.dir/lib/workflow.cpp.o" \
+"CMakeFiles/nDPIRevision.dir/lib/flow.cpp.o"
 
 # External object files for target nDPIRevision
 nDPIRevision_EXTERNAL_OBJECTS =
 
 nDPIRevision: CMakeFiles/nDPIRevision.dir/ndpiSimpleIntRevised.cpp.o
-nDPIRevision: CMakeFiles/nDPIRevision.dir/workflow.cpp.o
+nDPIRevision: CMakeFiles/nDPIRevision.dir/lib/workflow.cpp.o
+nDPIRevision: CMakeFiles/nDPIRevision.dir/lib/flow.cpp.o
 nDPIRevision: CMakeFiles/nDPIRevision.dir/build.make
 nDPIRevision: CMakeFiles/nDPIRevision.dir/link.txt
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir=/matteo/tirocinio/Tirocinio/nDPIRevision/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_3) "Linking CXX executable nDPIRevision"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir=/matteo/tirocinio/Tirocinio/nDPIRevision/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_4) "Linking CXX executable nDPIRevision"
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/nDPIRevision.dir/link.txt --verbose=$(VERBOSE)
 
 # Rule to build all files generated by this target.

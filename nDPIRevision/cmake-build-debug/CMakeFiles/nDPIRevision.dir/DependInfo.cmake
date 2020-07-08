@@ -4,8 +4,9 @@ set(CMAKE_DEPENDS_LANGUAGES
   )
 # The set of files for implicit dependencies of each language:
 set(CMAKE_DEPENDS_CHECK_CXX
+  "/matteo/tirocinio/Tirocinio/nDPIRevision/lib/flow.cpp" "/matteo/tirocinio/Tirocinio/nDPIRevision/cmake-build-debug/CMakeFiles/nDPIRevision.dir/lib/flow.cpp.o"
+  "/matteo/tirocinio/Tirocinio/nDPIRevision/lib/workflow.cpp" "/matteo/tirocinio/Tirocinio/nDPIRevision/cmake-build-debug/CMakeFiles/nDPIRevision.dir/lib/workflow.cpp.o"
   "/matteo/tirocinio/Tirocinio/nDPIRevision/ndpiSimpleIntRevised.cpp" "/matteo/tirocinio/Tirocinio/nDPIRevision/cmake-build-debug/CMakeFiles/nDPIRevision.dir/ndpiSimpleIntRevised.cpp.o"
-  "/matteo/tirocinio/Tirocinio/nDPIRevision/workflow.cpp" "/matteo/tirocinio/Tirocinio/nDPIRevision/cmake-build-debug/CMakeFiles/nDPIRevision.dir/workflow.cpp.o"
   )
 set(CMAKE_CXX_COMPILER_ID "GNU")
 

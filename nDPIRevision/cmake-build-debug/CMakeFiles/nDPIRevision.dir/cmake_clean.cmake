@@ -1,6 +1,7 @@
 file(REMOVE_RECURSE
+  "CMakeFiles/nDPIRevision.dir/lib/flow.cpp.o"
+  "CMakeFiles/nDPIRevision.dir/lib/workflow.cpp.o"
   "CMakeFiles/nDPIRevision.dir/ndpiSimpleIntRevised.cpp.o"
-  "CMakeFiles/nDPIRevision.dir/workflow.cpp.o"
   "nDPIRevision"
   "nDPIRevision.pdb"
 )

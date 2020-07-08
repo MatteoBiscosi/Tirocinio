@@ -1,1 +1,1 @@
-/usr/bin/c++  -g   CMakeFiles/nDPIRevision.dir/ndpiSimpleIntRevised.cpp.o CMakeFiles/nDPIRevision.dir/workflow.cpp.o  -o nDPIRevision 
+/usr/bin/c++  -g   CMakeFiles/nDPIRevision.dir/ndpiSimpleIntRevised.cpp.o CMakeFiles/nDPIRevision.dir/lib/workflow.cpp.o CMakeFiles/nDPIRevision.dir/lib/flow.cpp.o  -o nDPIRevision 

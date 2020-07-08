@@ -123,6 +123,60 @@ nDPIRevision/fast:
 	$(MAKE) -f CMakeFiles/nDPIRevision.dir/build.make CMakeFiles/nDPIRevision.dir/build
 .PHONY : nDPIRevision/fast
 
+lib/flow.o: lib/flow.cpp.o
+
+.PHONY : lib/flow.o
+
+# target to build an object file
+lib/flow.cpp.o:
+	$(MAKE) -f CMakeFiles/nDPIRevision.dir/build.make CMakeFiles/nDPIRevision.dir/lib/flow.cpp.o
+.PHONY : lib/flow.cpp.o
+
+lib/flow.i: lib/flow.cpp.i
+
+.PHONY : lib/flow.i
+
+# target to preprocess a source file
+lib/flow.cpp.i:
+	$(MAKE) -f CMakeFiles/nDPIRevision.dir/build.make CMakeFiles/nDPIRevision.dir/lib/flow.cpp.i
+.PHONY : lib/flow.cpp.i
+
+lib/flow.s: lib/flow.cpp.s
+
+.PHONY : lib/flow.s
+
+# target to generate assembly for a file
+lib/flow.cpp.s:
+	$(MAKE) -f CMakeFiles/nDPIRevision.dir/build.make CMakeFiles/nDPIRevision.dir/lib/flow.cpp.s
+.PHONY : lib/flow.cpp.s
+
+lib/workflow.o: lib/workflow.cpp.o
+
+.PHONY : lib/workflow.o
+
+# target to build an object file
+lib/workflow.cpp.o:
+	$(MAKE) -f CMakeFiles/nDPIRevision.dir/build.make CMakeFiles/nDPIRevision.dir/lib/workflow.cpp.o
+.PHONY : lib/workflow.cpp.o
+
+lib/workflow.i: lib/workflow.cpp.i
+
+.PHONY : lib/workflow.i
+
+# target to preprocess a source file
+lib/workflow.cpp.i:
+	$(MAKE) -f CMakeFiles/nDPIRevision.dir/build.make CMakeFiles/nDPIRevision.dir/lib/workflow.cpp.i
+.PHONY : lib/workflow.cpp.i
+
+lib/workflow.s: lib/workflow.cpp.s
+
+.PHONY : lib/workflow.s
+
+# target to generate assembly for a file
+lib/workflow.cpp.s:
+	$(MAKE) -f CMakeFiles/nDPIRevision.dir/build.make CMakeFiles/nDPIRevision.dir/lib/workflow.cpp.s
+.PHONY : lib/workflow.cpp.s
+
 ndpiSimpleIntRevised.o: ndpiSimpleIntRevised.cpp.o
 
 .PHONY : ndpiSimpleIntRevised.o
@@ -150,33 +204,6 @@ ndpiSimpleIntRevised.cpp.s:
 	$(MAKE) -f CMakeFiles/nDPIRevision.dir/build.make CMakeFiles/nDPIRevision.dir/ndpiSimpleIntRevised.cpp.s
 .PHONY : ndpiSimpleIntRevised.cpp.s
 
-workflow.o: workflow.cpp.o
-
-.PHONY : workflow.o
-
-# target to build an object file
-workflow.cpp.o:
-	$(MAKE) -f CMakeFiles/nDPIRevision.dir/build.make CMakeFiles/nDPIRevision.dir/workflow.cpp.o
-.PHONY : workflow.cpp.o
-
-workflow.i: workflow.cpp.i
-
-.PHONY : workflow.i
-
-# target to preprocess a source file
-workflow.cpp.i:
-	$(MAKE) -f CMakeFiles/nDPIRevision.dir/build.make CMakeFiles/nDPIRevision.dir/workflow.cpp.i
-.PHONY : workflow.cpp.i
-
-workflow.s: workflow.cpp.s
-
-.PHONY : workflow.s
-
-# target to generate assembly for a file
-workflow.cpp.s:
-	$(MAKE) -f CMakeFiles/nDPIRevision.dir/build.make CMakeFiles/nDPIRevision.dir/workflow.cpp.s
-.PHONY : workflow.cpp.s
-
 # Help Target
 help:
 	@echo "The following are some of the valid targets for this Makefile:"
@@ -186,12 +213,15 @@ help:
 	@echo "... edit_cache"
 	@echo "... rebuild_cache"
 	@echo "... nDPIRevision"
+	@echo "... lib/flow.o"
+	@echo "... lib/flow.i"
+	@echo "... lib/flow.s"
+	@echo "... lib/workflow.o"
+	@echo "... lib/workflow.i"
+	@echo "... lib/workflow.s"
 	@echo "... ndpiSimpleIntRevised.o"
 	@echo "... ndpiSimpleIntRevised.i"
 	@echo "... ndpiSimpleIntRevised.s"
-	@echo "... workflow.o"
-	@echo "... workflow.i"
-	@echo "... workflow.s"
 .PHONY : help
 
 
