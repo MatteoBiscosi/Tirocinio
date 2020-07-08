@@ -17,7 +17,6 @@
 #include <pcap/pcap.h>
 #include <pthread.h>
 #include <unistd.h>
-#include "lib/flow.cpp"
 #include "lib/workflow.cpp"
 
 
