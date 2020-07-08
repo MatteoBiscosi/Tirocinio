@@ -57,7 +57,9 @@ static uint32_t flow_id = 0;
 
 
 
-
+/*
+ * Interface issue, how do i implement that?
+ */
 class nDPI_workflow_if {
 public:
     static void free_workflow(nDPI_workflow **const workflow);
