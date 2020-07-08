@@ -1,11 +1,31 @@
 //
 // Created by matteo on 08/07/2020.
 //
-#include "flow.h"
+
+#include <iostream>
+#include <csignal>
+#include <cstdio>
+#include <cstring>
+#include <cerrno>
+#include <cstdlib>
+#include <pcap/pcap.h>
+#include <arpa/inet.h>
+#include <netinet/in.h>
+#include <ndpi_api.h>
+#include <ndpi_main.h>
+#include <ndpi_typedefs.h>
+#include <pcap/pcap.h>
+#include <pthread.h>
+#include <unistd.h>
+
+
+enum nDPI_l3_type {
+    L3_IP, L3_IP6
+};
 
 
 class nDPI_flow_info {
-    private:
+public:
         uint32_t flow_id{};
         unsigned long long int packets_processed{};
         uint64_t first_seen{};
@@ -43,12 +63,13 @@ class nDPI_flow_info {
         struct ndpi_flow_struct * ndpi_flow{};
         struct ndpi_id_struct * ndpi_src{};
         struct ndpi_id_struct * ndpi_dst{};
+
     public:
-        static int ip_tuples_equal(struct nDPI_flow_info const * const A,
-                                   struct nDPI_flow_info const * const B)
-    /*
-     * Defines the "equal" for a tuple
-     */
+        static int ip_tuples_equal(nDPI_flow_info const * const A,
+                                   nDPI_flow_info const * const B)
+        /*
+         * Defines the "equal" for a tuple
+         */
         {
             /*
              * ********** POSSIBLE ERROR? WHY B->L3_TYPE == L3_IP6???? SHOULDN'T BE L3_IP???? **********
@@ -68,8 +89,8 @@ class nDPI_flow_info {
         }
 
 
-        static int ip_tuples_compare(struct nDPI_flow_info const * const A,
-                                     struct nDPI_flow_info const * const B)
+        static int ip_tuples_compare(nDPI_flow_info const * const A,
+                                     nDPI_flow_info const * const B)
         /*
          * Function used to compare two flows
          */
@@ -126,8 +147,8 @@ class nDPI_flow_info {
         /*
          * Function used to compare two nodes of the btree
          */
-            struct nDPI_flow_info const * const flow_info_a = (struct nDPI_flow_info *)A;
-            struct nDPI_flow_info const * const flow_info_b = (struct nDPI_flow_info *)B;
+            nDPI_flow_info const * const flow_info_a = (nDPI_flow_info *)A;
+            nDPI_flow_info const * const flow_info_b = (nDPI_flow_info *)B;
 
             if (flow_info_a->hashval < flow_info_b->hashval) {
                 return(-1);
@@ -160,7 +181,7 @@ class nDPI_flow_info {
          * Frees infos about the flow of node
          */
         {
-            auto * const flow = (struct nDPI_flow_info *)node;
+            auto * const flow = (nDPI_flow_info *)node;
 
             ndpi_free(flow->ndpi_dst);
             ndpi_free(flow->ndpi_src);
@@ -169,7 +190,7 @@ class nDPI_flow_info {
         }
 
 
-        static int ip_tuple_to_string(struct nDPI_flow_info const * const flow,
+        static int ip_tuple_to_string(nDPI_flow_info const * const flow,
                                       char * const src_addr_str, size_t src_addr_len,
                                       char * const dst_addr_str, size_t dst_addr_len)
         /*
