@@ -10,11 +10,11 @@ class ReaderThread {
 public:
     NapatechReader npt_rdr;
     PcapReader pcp_rdr;
+    pthread_t thread_id;
 public:
     explicit ReaderThread();
     explicit ReaderThread(PcapReader rdr);
     explicit ReaderThread(NapatechReader rdr);
-
 };
 
 #endif //NDPILIGHT_READER_THREAD_H

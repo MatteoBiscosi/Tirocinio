@@ -5,17 +5,27 @@ CMakeFiles/nDPILight.dir/nDPILight.cpp.o: ../src/include/napatech_reader.h
 CMakeFiles/nDPILight.dir/nDPILight.cpp.o: ../src/include/ndpi_light_includes.h
 CMakeFiles/nDPILight.dir/nDPILight.cpp.o: ../src/include/pcap_reader.h
 CMakeFiles/nDPILight.dir/nDPILight.cpp.o: ../src/include/reader.h
+CMakeFiles/nDPILight.dir/nDPILight.cpp.o: ../src/include/reader_thread.h
 CMakeFiles/nDPILight.dir/nDPILight.cpp.o: ../nDPILight.cpp
 
 CMakeFiles/nDPILight.dir/src/lib/napatech_reader.cpp.o: ../src/include/napatech_reader.h
 CMakeFiles/nDPILight.dir/src/lib/napatech_reader.cpp.o: ../src/include/ndpi_light_includes.h
 CMakeFiles/nDPILight.dir/src/lib/napatech_reader.cpp.o: ../src/include/pcap_reader.h
 CMakeFiles/nDPILight.dir/src/lib/napatech_reader.cpp.o: ../src/include/reader.h
+CMakeFiles/nDPILight.dir/src/lib/napatech_reader.cpp.o: ../src/include/reader_thread.h
 CMakeFiles/nDPILight.dir/src/lib/napatech_reader.cpp.o: ../src/lib/napatech_reader.cpp
 
 CMakeFiles/nDPILight.dir/src/lib/pcap_reader.cpp.o: ../src/include/napatech_reader.h
 CMakeFiles/nDPILight.dir/src/lib/pcap_reader.cpp.o: ../src/include/ndpi_light_includes.h
 CMakeFiles/nDPILight.dir/src/lib/pcap_reader.cpp.o: ../src/include/pcap_reader.h
 CMakeFiles/nDPILight.dir/src/lib/pcap_reader.cpp.o: ../src/include/reader.h
+CMakeFiles/nDPILight.dir/src/lib/pcap_reader.cpp.o: ../src/include/reader_thread.h
 CMakeFiles/nDPILight.dir/src/lib/pcap_reader.cpp.o: ../src/lib/pcap_reader.cpp
+
+CMakeFiles/nDPILight.dir/src/lib/reader_thread.cpp.o: ../src/include/napatech_reader.h
+CMakeFiles/nDPILight.dir/src/lib/reader_thread.cpp.o: ../src/include/ndpi_light_includes.h
+CMakeFiles/nDPILight.dir/src/lib/reader_thread.cpp.o: ../src/include/pcap_reader.h
+CMakeFiles/nDPILight.dir/src/lib/reader_thread.cpp.o: ../src/include/reader.h
+CMakeFiles/nDPILight.dir/src/lib/reader_thread.cpp.o: ../src/include/reader_thread.h
+CMakeFiles/nDPILight.dir/src/lib/reader_thread.cpp.o: ../src/lib/reader_thread.cpp
 

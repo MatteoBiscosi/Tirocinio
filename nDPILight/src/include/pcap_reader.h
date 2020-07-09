@@ -16,7 +16,6 @@ public:
     const char *file_or_device;
     pcap_t *pcap_handle;
 
-
 private:
     unsigned long long int packets_captured;
     unsigned long long int packets_processed;
@@ -47,8 +46,9 @@ public:
     int prova();
 
 private:
-    int init_module();
-    int init_infos();
+    int initModule();
+    int initInfos();
+    void freeReader();
 };
 
 

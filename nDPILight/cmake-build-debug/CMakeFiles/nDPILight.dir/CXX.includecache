@@ -41,6 +41,8 @@ pcap_reader.h
 -
 napatech_reader.h
 -
+reader_thread.h
+-
 
 ../src/include/pcap_reader.h
 ndpi_light_includes.h
@@ -50,7 +52,25 @@ ndpi_light_includes.h
 ndpi_light_includes.h
 -
 
+../src/include/reader_thread.h
+
 /matteo/tirocinio/Tirocinio/nDPILight/nDPILight.cpp
+ndpi_light_includes.h
+-
+
+/matteo/tirocinio/Tirocinio/nDPILight/src/lib/napatech_reader.cpp
+ndpi_light_includes.h
+-
+napatech_reader.h
+-
+
+/matteo/tirocinio/Tirocinio/nDPILight/src/lib/pcap_reader.cpp
+ndpi_light_includes.h
+-
+pcap_reader.h
+-
+
+/matteo/tirocinio/Tirocinio/nDPILight/src/lib/reader_thread.cpp
 ndpi_light_includes.h
 -
 

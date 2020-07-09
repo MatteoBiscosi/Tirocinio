@@ -6,16 +6,26 @@ CMakeFiles/nDPILight.dir/nDPILight.cpp.o
  ../src/include/ndpi_light_includes.h
  ../src/include/pcap_reader.h
  ../src/include/reader.h
+ ../src/include/reader_thread.h
  /matteo/tirocinio/Tirocinio/nDPILight/nDPILight.cpp
 CMakeFiles/nDPILight.dir/src/lib/napatech_reader.cpp.o
  ../src/include/napatech_reader.h
  ../src/include/ndpi_light_includes.h
  ../src/include/pcap_reader.h
  ../src/include/reader.h
+ ../src/include/reader_thread.h
  /matteo/tirocinio/Tirocinio/nDPILight/src/lib/napatech_reader.cpp
 CMakeFiles/nDPILight.dir/src/lib/pcap_reader.cpp.o
  ../src/include/napatech_reader.h
  ../src/include/ndpi_light_includes.h
  ../src/include/pcap_reader.h
  ../src/include/reader.h
+ ../src/include/reader_thread.h
  /matteo/tirocinio/Tirocinio/nDPILight/src/lib/pcap_reader.cpp
+CMakeFiles/nDPILight.dir/src/lib/reader_thread.cpp.o
+ ../src/include/napatech_reader.h
+ ../src/include/ndpi_light_includes.h
+ ../src/include/pcap_reader.h
+ ../src/include/reader.h
+ ../src/include/reader_thread.h
+ /matteo/tirocinio/Tirocinio/nDPILight/src/lib/reader_thread.cpp
