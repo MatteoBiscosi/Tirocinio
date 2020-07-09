@@ -21,6 +21,40 @@
 
 
 
+#define MAX_FLOW_ROOTS_PER_THREAD 2048
+#define MAX_IDLE_FLOWS_PER_THREAD 64
+/*
+ * ***** What's tick resolution???? *****
+ */
+#define TICK_RESOLUTION 1000
+#define MAX_READER_THREADS 4
+#define IDLE_SCAN_PERIOD 10000 /* msec */
+#define MAX_IDLE_TIME 300000 /* msec */
+#define INITIAL_THREAD_HASH 0x03dd018b
+
+#ifndef ETH_P_IP
+#define ETH_P_IP 0x0800
+#endif
+
+#ifndef ETH_P_IPV6
+#define ETH_P_IPV6 0x86DD
+#endif
+
+#ifndef ETH_P_ARP
+#define ETH_P_ARP  0x0806
+#endif
+
+
+
+/*
+ * Global variable list
+ */
+
+static int reader_thread_count = MAX_READER_THREADS;
+static uint32_t flow_id = 0;
+
+
+
 class nDPI_reader_thread {
 public:
     nDPI_workflow * workflow;
@@ -84,7 +118,7 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    std::cout <<"----------------------------------\n"
+    std::cout << "----------------------------------\n"
               << "nDPI version: %s\n" << ndpi_revision()
               << " API version: %u\n" << ndpi_get_api_version()
               << "----------------------------------\n";
@@ -372,39 +406,10 @@ static void break_pcap_loop(nDPI_reader_thread * const reader_thread)
 }
 
 
-static bool find_help(char ** begin, char ** end, const std::string& option)
-{
-    return std::find(begin, end, option) != end;
-}
-
-
-static char * check_args(int &argc, char ** argv) {
-    int opt;
-    char * dst;
-
-    if(find_help(argv, argv + argc, "-h")) {
-        std::cout << "usage: " << argv[0] << "[-d PCAP-FILE-OR-INTERFACE]\n";
-        return nullptr;
-    }
-
-    while((opt = getopt(argc, argv, "d:")) != -1) {
-        switch (opt) {
-            case 'd':
-                dst = optarg;
-                break;
-            default:
-                std::cerr << "Option not valid, to check usage: " << argv[0] << " -h\n";
-                return nullptr;
-        }
-    }
-
-    return dst;
-}
-
-
 static void ndpi_process_packet(uint8_t * const args,
                                 pcap_pkthdr const * const header,
                                 uint8_t const * const packet)
+
 /*
  * Function called for each packets, updates the infos
  */

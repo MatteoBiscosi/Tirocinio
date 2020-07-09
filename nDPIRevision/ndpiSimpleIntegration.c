@@ -204,39 +204,6 @@ static void free_workflow(struct nDPI_workflow ** const workflow)
     *workflow = NULL;
 }
 
-static int setup_reader_threads(char const * const file_or_device)
-{
-    char const * file_or_default_device;
-    char pcap_error_buffer[PCAP_ERRBUF_SIZE];
-
-    if (reader_thread_count > MAX_READER_THREADS) {
-        return 1;
-    }
-
-    if (file_or_device == NULL) {
-        /*
-         * pcap_lookupdev DEPRECATED !!!!! check pcap_findalldevs
-         */
-        file_or_default_device = pcap_lookupdev(pcap_error_buffer);
-        if (file_or_default_device == NULL) {
-            fprintf(stderr, "pcap_lookupdev: %s\n", pcap_error_buffer);
-            return 1;
-        }
-    } else {
-        file_or_default_device = file_or_device;
-    }
-
-    for (int i = 0; i < reader_thread_count; ++i) {
-        reader_threads[i].workflow = init_workflow(file_or_default_device);
-        if (reader_threads[i].workflow == NULL)
-        {
-            return 1;
-        }
-    }
-
-    return 0;
-}
-
 static int ip_tuple_to_string(struct nDPI_flow_info const * const flow,
                               char * const src_addr_str, size_t src_addr_len,
                               char * const dst_addr_str, size_t dst_addr_len)

@@ -85,9 +85,6 @@
 		<Unit filename="/matteo/tirocinio/Tirocinio/nDPIRevision/lib/flow.cpp">
 			<Option target="nDPIRevision"/>
 		</Unit>
-		<Unit filename="/matteo/tirocinio/Tirocinio/nDPIRevision/lib/flow.h">
-			<Option target="nDPIRevision"/>
-		</Unit>
 		<Unit filename="/matteo/tirocinio/Tirocinio/nDPIRevision/lib/workflow.cpp">
 			<Option target="nDPIRevision"/>
 		</Unit>
