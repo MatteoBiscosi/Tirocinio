@@ -16,10 +16,6 @@ PcapReader::PcapReader(char const * const dst) : file_or_device(nullptr) {
     file_or_device = dst;
 }
 
-int PcapReader::prova() {
-    std::cout << this->file_or_device << "\n";
-}
-
 /* ********************************** */
 
 void PcapReader::freeReader()
@@ -111,3 +107,14 @@ int PcapReader::initInfos() {
 }
 
 /* ********************************** */
+
+void PcapReader::printInfos() {
+/*  Prints infos about the packets and flows */
+
+    std::cout << "Total packets captured.: " << this->packets_captured << "\n";
+    std::cout << "Total packets processed: " << this->packets_processed << "\n";
+    std::cout << "Total layer4 data size.: " << this->total_l4_data_len << "\n";
+    std::cout << "Total flows captured...: " << this->total_active_flows << "\n";
+    std::cout << "Total flows timed out..: " << this->total_idle_flows << "\n";
+    std::cout << "Total flows detected...: " << this->detected_flow_protocols << "\n";
+}

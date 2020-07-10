@@ -815,14 +815,7 @@ static void run_pcap_loop(struct nDPI_reader_thread const * const reader_thread)
     }
 }
 
-static void break_pcap_loop(struct nDPI_reader_thread * const reader_thread)
-{
-    if (reader_thread->workflow != NULL &&
-        reader_thread->workflow->pcap_handle != NULL)
-    {
-        pcap_breakloop(reader_thread->workflow->pcap_handle);
-    }
-}
+
 
 static void * processing_thread(void * const ndpi_thread_arg)
 {

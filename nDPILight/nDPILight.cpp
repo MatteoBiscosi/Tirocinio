@@ -7,7 +7,7 @@ using namespace std;
 
 
 ReaderThread reader_thread;
-atomic_int8_t main_thread_shutdown {0};
+atomic_int8_t terminate_thread {0};
 
 
 
@@ -64,9 +64,27 @@ static int setup_pcap(char const * const file_or_device)
     PcapReader reader {file_or_device};
 
     reader_thread.pcp_rdr = reader;
+    reader_thread.reader_type = 1;
     reader_thread.pcp_rdr.initFileOrDevice();
 
     return 0;
+}
+
+/* ********************************** */
+
+static void break_pcap_loop()
+{
+    switch (reader_thread.reader_type) {
+        case 1:
+            if (reader_thread.pcp_rdr.pcap_handle != nullptr) {
+                pcap_breakloop(reader_thread.pcp_rdr.pcap_handle);
+                reader_thread.pcp_rdr.pcap_handle = nullptr;
+            }
+            break;
+        case 0:
+            break;
+    }
+
 }
 
 /* ********************************** */
@@ -115,24 +133,6 @@ static int start_reader(void)
         return -1;
     }
 
-    /* ******* POSSIBLE LOOP NEEDED IN THE FUTURE ******* */
-    //
-    //for (int i = 0; i < reader_thread_count; ++i) {
-    //    reader_threads[i].array_index = i;
-
-    //    if (reader_threads[i].workflow == NULL) {
-            /* no more threads should be started */
-    //        break;
-    //    }
-
-    //    if (pthread_create(&reader_threads[i].thread_id, NULL,
-    //                       processing_thread, &reader_threads[i]) != 0)
-    //   {
-    //        fprintf(stderr, "pthread_create: %s\n", strerror(errno));
-    //        return 1;
-    //    }
-    //}
-
     if (pthread_sigmask(SIG_BLOCK, &old_signal_set, nullptr) != 0) {
         cerr << "Error pthread_sigmask: " << strerror(errno) << "\n";
         return -1;
@@ -143,19 +143,71 @@ static int start_reader(void)
 
 /* ********************************** */
 
-static void sighandler(int signum)
+static int stop_reader_threads(void)
 {
-    fprintf(stderr, "Received SIGNAL %d\n", signum);
+    break_pcap_loop();
 
-    if (main_thread_shutdown == 0) {
-        main_thread_shutdown = 1;
+    cout << "\t------ Stopping reader ------\t\n";
+
+    switch (reader_thread.reader_type) {
+        case 0:
+            break;
+        case 1:
+            std::cout << "\tStopping Thread " << reader_thread.thread_id << "\n";
+            reader_thread.pcp_rdr.printInfos();
+            break;
+    }
+
+    if (pthread_join(reader_thread.thread_id, NULL) != 0) {
+        cerr << "Error in pthread_join: " << strerror(errno) << "\n";
+    }
+
+    switch (reader_thread.reader_type) {
+        case 0:
+            break;
+        case 1:
+            reader_thread.pcp_rdr.freeReader();
+            break;
+    }
+
+    return 0;
+}
+
+/* ********************************** */
+
+static void sighandler(int signum)
+/*  signal handler, set up with SIGINT and SIGTERM  */
+{
+    cerr << "Received SIGNAL " << signum << "\n";
+
+    if (terminate_thread == 0) {
+        terminate_thread = 1;
+
         if (stop_reader_threads() != 0) {
-            fprintf(stderr, "Failed to stop reader threads!\n");
+            cerr << "Failed to stop reader threads!\n";
             exit(EXIT_FAILURE);
         }
     } else {
-        fprintf(stderr, "Reader threads are already shutting down, please be patient.\n");
+        cerr << "Reader threads are already shutting down, please be patient.\n";
     }
+}
+
+/* ********************************** */
+
+static int check_error_or_eof(void)
+{
+    //Napatech
+    if(reader_thread.reader_type == 0) {
+
+    }
+    //Pcap
+    else {
+        if(reader_thread.pcp_rdr.error_or_eof == 0) {
+            return 0;
+        }
+    }
+
+    return -1;
 }
 
 /* ********************************** */
@@ -195,87 +247,15 @@ int main(int argc, char * argv[])
     signal(SIGTERM, sighandler);
 
 
-    while (main_thread_shutdown == 0 && processing_threads_error_or_eof() == 0) {
+    /*  have to find a better way of doing this job */
+    while (terminate_thread == 0 && check_error_or_eof() == 0) {
         sleep(1);
     }
 
-    if (main_thread_shutdown == 0 && stop_reader_threads() != 0) {
-        fprintf(stderr, "%s: stop_reader_threads\n", argv[0]);
+    if (terminate_thread == 0 && stop_reader_threads() != 0) {
+        cerr << "nDPILight: stop_reader_threads\n";
         return 1;
     }
 
     return 0;
 }
-
-
-
-/* ************* NEED TO CHECK THESE ************** */
-
-/*
-static int processing_threads_error_or_eof(void)
-{
-    for (int i = 0; i < reader_thread_count; ++i) {
-        if (reader_threads[i].workflow->error_or_eof == 0) {
-            return 0;
-        }
-    }
-    return 1;
-}
-
-static int stop_reader_threads(void)
-{
-    unsigned long long int total_packets_processed = 0;
-    unsigned long long int total_l4_data_len = 0;
-    unsigned long long int total_flows_captured = 0;
-    unsigned long long int total_flows_idle = 0;
-    unsigned long long int total_flows_detected = 0;
-
-    for (int i = 0; i < reader_thread_count; ++i) {
-        break_pcap_loop(&reader_threads[i]);
-    }
-
-    printf("------------------------------------ Stopping reader threads\n");
-
-    for (int i = 0; i < reader_thread_count; ++i) {
-        if (reader_threads[i].workflow == NULL) {
-            continue;
-        }
-
-        total_packets_processed += reader_threads[i].workflow->packets_processed;
-        total_l4_data_len += reader_threads[i].workflow->total_l4_data_len;
-        total_flows_captured += reader_threads[i].workflow->total_active_flows;
-        total_flows_idle += reader_threads[i].workflow->total_idle_flows;
-        total_flows_detected += reader_threads[i].workflow->detected_flow_protocols;
-
-        printf("Stopping Thread %d, processed %10llu packets, %12llu bytes, total flows: %8llu, "
-               "idle flows: %8llu, detected flows: %8llu\n",
-               reader_threads[i].array_index, reader_threads[i].workflow->packets_processed,
-               reader_threads[i].workflow->total_l4_data_len, reader_threads[i].workflow->total_active_flows,
-               reader_threads[i].workflow->total_idle_flows, reader_threads[i].workflow->detected_flow_protocols);
-    }
-    /* total packets captured: same value for all threads as packet2thread distribution happens later */
-/*
-    printf("Total packets captured.: %llu\n",
-           reader_threads[0].workflow->packets_captured);
-    printf("Total packets processed: %llu\n", total_packets_processed);
-    printf("Total layer4 data size.: %llu\n", total_l4_data_len);
-    printf("Total flows captured...: %llu\n", total_flows_captured);
-    printf("Total flows timed out..: %llu\n", total_flows_idle);
-    printf("Total flows detected...: %llu\n", total_flows_detected);
-
-    for (int i = 0; i < reader_thread_count; ++i) {
-        if (reader_threads[i].workflow == NULL) {
-            continue;
-        }
-
-        if (pthread_join(reader_threads[i].thread_id, NULL) != 0) {
-            fprintf(stderr, "pthread_join: %s\n", strerror(errno));
-        }
-
-        free_workflow(&reader_threads[i].workflow);
-    }
-
-    return 0;
-}
-
- */

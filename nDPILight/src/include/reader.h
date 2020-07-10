@@ -9,8 +9,8 @@
 
 
 class Reader {
-
 public:
 
+public:
 };
 #endif //NDPILIGHT_READER_H

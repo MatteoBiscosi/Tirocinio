@@ -15,6 +15,7 @@ class PcapReader : Reader {
 public:
     const char *file_or_device;
     pcap_t *pcap_handle;
+    uint8_t error_or_eof:1;
 
 private:
     unsigned long long int packets_captured;
@@ -42,13 +43,13 @@ public:
     explicit PcapReader();
     explicit PcapReader(char const * dst);
 
+    void printInfos();
     int initFileOrDevice();
-    int prova();
+    void freeReader();
 
 private:
     int initModule();
     int initInfos();
-    void freeReader();
 };
 
 

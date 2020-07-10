@@ -8,9 +8,11 @@
 
 class ReaderThread {
 public:
+    uint8_t reader_type;    /* 1 for pcap, 0 for napatech   */
     NapatechReader npt_rdr;
     PcapReader pcp_rdr;
     pthread_t thread_id;
+
 public:
     explicit ReaderThread();
     explicit ReaderThread(PcapReader rdr);
