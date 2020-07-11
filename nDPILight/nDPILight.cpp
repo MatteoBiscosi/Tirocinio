@@ -72,7 +72,7 @@ static int setup_pcap(char const * const file_or_device)
 
 /* ********************************** */
 
-static void break_pcap_loop()
+static void break_pcap()
 {
     switch (reader_thread.reader_type) {
         case 1:
@@ -112,6 +112,33 @@ static int setup_reader(char const * const file_or_device)
 
 /* ********************************** */
 
+static void * run_reader(void * const tmp)
+/*  Reader run function, it calls for the pcap_loop */
+{
+    cout << "Starting reader, Thread id: " << reader_thread.thread_id << "\n";
+
+    switch (reader_thread.reader_type) {
+        case 0:
+            //Napatech
+            break;
+        case 1:
+            //Pcap
+            if(reader_thread.pcp_rdr.pcap_handle != nullptr) {
+                if (pcap_loop(reader_thread.pcp_rdr.pcap_handle, -1,
+                              &reader_thread.pcp_rdr.process_packet, nullptr) == PCAP_ERROR) {
+
+                    cerr << "Error while reading using Pcap: "
+                         << pcap_geterr(reader_thread.pcp_rdr.pcap_handle) << "\n";
+
+                    reader_thread.pcp_rdr.error_or_eof = 1;
+                }
+            }
+            break;
+    }
+}
+
+/* ********************************** */
+
 static int start_reader(void)
 /*  Setting up the bitmask needed for the sighandler and starting the worker thread */
 {
@@ -128,7 +155,7 @@ static int start_reader(void)
 
     /*  Run necessary threads to monitor flows  */
     if (pthread_create(&reader_thread.thread_id, nullptr,
-                       processing_thread, nullptr) != 0) {
+                       run_reader, nullptr) != 0) {
         cerr << "Error pthread_create: " << strerror(errno) << "\n";
         return -1;
     }
@@ -143,9 +170,10 @@ static int start_reader(void)
 
 /* ********************************** */
 
-static int stop_reader_threads(void)
+static int stop_reader(void)
+/*  Stop the reader_thread, it means that the program is gonna terminate soon   */
 {
-    break_pcap_loop();
+    break_pcap();
 
     cout << "\t------ Stopping reader ------\t\n";
 
@@ -183,7 +211,7 @@ static void sighandler(int signum)
     if (terminate_thread == 0) {
         terminate_thread = 1;
 
-        if (stop_reader_threads() != 0) {
+        if (stop_reader() != 0) {
             cerr << "Failed to stop reader threads!\n";
             exit(EXIT_FAILURE);
         }
@@ -195,6 +223,7 @@ static void sighandler(int signum)
 /* ********************************** */
 
 static int check_error_or_eof(void)
+/*  Checks if eof is reached in case of a Pcap file */
 {
     //Napatech
     if(reader_thread.reader_type == 0) {
@@ -252,8 +281,8 @@ int main(int argc, char * argv[])
         sleep(1);
     }
 
-    if (terminate_thread == 0 && stop_reader_threads() != 0) {
-        cerr << "nDPILight: stop_reader_threads\n";
+    if (terminate_thread == 0 && stop_reader() != 0) {
+        cerr << "nDPILight: stop_reader\n";
         return 1;
     }
 

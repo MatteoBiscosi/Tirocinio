@@ -3,4 +3,4 @@ project(nDPIRevision)
 
 set(CMAKE_CXX_STANDARD 11)
 
-add_executable(nDPIRevision ndpiSimpleIntRevised.cpp lib/workflow.cpp lib/flow.cpp lib/workflow.h)
+add_executable(nDPIRevision ndpiSimpleIntRevised.cpp lib/workflow.cpp lib/flow.cpp lib/workflow.h tmp.cpp)

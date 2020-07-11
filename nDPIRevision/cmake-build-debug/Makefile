@@ -204,6 +204,33 @@ ndpiSimpleIntRevised.cpp.s:
 	$(MAKE) -f CMakeFiles/nDPIRevision.dir/build.make CMakeFiles/nDPIRevision.dir/ndpiSimpleIntRevised.cpp.s
 .PHONY : ndpiSimpleIntRevised.cpp.s
 
+tmp.o: tmp.cpp.o
+
+.PHONY : tmp.o
+
+# target to build an object file
+tmp.cpp.o:
+	$(MAKE) -f CMakeFiles/nDPIRevision.dir/build.make CMakeFiles/nDPIRevision.dir/tmp.cpp.o
+.PHONY : tmp.cpp.o
+
+tmp.i: tmp.cpp.i
+
+.PHONY : tmp.i
+
+# target to preprocess a source file
+tmp.cpp.i:
+	$(MAKE) -f CMakeFiles/nDPIRevision.dir/build.make CMakeFiles/nDPIRevision.dir/tmp.cpp.i
+.PHONY : tmp.cpp.i
+
+tmp.s: tmp.cpp.s
+
+.PHONY : tmp.s
+
+# target to generate assembly for a file
+tmp.cpp.s:
+	$(MAKE) -f CMakeFiles/nDPIRevision.dir/build.make CMakeFiles/nDPIRevision.dir/tmp.cpp.s
+.PHONY : tmp.cpp.s
+
 # Help Target
 help:
 	@echo "The following are some of the valid targets for this Makefile:"
@@ -222,6 +249,9 @@ help:
 	@echo "... ndpiSimpleIntRevised.o"
 	@echo "... ndpiSimpleIntRevised.i"
 	@echo "... ndpiSimpleIntRevised.s"
+	@echo "... tmp.o"
+	@echo "... tmp.i"
+	@echo "... tmp.s"
 .PHONY : help
 
 

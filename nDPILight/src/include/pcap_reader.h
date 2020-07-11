@@ -46,6 +46,9 @@ public:
     void printInfos();
     int initFileOrDevice();
     void freeReader();
+    static void process_packet(uint8_t *args,
+                               struct pcap_pkthdr *header,
+                               uint8_t *packet);
 
 private:
     int initModule();

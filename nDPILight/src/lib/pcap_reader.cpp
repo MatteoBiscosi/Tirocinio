@@ -7,19 +7,21 @@
 
 /* ********************************** */
 
-//Constructors
-PcapReader::PcapReader() : file_or_device(nullptr) {
+/*  Constructors    */
+PcapReader::PcapReader() : file_or_device(nullptr)
+{
     file_or_device = nullptr;
 }
 
-PcapReader::PcapReader(char const * const dst) : file_or_device(nullptr) {
+PcapReader::PcapReader(char const * const dst) : file_or_device(nullptr)
+{
     file_or_device = dst;
 }
 
 /* ********************************** */
 
 void PcapReader::freeReader()
-//Sort of destructor
+/*  Sort of destructor  */
 {
     if (this->pcap_handle != nullptr) {
         pcap_close(this->pcap_handle);
@@ -39,8 +41,23 @@ void PcapReader::freeReader()
 
 /* ********************************** */
 
-int PcapReader::initFileOrDevice() {
-//Initializing the pcap_handler, needed to read from a file or a device
+int PcapReader::initModule()
+/*  Initialize module's infos   */
+{
+    ndpi_init_prefs init_prefs = ndpi_no_prefs;
+    this->ndpi_struct = ndpi_init_detection_module(init_prefs);
+    if (this->ndpi_struct == nullptr) {
+        return -1;
+    }
+
+    return 0;
+}
+
+/* ********************************** */
+
+int PcapReader::initFileOrDevice()
+/*  Initializing the pcap_handler, needed to read from a file or a device   */
+{
     if (access(file_or_device, R_OK) != 0 && errno == ENOENT) {
         this->pcap_handle = pcap_open_live(file_or_device, /* 1536 */ 65535, 1, 250, pcap_error_buffer);
     } else {
@@ -70,22 +87,9 @@ int PcapReader::initFileOrDevice() {
 
 /* ********************************** */
 
-int PcapReader::initModule() {
-//Initialize module's infos
-    ndpi_init_prefs init_prefs = ndpi_no_prefs;
-    this->ndpi_struct = ndpi_init_detection_module(init_prefs);
-    if (this->ndpi_struct == nullptr) {
-        return -1;
-    }
-
-    return 0;
-}
-
-/* ********************************** */
-
-int PcapReader::initInfos() {
-//Initialize flow's infos
-
+int PcapReader::initInfos()
+/*  Initialize flow's infos */
+{
     this->total_active_flows = 0; /* First initialize active flow's infos */
     this->max_active_flows = MAX_FLOW_ROOTS_PER_THREAD;
     this->ndpi_flows_active = (void **)ndpi_calloc(this->max_idle_flows, sizeof(void *))
@@ -108,9 +112,9 @@ int PcapReader::initInfos() {
 
 /* ********************************** */
 
-void PcapReader::printInfos() {
+void PcapReader::printInfos()
 /*  Prints infos about the packets and flows */
-
+{
     std::cout << "Total packets captured.: " << this->packets_captured << "\n";
     std::cout << "Total packets processed: " << this->packets_processed << "\n";
     std::cout << "Total layer4 data size.: " << this->total_l4_data_len << "\n";
@@ -118,3 +122,15 @@ void PcapReader::printInfos() {
     std::cout << "Total flows timed out..: " << this->total_idle_flows << "\n";
     std::cout << "Total flows detected...: " << this->detected_flow_protocols << "\n";
 }
+
+/* ********************************** */
+
+void PcapReader::process_packet(uint8_t *const args,
+                                struct pcap_pkthdr *const header,
+                                uint8_t *const packet)
+/*  This function is called every time a new packets appears;
+ *  it process all the packets, adding new flows, updating infos, ecc.  */
+{
+
+}
+
