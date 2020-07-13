@@ -150,6 +150,33 @@ nDPILight.cpp.s:
 	$(MAKE) -f CMakeFiles/nDPILight.dir/build.make CMakeFiles/nDPILight.dir/nDPILight.cpp.s
 .PHONY : nDPILight.cpp.s
 
+src/lib/flow_info.o: src/lib/flow_info.cpp.o
+
+.PHONY : src/lib/flow_info.o
+
+# target to build an object file
+src/lib/flow_info.cpp.o:
+	$(MAKE) -f CMakeFiles/nDPILight.dir/build.make CMakeFiles/nDPILight.dir/src/lib/flow_info.cpp.o
+.PHONY : src/lib/flow_info.cpp.o
+
+src/lib/flow_info.i: src/lib/flow_info.cpp.i
+
+.PHONY : src/lib/flow_info.i
+
+# target to preprocess a source file
+src/lib/flow_info.cpp.i:
+	$(MAKE) -f CMakeFiles/nDPILight.dir/build.make CMakeFiles/nDPILight.dir/src/lib/flow_info.cpp.i
+.PHONY : src/lib/flow_info.cpp.i
+
+src/lib/flow_info.s: src/lib/flow_info.cpp.s
+
+.PHONY : src/lib/flow_info.s
+
+# target to generate assembly for a file
+src/lib/flow_info.cpp.s:
+	$(MAKE) -f CMakeFiles/nDPILight.dir/build.make CMakeFiles/nDPILight.dir/src/lib/flow_info.cpp.s
+.PHONY : src/lib/flow_info.cpp.s
+
 src/lib/napatech_reader.o: src/lib/napatech_reader.cpp.o
 
 .PHONY : src/lib/napatech_reader.o
@@ -243,6 +270,9 @@ help:
 	@echo "... nDPILight.o"
 	@echo "... nDPILight.i"
 	@echo "... nDPILight.s"
+	@echo "... src/lib/flow_info.o"
+	@echo "... src/lib/flow_info.i"
+	@echo "... src/lib/flow_info.s"
 	@echo "... src/lib/napatech_reader.o"
 	@echo "... src/lib/napatech_reader.i"
 	@echo "... src/lib/napatech_reader.s"

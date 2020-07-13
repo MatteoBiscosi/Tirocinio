@@ -61,30 +61,10 @@ static char * check_args(int &argc, char ** argv)
 static int setup_pcap(char const * const file_or_device)
 /*  Setup the reader_thread */
 {
-    PcapReader reader {file_or_device};
-
-    reader_thread.pcp_rdr = reader;
     reader_thread.reader_type = 1;
-    reader_thread.pcp_rdr.initFileOrDevice();
+    reader_thread.rdr->initFileOrDevice();
 
     return 0;
-}
-
-/* ********************************** */
-
-static void break_pcap()
-{
-    switch (reader_thread.reader_type) {
-        case 1:
-            if (reader_thread.pcp_rdr.pcap_handle != nullptr) {
-                pcap_breakloop(reader_thread.pcp_rdr.pcap_handle);
-                reader_thread.pcp_rdr.pcap_handle = nullptr;
-            }
-            break;
-        case 0:
-            break;
-    }
-
 }
 
 /* ********************************** */
@@ -104,6 +84,7 @@ static int setup_reader(char const * const file_or_device)
      */
 
     if(setup_pcap(file_or_device) != 0) {
+        reader_thread.rdr = new PcapReader(file_or_device);
         return -1;
     }
 
@@ -117,29 +98,14 @@ static void * run_reader(void * const tmp)
 {
     cout << "Starting reader, Thread id: " << reader_thread.thread_id << "\n";
 
-    switch (reader_thread.reader_type) {
-        case 0:
-            //Napatech
-            break;
-        case 1:
-            //Pcap
-            if(reader_thread.pcp_rdr.pcap_handle != nullptr) {
-                if (pcap_loop(reader_thread.pcp_rdr.pcap_handle, -1,
-                              &reader_thread.pcp_rdr.process_packet, nullptr) == PCAP_ERROR) {
+    reader_thread.rdr->start_read();
 
-                    cerr << "Error while reading using Pcap: "
-                         << pcap_geterr(reader_thread.pcp_rdr.pcap_handle) << "\n";
-
-                    reader_thread.pcp_rdr.error_or_eof = 1;
-                }
-            }
-            break;
-    }
+    return nullptr;
 }
 
 /* ********************************** */
 
-static int start_reader(void)
+static int start_reader()
 /*  Setting up the bitmask needed for the sighandler and starting the worker thread */
 {
     sigset_t thread_signal_set, old_signal_set;
@@ -170,33 +136,21 @@ static int start_reader(void)
 
 /* ********************************** */
 
-static int stop_reader(void)
+static int stop_reader()
 /*  Stop the reader_thread, it means that the program is gonna terminate soon   */
 {
-    break_pcap();
+    reader_thread.rdr->stop_read();
 
     cout << "\t------ Stopping reader ------\t\n";
 
-    switch (reader_thread.reader_type) {
-        case 0:
-            break;
-        case 1:
-            std::cout << "\tStopping Thread " << reader_thread.thread_id << "\n";
-            reader_thread.pcp_rdr.printInfos();
-            break;
-    }
+    std::cout << "\tStopping Thread " << reader_thread.thread_id << "\n";
+    reader_thread.rdr->printInfos();
 
-    if (pthread_join(reader_thread.thread_id, NULL) != 0) {
+    if (pthread_join(reader_thread.thread_id, nullptr) != 0) {
         cerr << "Error in pthread_join: " << strerror(errno) << "\n";
     }
 
-    switch (reader_thread.reader_type) {
-        case 0:
-            break;
-        case 1:
-            reader_thread.pcp_rdr.freeReader();
-            break;
-    }
+    reader_thread.rdr->freeReader();
 
     return 0;
 }
@@ -222,19 +176,11 @@ static void sighandler(int signum)
 
 /* ********************************** */
 
-static int check_error_or_eof(void)
+static int check_error_or_eof()
 /*  Checks if eof is reached in case of a Pcap file */
 {
-    //Napatech
-    if(reader_thread.reader_type == 0) {
-
-    }
-    //Pcap
-    else {
-        if(reader_thread.pcp_rdr.error_or_eof == 0) {
-            return 0;
-        }
-    }
+    if(reader_thread.rdr->check_end() == 0)
+        return 0;
 
     return -1;
 }

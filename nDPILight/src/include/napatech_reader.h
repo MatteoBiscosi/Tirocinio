@@ -5,7 +5,7 @@
 #ifndef NDPILIGHT_NAPATECH_READER_H
 #define NDPILIGHT_NAPATECH_READER_H
 
-class NapatechReader : Reader {
+class NapatechReader : public Reader {
 public:
     const char *file_or_device;
 

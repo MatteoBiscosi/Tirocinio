@@ -91,6 +91,9 @@
 		<Unit filename="/matteo/tirocinio/Tirocinio/nDPILight/nDPILight.cpp">
 			<Option target="nDPILight"/>
 		</Unit>
+		<Unit filename="/matteo/tirocinio/Tirocinio/nDPILight/src/include/flow_info.h">
+			<Option target="nDPILight"/>
+		</Unit>
 		<Unit filename="/matteo/tirocinio/Tirocinio/nDPILight/src/include/napatech_reader.h">
 			<Option target="nDPILight"/>
 		</Unit>
@@ -104,6 +107,9 @@
 			<Option target="nDPILight"/>
 		</Unit>
 		<Unit filename="/matteo/tirocinio/Tirocinio/nDPILight/src/include/reader_thread.h">
+			<Option target="nDPILight"/>
+		</Unit>
+		<Unit filename="/matteo/tirocinio/Tirocinio/nDPILight/src/lib/flow_info.cpp">
 			<Option target="nDPILight"/>
 		</Unit>
 		<Unit filename="/matteo/tirocinio/Tirocinio/nDPILight/src/lib/napatech_reader.cpp">

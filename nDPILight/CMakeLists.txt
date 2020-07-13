@@ -15,4 +15,4 @@ link_directories(./src/src/lib)
 link_directories(./src/lib)
 
 
-add_executable(nDPILight nDPILight.cpp src/include/ndpi_light_includes.h src/include/reader.h src/lib/pcap_reader.cpp src/lib/napatech_reader.cpp src/include/pcap_reader.h src/include/napatech_reader.h src/include/reader_thread.h src/lib/reader_thread.cpp)
+add_executable(nDPILight nDPILight.cpp src/include/ndpi_light_includes.h src/include/reader.h src/lib/pcap_reader.cpp src/lib/napatech_reader.cpp src/include/pcap_reader.h src/include/napatech_reader.h src/include/reader_thread.h src/lib/reader_thread.cpp src/include/flow_info.h src/lib/flow_info.cpp)

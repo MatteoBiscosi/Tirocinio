@@ -11,7 +11,7 @@
  * ****** HAVE TO THINK IF IT'S NEEDED DYNAMIC ALLOCATION OR NOT ******
  */
 
-class PcapReader : Reader {
+class PcapReader : public Reader {
 public:
     const char *file_or_device;
     pcap_t *pcap_handle;
@@ -43,14 +43,30 @@ public:
     explicit PcapReader();
     explicit PcapReader(char const * dst);
 
-    void printInfos();
-    int initFileOrDevice();
-    void freeReader();
-    static void process_packet(uint8_t *args,
-                               struct pcap_pkthdr *header,
-                               uint8_t *packet);
+    void printInfos() override;
+    int initFileOrDevice() override;
+    void freeReader() override;
+    int checkEnd() override;
+
+    int startRead() override;
+    void stopRead() override;
+
+    void processPacket(uint8_t * args,
+                        pcap_pkthdr const * header,
+                        uint8_t const * packet);
+
+
+    //Getters and setters
+    void incrTotalIdleFlows();
+    void incrCurIdleFlows();
+
+    uint64_t getLastTime();
+    void **getNdpiFlowsIdle();
+    unsigned long long int getCurIdleFlows();
+    unsigned long long int getTotalIdleFlows();
 
 private:
+    void checkForIdleFlows();
     int initModule();
     int initInfos();
 };

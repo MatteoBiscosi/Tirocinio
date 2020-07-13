@@ -17,7 +17,7 @@
 #define MAX_READER_THREADS 4
 #define IDLE_SCAN_PERIOD 10000 /* msec */
 #define MAX_IDLE_TIME 300000 /* msec */
-#define INITIAL_THREAD_HASH 0x03dd018b
+
 
 #ifndef ETH_P_IP
 #define ETH_P_IP 0x0800
@@ -114,9 +114,6 @@ static int reader_thread_count = MAX_READER_THREADS;
 static int main_thread_shutdown = 0;
 static uint32_t flow_id = 0;
 
-static void free_workflow(struct nDPI_workflow ** const workflow);
-
-static struct nDPI_workflow * init_workflow(char const * const file_or_device)
 
 
 

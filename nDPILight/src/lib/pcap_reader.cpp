@@ -125,12 +125,221 @@ void PcapReader::printInfos()
 
 /* ********************************** */
 
-void PcapReader::process_packet(uint8_t *const args,
-                                struct pcap_pkthdr *const header,
-                                uint8_t *const packet)
+static void process_helper(uint8_t * const args,
+                           pcap_pkthdr const * const header,
+                           uint8_t const * const packet)
+/*  Utility function used to call class-specific process packet */
+{
+    auto * const reader_thread = (PcapReader *) args;
+    reader_thread->processPacket(nullptr, header, packet);
+}
+
+/* ********************************** */
+
+int PcapReader::startRead()
+/*  Function used to start the pcap_loop    */
+{
+    if(this->pcap_handle != nullptr) {
+        if (pcap_loop(this->pcap_handle, -1,
+                      &process_helper, (uint8_t *) this) == PCAP_ERROR) {
+
+            std::cerr << "Error while reading using Pcap: "
+                 << pcap_geterr(this->pcap_handle) << "\n";
+
+            this->error_or_eof = 1;
+
+            return -1;
+        }
+    }
+
+    return -1;
+}
+
+/* ********************************** */
+
+void PcapReader::stopRead()
+/*  Function used to set pcap to nullptr    */
+{
+    if (this->pcap_handle != nullptr) {
+        pcap_breakloop(this->pcap_handle);
+        this->pcap_handle = nullptr;
+    }
+}
+
+/* ********************************** */
+
+int PcapReader::checkEnd()
+{
+    if(this->error_or_eof == 0)
+        return 0;
+
+    return -1;
+}
+
+/* ********************************** */
+
+static void ndpi_idle_scan_walker(void const * const A, ndpi_VISIT which, int depth, void * const user_data)
+/*  Function used to search for idle flows  */
+{
+    auto * const workflow = (PcapReader *)user_data;
+    auto * const flow = *(FlowInfo **)A;
+
+    (void)depth;
+
+    if (workflow == nullptr || flow == nullptr) {
+        return;
+    }
+
+    /* Is this limit needed?
+    if (workflow->cur_idle_flows == MAX_IDLE_FLOWS_PER_THREAD) {
+        return;
+    }
+    */
+
+    if (which == ndpi_preorder || which == ndpi_leaf) {
+        if ((flow->flow_fin_ack_seen == 1 && flow->flow_ack_seen == 1) ||
+            flow->last_seen + MAX_IDLE_TIME < workflow->getLastTime())
+        {
+            char src_addr_str[INET6_ADDRSTRLEN+1];
+            char dst_addr_str[INET6_ADDRSTRLEN+1];
+            ip_tuple_to_string(flow, src_addr_str, sizeof(src_addr_str), dst_addr_str, sizeof(dst_addr_str));
+            workflow->incrCurIdleFlows();
+            workflow->getNdpiFlowsIdle()[workflow->getCurIdleFlows()] = flow;
+            workflow->incrTotalIdleFlows();
+        }
+    }
+}
+
+/* ********************************** */
+
+
+static int ndpi_workflow_node_cmp(void const * const A, void const * const B) {
+    auto const * const flow_info_a = (FlowInfo *)A;
+    auto const * const flow_info_b = (FlowInfo *)B;
+
+    if (flow_info_a->hashval < flow_info_b->hashval) {
+        return(-1);
+    } else if (flow_info_a->hashval > flow_info_b->hashval) {
+        return(1);
+    }
+
+    /* Flows have the same hash */
+    if (flow_info_a->l4_protocol < flow_info_b->l4_protocol) {
+        return(-1);
+    } else if (flow_info_a->l4_protocol > flow_info_b->l4_protocol) {
+        return(1);
+    }
+
+    if (ip_tuples_equal(flow_info_a, flow_info_b) != 0 &&
+        flow_info_a->src_port == flow_info_b->src_port &&
+        flow_info_a->dst_port == flow_info_b->dst_port)
+    {
+        return(0);
+    }
+
+    return ip_tuples_compare(flow_info_a, flow_info_b);
+}
+
+/* ********************************** */
+
+void PcapReader::checkForIdleFlows()
+/*  Scan used to check if there are idle flows  */
+{
+    /*  Check if at least IDLE_SCAN_PERIOD passed since last scan   */
+    if (this->last_idle_scan_time + IDLE_SCAN_PERIOD < this->last_time) {
+        for (size_t idle_scan_index = 0; idle_scan_index < this->max_active_flows; ++idle_scan_index) {
+            ndpi_twalk(this->ndpi_flows_active[idle_scan_index], ndpi_idle_scan_walker, this);
+
+            /*  Checks all idle flows   */
+            while (this->cur_idle_flows > 0) {
+                auto * const tmp_f =
+                        (FlowInfo *)this->ndpi_flows_idle[--this->cur_idle_flows];
+                if (tmp_f->flow_fin_ack_seen == 1) {
+                    std::cout << "Free fin flow with id " << tmp_f->flow_id << "\n";
+                } else {
+                    std::cout << "Free idle flow with id " << tmp_f->flow_id << "\n";
+                }
+                ndpi_tdelete(tmp_f, &this->ndpi_flows_active[idle_scan_index],
+                                 ndpi_workflow_node_cmp);
+                tmp_f->infoFreer();
+                this->cur_active_flows--;
+            }
+        }
+
+        this->last_idle_scan_time = this->last_time;
+    }
+}
+
+/* ********************************** */
+
+void PcapReader::processPacket(uint8_t * const args,
+                                pcap_pkthdr const * const header,
+                                uint8_t const * const packet)
 /*  This function is called every time a new packets appears;
  *  it process all the packets, adding new flows, updating infos, ecc.  */
 {
+    FlowInfo flow;
+
+    size_t hashed_index;
+    void * tree_result;
+    FlowInfo * flow_to_process;
+
+    int direction_changed = 0;
+    struct ndpi_id_struct * ndpi_src;
+    struct ndpi_id_struct * ndpi_dst;
+
+    const struct ndpi_ethhdr * ethernet;
+    const struct ndpi_iphdr * ip;
+    struct ndpi_ipv6hdr * ip6;
+
+    uint64_t time_ms;
+    const uint16_t eth_offset = 0;
+    uint16_t ip_offset;
+    uint16_t ip_size;
+
+    const uint8_t * l4_ptr = nullptr;
+    uint16_t l4_len = 0;
+
+    uint16_t type;
+    int thread_index = INITIAL_THREAD_HASH; /* generated with `dd if=/dev/random bs=1024 count=1 |& hd' */
+
+
+    this->packets_captured++;
+    time_ms = ((uint64_t) header->ts.tv_sec) * TICK_RESOLUTION + header->ts.tv_usec / (1000000 / TICK_RESOLUTION);
+    this->last_time = time_ms;
+
+
+    /*  Scan done every 10000 ms more or less   */
+    this->checkForIdleFlows();
 
 }
 
+/* ********************************** */
+    /*  GETTERS AND SETTERS */
+
+void PcapReader::incrTotalIdleFlows()
+{
+    this->total_idle_flows++;
+}
+
+void PcapReader::incrCurIdleFlows()
+{
+    this->cur_idle_flows++;
+}
+
+uint64_t PcapReader::getLastTime()
+{
+    return this->last_time;
+}
+
+void **PcapReader::getNdpiFlowsIdle()
+{
+    return this->ndpi_flows_idle;
+}
+
+unsigned long long int PcapReader::getCurIdleFlows()
+{
+    return this->cur_idle_flows;
+}
+
+/* ********************************** */

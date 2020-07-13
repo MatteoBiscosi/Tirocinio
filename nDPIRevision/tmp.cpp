@@ -3,17 +3,6 @@
 //
 
 
-static void ndpi_flow_info_freer(void * const node)
-{
-    struct nDPI_flow_info * const flow = (struct nDPI_flow_info *)node;
-
-    ndpi_free(flow->ndpi_dst);
-    ndpi_free(flow->ndpi_src);
-    ndpi_flow_free(flow->ndpi_flow);
-    ndpi_free(flow);
-}
-
-
 
 static int ip_tuple_to_string(struct nDPI_flow_info const * const flow,
                               char * const src_addr_str, size_t src_addr_len,
@@ -150,85 +139,6 @@ static int ip_tuples_compare(struct nDPI_flow_info const * const A,
     return 0;
 }
 
-static void ndpi_idle_scan_walker(void const * const A, ndpi_VISIT which, int depth, void * const user_data)
-{
-    struct nDPI_workflow * const workflow = (struct nDPI_workflow *)user_data;
-    struct nDPI_flow_info * const flow = *(struct nDPI_flow_info **)A;
-
-    (void)depth;
-
-    if (workflow == NULL || flow == NULL) {
-        return;
-    }
-
-    if (workflow->cur_idle_flows == MAX_IDLE_FLOWS_PER_THREAD) {
-        return;
-    }
-
-    if (which == ndpi_preorder || which == ndpi_leaf) {
-        if ((flow->flow_fin_ack_seen == 1 && flow->flow_ack_seen == 1) ||
-            flow->last_seen + MAX_IDLE_TIME < workflow->last_time)
-        {
-            char src_addr_str[INET6_ADDRSTRLEN+1];
-            char dst_addr_str[INET6_ADDRSTRLEN+1];
-            ip_tuple_to_string(flow, src_addr_str, sizeof(src_addr_str), dst_addr_str, sizeof(dst_addr_str));
-            workflow->ndpi_flows_idle[workflow->cur_idle_flows++] = flow;
-            workflow->total_idle_flows++;
-        }
-    }
-}
-
-static int ndpi_workflow_node_cmp(void const * const A, void const * const B) {
-    struct nDPI_flow_info const * const flow_info_a = (struct nDPI_flow_info *)A;
-    struct nDPI_flow_info const * const flow_info_b = (struct nDPI_flow_info *)B;
-
-    if (flow_info_a->hashval < flow_info_b->hashval) {
-        return(-1);
-    } else if (flow_info_a->hashval > flow_info_b->hashval) {
-        return(1);
-    }
-
-    /* Flows have the same hash */
-    if (flow_info_a->l4_protocol < flow_info_b->l4_protocol) {
-        return(-1);
-    } else if (flow_info_a->l4_protocol > flow_info_b->l4_protocol) {
-        return(1);
-    }
-
-    if (ip_tuples_equal(flow_info_a, flow_info_b) != 0 &&
-        flow_info_a->src_port == flow_info_b->src_port &&
-        flow_info_a->dst_port == flow_info_b->dst_port)
-    {
-        return(0);
-    }
-
-    return ip_tuples_compare(flow_info_a, flow_info_b);
-}
-
-static void check_for_idle_flows(struct nDPI_workflow * const workflow)
-{
-    if (workflow->last_idle_scan_time + IDLE_SCAN_PERIOD < workflow->last_time) {
-        for (size_t idle_scan_index = 0; idle_scan_index < workflow->max_active_flows; ++idle_scan_index) {
-            ndpi_twalk(workflow->ndpi_flows_active[idle_scan_index], ndpi_idle_scan_walker, workflow);
-
-            while (workflow->cur_idle_flows > 0) {
-                struct nDPI_flow_info * const f =
-                        (struct nDPI_flow_info *)workflow->ndpi_flows_idle[--workflow->cur_idle_flows];
-                if (f->flow_fin_ack_seen == 1) {
-                    printf("Free fin flow with id %u\n", f->flow_id);
-                } else {
-                    printf("Free idle flow with id %u\n", f->flow_id);
-                }
-                ndpi_tdelete(f, &workflow->ndpi_flows_active[idle_scan_index],
-                             ndpi_workflow_node_cmp);
-                ndpi_flow_info_freer(f);
-                workflow->cur_active_flows--;
-            }
-        }
-
-        workflow->last_idle_scan_time = workflow->last_time;
-    }
-}
 
 static void ndpi_process_packet(uint8_t * const args,
                                 struct pcap_pkthdr const * const header,
@@ -275,6 +185,8 @@ static void ndpi_process_packet(uint8_t * const args,
     time_ms = ((uint64_t) header->ts.tv_sec) * TICK_RESOLUTION + header->ts.tv_usec / (1000000 / TICK_RESOLUTION);
     workflow->last_time = time_ms;
 
+
+    /*  IS IT REALLY NEEDED TO CHECK FOR IDLE FLOWS EVERY PACKET????    */
     check_for_idle_flows(workflow);
 
     /* process datalink layer */

@@ -1,5 +1,6 @@
 file(REMOVE_RECURSE
   "CMakeFiles/nDPILight.dir/nDPILight.cpp.o"
+  "CMakeFiles/nDPILight.dir/src/lib/flow_info.cpp.o"
   "CMakeFiles/nDPILight.dir/src/lib/napatech_reader.cpp.o"
   "CMakeFiles/nDPILight.dir/src/lib/pcap_reader.cpp.o"
   "CMakeFiles/nDPILight.dir/src/lib/reader_thread.cpp.o"

@@ -4,13 +4,6 @@
 
 #include <ndpi_light_includes.h>
 
-ReaderThread::ReaderThread() : npt_rdr(nullptr), pcp_rdr(nullptr){}
+ReaderThread::ReaderThread() : rdr(nullptr), thread_id(0), reader_type(0){}
 
-ReaderThread::ReaderThread(NapatechReader rdr) {
-    this->npt_rdr = rdr;
-}
-
-ReaderThread::ReaderThread(PcapReader rdr) {
-    this->pcp_rdr = rdr;
-}
 
