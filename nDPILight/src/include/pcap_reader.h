@@ -6,6 +6,7 @@
 #define NDPILIGHT_PCAP_READER_H
 
 #include <ndpi_light_includes.h>
+#include "flow_info.h"
 
 /*
  * ****** HAVE TO THINK IF IT'S NEEDED DYNAMIC ALLOCATION OR NOT ******
@@ -69,7 +70,60 @@ private:
     void checkForIdleFlows();
     int initModule();
     int initInfos();
+    int processL2(pcap_pkthdr const * header,
+                   uint8_t const * packet,
+                   uint16_t& type,
+                   uint16_t& ip_size,
+                   uint16_t& ip_offset,
+                   const uint16_t& eth_offset,
+                   const struct ndpi_ethhdr * ethernet);
+
+    int setL2Ip(pcap_pkthdr const * header,
+                 uint8_t const * packet,
+                 uint16_t& type,
+                 uint16_t& ip_size,
+                 uint16_t& ip_offset,
+                 const struct ndpi_iphdr * ip,
+                 struct ndpi_ipv6hdr * ip6);
+
+    int processL3(FlowInfo& flow,
+                  pcap_pkthdr const * header,
+                  uint8_t const * packet,
+                  uint16_t& type,
+                  uint16_t& ip_size,
+                  uint16_t& ip_offset,
+                  const struct ndpi_iphdr * ip,
+                  struct ndpi_ipv6hdr * ip6,
+                  const uint8_t * l4_ptr,
+                  uint16_t& l4_len);
+
+    int processL4(FlowInfo& flow,
+                  pcap_pkthdr const * header,
+                  uint8_t const * packet,
+                  const uint8_t * l4_ptr,
+                  uint16_t& l4_len);
+
+    int searchVal(FlowInfo& flow,
+                  void * tree_result,
+                  struct ndpi_ipv6hdr * ip6,
+                  size_t& hashed_index,
+                  int& direction_changed);
+
+    int addVal(FlowInfo& flow,
+               FlowInfo * flow_to_process,
+               size_t& hashed_index,
+               struct ndpi_id_struct * ndpi_src,
+               struct ndpi_id_struct * ndpi_dst);
+
+    void printFlowInfos(FlowInfo * flow_to_process,
+                        const struct ndpi_iphdr * ip,
+                        struct ndpi_ipv6hdr * ip6,
+                        uint16_t& ip_size,
+                        struct ndpi_id_struct * ndpi_src,
+                        struct ndpi_id_struct * ndpi_dst,
+                        uint64_t& time_ms);
 };
 
+static uint32_t flow_id = 0;
 
 #endif //NDPILIGHT_PCAP_READER_H

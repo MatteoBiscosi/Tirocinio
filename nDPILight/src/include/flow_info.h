@@ -58,6 +58,8 @@ public:
                            char * dst_addr_str, size_t dst_addr_len);
     int ipTuplesEqual(FlowInfo const * B);
     int ipTuplesCompare(FlowInfo const * B);
+    void setFlowL3Type(int A);
+    int getFlowL3Type();
 };
 
 #endif //NDPILIGHT_FLOW_INFO_H

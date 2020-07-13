@@ -105,3 +105,21 @@ int FlowInfo::ipTuplesCompare(FlowInfo const * const B)
     /*  Equals  */
     return 0;
 }
+
+/* ********************************** */
+
+void FlowInfo::setFlowL3Type(int const type)
+{
+    if(type == 4)
+        this->l3_type = L3_IP;
+    else
+        this->l3_type = L3_IP6;
+}
+
+int FlowInfo::getFlowL3Type()
+{
+    if(this->l3_type == L3_IP)
+        return 4;
+    else
+        return 6;
+}
