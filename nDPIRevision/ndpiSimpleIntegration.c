@@ -31,9 +31,7 @@
 #define ETH_P_ARP  0x0806
 #endif
 
-enum nDPI_l3_type {
-    L3_IP, L3_IP6
-};
+
 
 struct nDPI_flow_info {
     uint32_t flow_id;

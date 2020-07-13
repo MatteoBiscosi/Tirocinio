@@ -16,7 +16,11 @@ public:
     uint64_t last_seen;
     uint64_t hashval;
 
-    enum nDPI_l3_type l3_type;
+    enum flow_l3_type {
+        L3_IP, L3_IP6
+    };
+
+    flow_l3_type l3_type;
     union {
         struct {
             uint32_t src;
@@ -50,6 +54,10 @@ public:
 
 public:
     void infoFreer();
+    int ipTupleToString(char * src_addr_str, size_t src_addr_len,
+                           char * dst_addr_str, size_t dst_addr_len);
+    int ipTuplesEqual(FlowInfo const * B);
+    int ipTuplesCompare(FlowInfo const * B);
 };
 
 #endif //NDPILIGHT_FLOW_INFO_H

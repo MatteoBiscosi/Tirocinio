@@ -199,10 +199,11 @@ static void ndpi_idle_scan_walker(void const * const A, ndpi_VISIT which, int de
     if (which == ndpi_preorder || which == ndpi_leaf) {
         if ((flow->flow_fin_ack_seen == 1 && flow->flow_ack_seen == 1) ||
             flow->last_seen + MAX_IDLE_TIME < workflow->getLastTime())
+        /*  New flow that need to be added to idle flows    */
         {
             char src_addr_str[INET6_ADDRSTRLEN+1];
             char dst_addr_str[INET6_ADDRSTRLEN+1];
-            ip_tuple_to_string(flow, src_addr_str, sizeof(src_addr_str), dst_addr_str, sizeof(dst_addr_str));
+            flow->ipTupleToString(src_addr_str, sizeof(src_addr_str), dst_addr_str, sizeof(dst_addr_str));
             workflow->incrCurIdleFlows();
             workflow->getNdpiFlowsIdle()[workflow->getCurIdleFlows()] = flow;
             workflow->incrTotalIdleFlows();
@@ -212,32 +213,36 @@ static void ndpi_idle_scan_walker(void const * const A, ndpi_VISIT which, int de
 
 /* ********************************** */
 
+static int ndpi_workflow_node_cmp(void const * const A, void const * const B)
+/*  Checks if two nodes of the tree, A and B, are equals    */
+{
+    auto * const flow_info_a = (FlowInfo *)A;
+    auto * const flow_info_b = (FlowInfo *)B;
 
-static int ndpi_workflow_node_cmp(void const * const A, void const * const B) {
-    auto const * const flow_info_a = (FlowInfo *)A;
-    auto const * const flow_info_b = (FlowInfo *)B;
-
+    /*  Check hashval   */
     if (flow_info_a->hashval < flow_info_b->hashval) {
         return(-1);
     } else if (flow_info_a->hashval > flow_info_b->hashval) {
         return(1);
     }
 
-    /* Flows have the same hash */
+    /*  Flows have the same hash, check l4_protocol */
     if (flow_info_a->l4_protocol < flow_info_b->l4_protocol) {
         return(-1);
     } else if (flow_info_a->l4_protocol > flow_info_b->l4_protocol) {
         return(1);
     }
 
-    if (ip_tuples_equal(flow_info_a, flow_info_b) != 0 &&
+    /*  Have same hashval and l4, check l3 ip   */
+    if (flow_info_a->ipTuplesEqual(flow_info_b) != 0 &&
         flow_info_a->src_port == flow_info_b->src_port &&
         flow_info_a->dst_port == flow_info_b->dst_port)
     {
         return(0);
     }
 
-    return ip_tuples_compare(flow_info_a, flow_info_b);
+    /*  Last check, l3 ip and port  */
+    return flow_info_a->ipTuplesCompare(flow_info_b);
 }
 
 /* ********************************** */
@@ -250,8 +255,9 @@ void PcapReader::checkForIdleFlows()
         for (size_t idle_scan_index = 0; idle_scan_index < this->max_active_flows; ++idle_scan_index) {
             ndpi_twalk(this->ndpi_flows_active[idle_scan_index], ndpi_idle_scan_walker, this);
 
-            /*  Checks all idle flows   */
+            /*  Removes all idle flows that were copied into ndpi_flows_idle from the ndpi_twalk    */
             while (this->cur_idle_flows > 0) {
+                /*  Get the flow    */
                 auto * const tmp_f =
                         (FlowInfo *)this->ndpi_flows_idle[--this->cur_idle_flows];
                 if (tmp_f->flow_fin_ack_seen == 1) {
@@ -259,6 +265,8 @@ void PcapReader::checkForIdleFlows()
                 } else {
                     std::cout << "Free idle flow with id " << tmp_f->flow_id << "\n";
                 }
+
+                /*  Removes it from the active flows    */
                 ndpi_tdelete(tmp_f, &this->ndpi_flows_active[idle_scan_index],
                                  ndpi_workflow_node_cmp);
                 tmp_f->infoFreer();
