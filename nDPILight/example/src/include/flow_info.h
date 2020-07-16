@@ -58,9 +58,10 @@ public:
     int getFlowL3Type();
 };
 
-void static flowFreer(void * const node)
+static void flowFreer(void * const node)
 {
     FlowInfo * const flow = (FlowInfo *) node;
+
     ndpi_free(flow->ndpi_dst);
     ndpi_free(flow->ndpi_src);
     ndpi_flow_free(flow->ndpi_flow);

@@ -16,34 +16,37 @@
 class PcapReader : public Reader {
 public:
     const char *file_or_device;
-    pcap_t *pcap_handle;
-    uint8_t error_or_eof:1;
+    pcap_t *pcap_handle = nullptr;
+    int error_or_eof = 0;
 
 private:
-    unsigned long long int packets_captured;
-    unsigned long long int packets_processed;
-    unsigned long long int total_l4_data_len;
-    unsigned long long int detected_flow_protocols;
+    unsigned long long int packets_captured = 0;
+    unsigned long long int packets_processed = 0;
+    unsigned long long int total_l4_data_len = 0;
+    unsigned long long int detected_flow_protocols = 0;
 
-    uint64_t last_idle_scan_time;
-    uint64_t last_time;
+    uint64_t last_idle_scan_time = 0;
+    uint64_t last_time = 0;
 
-    void **ndpi_flows_active;
-    unsigned long long int max_active_flows;
-    unsigned long long int cur_active_flows;
-    unsigned long long int total_active_flows;
+    void **ndpi_flows_active = nullptr;
+    unsigned long long int max_active_flows = 0;
+    unsigned long long int cur_active_flows = 0;
+    unsigned long long int total_active_flows = 0;
 
-    void **ndpi_flows_idle;
-    unsigned long long int max_idle_flows;
-    unsigned long long int cur_idle_flows;
-    unsigned long long int total_idle_flows;
+    void **ndpi_flows_idle = nullptr;
+    unsigned long long int max_idle_flows = 0;
+    unsigned long long int cur_idle_flows = 0;
+    unsigned long long int total_idle_flows = 0;
 
     char pcap_error_buffer[PCAP_ERRBUF_SIZE];
-    struct ndpi_detection_module_struct * ndpi_struct;
+    struct ndpi_detection_module_struct * ndpi_struct = nullptr;
 
 public:
     explicit PcapReader();
     explicit PcapReader(char const * dst);
+    explicit PcapReader(char const * dst, int error_or_eof);
+
+    ~PcapReader();
 
     void printInfos() override;
     int initFileOrDevice() override;
@@ -77,15 +80,15 @@ private:
                    uint16_t& ip_size,
                    uint16_t& ip_offset,
                    const uint16_t& eth_offset,
-                   const struct ndpi_ethhdr * ethernet);
+                   const struct ndpi_ethhdr * & ethernet);
 
     int setL2Ip(pcap_pkthdr const * header,
                  uint8_t const * packet,
                  uint16_t& type,
                  uint16_t& ip_size,
                  uint16_t& ip_offset,
-                 const struct ndpi_iphdr * ip,
-                 struct ndpi_ipv6hdr * ip6);
+                 const struct ndpi_iphdr * & ip,
+                 struct ndpi_ipv6hdr * & ip6);
 
     int processL3(FlowInfo& flow,
                   pcap_pkthdr const * header,
@@ -93,35 +96,35 @@ private:
                   uint16_t& type,
                   uint16_t& ip_size,
                   uint16_t& ip_offset,
-                  const struct ndpi_iphdr * ip,
-                  struct ndpi_ipv6hdr * ip6,
-                  const uint8_t * l4_ptr,
+                  const struct ndpi_iphdr * & ip,
+                  struct ndpi_ipv6hdr * & ip6,
+                  const uint8_t * & l4_ptr,
                   uint16_t& l4_len);
 
     int processL4(FlowInfo& flow,
                   pcap_pkthdr const * header,
                   uint8_t const * packet,
-                  const uint8_t * l4_ptr,
+                  const uint8_t * & l4_ptr,
                   uint16_t& l4_len);
 
     int searchVal(FlowInfo& flow,
-                  void * tree_result,
-                  struct ndpi_ipv6hdr * ip6,
+                  void * & tree_result,
+                  struct ndpi_ipv6hdr * & ip6,
                   size_t& hashed_index,
                   int& direction_changed);
 
     int addVal(FlowInfo& flow,
-               FlowInfo * flow_to_process,
+               FlowInfo * & flow_to_process,
                size_t& hashed_index,
-               struct ndpi_id_struct * ndpi_src,
-               struct ndpi_id_struct * ndpi_dst);
+               struct ndpi_id_struct * & ndpi_src,
+               struct ndpi_id_struct * & ndpi_dst);
 
-    void printFlowInfos(FlowInfo * flow_to_process,
-                        const struct ndpi_iphdr * ip,
-                        struct ndpi_ipv6hdr * ip6,
+    void printFlowInfos(FlowInfo * & flow_to_process,
+                        const struct ndpi_iphdr * & ip,
+                        struct ndpi_ipv6hdr * & ip6,
                         uint16_t& ip_size,
-                        struct ndpi_id_struct * ndpi_src,
-                        struct ndpi_id_struct * ndpi_dst,
+                        struct ndpi_id_struct * & ndpi_src,
+                        struct ndpi_id_struct * & ndpi_dst,
                         uint64_t& time_ms);
 };
 

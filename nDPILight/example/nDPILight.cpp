@@ -8,13 +8,8 @@
 using namespace std;
 
 
-
 ReaderThread reader_thread;
 atomic_int8_t terminate_thread {0};
-
-
-
-
 
 
 static bool find_help(char ** begin, char ** end, const std::string& option)
@@ -53,7 +48,7 @@ static char * check_args(int &argc, char ** argv)
 
     /*  Device or File needed   */
     if(dst == nullptr) {
-        cerr << "Error: no device or file specified, please check -h";
+        cerr << "Error: no device or file specified, please check -h\n";
     }
 
     return dst;
@@ -65,6 +60,9 @@ static int setup_pcap(char const * const file_or_device)
 /*  Setup the reader_thread */
 {
     reader_thread.reader_type = 1;
+    PcapReader *tmp = new PcapReader(file_or_device);
+    reader_thread.rdr = tmp;
+
     reader_thread.rdr->initFileOrDevice();
 
     return 0;
@@ -86,8 +84,8 @@ static int setup_reader(char const * const file_or_device)
      * }
      */
 
+
     if(setup_pcap(file_or_device) != 0) {
-        reader_thread.rdr = new PcapReader(file_or_device);
         return -1;
     }
 
@@ -144,16 +142,17 @@ static int stop_reader()
 {
     reader_thread.rdr->stopRead();
 
-    cout << "\t------ Stopping reader ------\t\n";
+    cout << "\nStopping reader,";
 
-    std::cout << "\tStopping Thread " << reader_thread.thread_id << "\n";
-    reader_thread.rdr->printInfos();
+    cout << "Thread id: " << reader_thread.thread_id << "\n";
 
     if (pthread_join(reader_thread.thread_id, nullptr) != 0) {
         cerr << "Error in pthread_join: " << strerror(errno) << "\n";
     }
 
-    reader_thread.rdr->freeReader();
+    reader_thread.rdr->printInfos();
+
+    delete(reader_thread.rdr);
 
     return 0;
 }
@@ -163,7 +162,7 @@ static int stop_reader()
 static void sighandler(int signum)
 /*  signal handler, set up with SIGINT and SIGTERM  */
 {
-    cerr << "Received SIGNAL " << signum << "\n";
+    cerr << "\n\nReceived SIGNAL " << signum << "\n";
 
     if (terminate_thread == 0) {
         terminate_thread = 1;
@@ -182,8 +181,10 @@ static void sighandler(int signum)
 static int check_error_or_eof()
 /*  Checks if eof is reached in case of a Pcap file */
 {
-    if(reader_thread.rdr->checkEnd() == 0)
-        return 0;
+    if(reader_thread.rdr != nullptr) {
+        if (reader_thread.rdr->checkEnd() == 0)
+            return 0;
+    }
 
     return -1;
 }
@@ -192,14 +193,11 @@ static int check_error_or_eof()
 
 int main(int argc, char * argv[])
 {
-    cout << "\t-----------------------------\n"
+    cout << "\t----------------------------------------\n"
          << "\tWELCOME TO NDPI LIGHT VERSION\n"
-         << "\t-----------------------------\n\n";
-
-//    cout << "----------------------------------\n"
-//         << "nDPI version: %s\n" << ndpi_revision()
-//        << " API version: %u\n" << ndpi_get_api_version()
-//         << "----------------------------------\n";
+         << "\tnDPI version: " << ndpi_revision() << "\n"
+         << "\tAPI version : " << ndpi_get_api_version() << "\n"
+         << "\t----------------------------------------\n\n";
 
     char *dst;
 
@@ -215,10 +213,14 @@ int main(int argc, char * argv[])
         return 1;
     }
 
+
+    cout << "Setup reader finished\n";
+
     if(start_reader() != 0) {
         cerr << "nDPILight initialization failed\n";
         return 1;
     }
+    cout << "Start reader finished\n";
 
     /*  Setting up the sighandler bitmask   */
     signal(SIGINT, sighandler);

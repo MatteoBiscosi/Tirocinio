@@ -11,7 +11,7 @@
 
 class NapatechReader : public Reader {
 public:
-    const char *file_or_device;
+    const char *file_or_device = nullptr;
 
 public:
     explicit NapatechReader();

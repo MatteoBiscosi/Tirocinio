@@ -3,6 +3,8 @@
 //
 
 #include "reader_thread.h"
+#include "pcap_reader.h"
+
 
 ReaderThread::ReaderThread() {
     this->reader_type = 0;
@@ -11,11 +13,8 @@ ReaderThread::ReaderThread() {
     std::cout << "Reader thread constructor\n";
 }
 
-ReaderThread::ReaderThread(PcapReader tmp) {
-    this->reader_type = 0;
-    this->rdr = new PcapReader(tmp);
-    this->thread_id = 0;
-    std::cout << "Reader thread constructor\n";
-}
+/* ********************************** */
+
+
 
 

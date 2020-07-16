@@ -18,5 +18,8 @@ public:
     virtual void freeReader() = 0;
     virtual void stopRead() = 0;
     virtual int checkEnd() = 0;
+    virtual void processPacket(uint8_t * args,
+                               pcap_pkthdr const * header,
+                               uint8_t const * packet) = 0;
 };
 #endif //NDPILIGHT_READER_H
