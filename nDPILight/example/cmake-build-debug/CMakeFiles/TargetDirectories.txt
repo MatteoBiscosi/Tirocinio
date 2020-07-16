@@ -1,3 +1,0 @@
-/matteo/tirocinio/Tirocinio/nDPILight/cmake-build-debug/CMakeFiles/rebuild_cache.dir
-/matteo/tirocinio/Tirocinio/nDPILight/cmake-build-debug/CMakeFiles/edit_cache.dir
-/matteo/tirocinio/Tirocinio/nDPILight/cmake-build-debug/CMakeFiles/nDPILight.dir
