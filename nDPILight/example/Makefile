@@ -2,7 +2,6 @@ CC=gcc
 CXX=g++
 BUILD    := ./build
 OBJ_DIR  := $(BUILD)/objects
-APP_DIR  := $(BUILD)/apps
 TARGET   := nDPILight
 SRCHOME=../src
 SRCEXTRALIB=./src/include
@@ -11,12 +10,10 @@ LIBNDPI=$(SRCHOME)/lib/libndpi.a
 LDFLAGS=$(LIBNDPI) -lpcap  -lpthread -lm
 HEADERS=intrusion_detection.h reader_util.h $(SRCHOME)/include/ndpi_api.h \
         $(SRCHOME)/include/ndpi_typedefs.h $(SRCHOME)/include/ndpi_protocol_ids.h
-OBJS=ndpiReader.o reader_util.o intrusion_detection.o
-PREFIX?=/usr/local
 SRC      :=     $(wildcard src/lib/*.cpp)   \
                 $(wildcard nDPILight.cpp) \
 
-all: build $(APP_DIR)/$(TARGET)
+all: build .$(TARGET)
 
 EXECUTABLE_SOURCES := nDPILight.c
 COMMON_SOURCES := $(filter-out $(EXECUTABLE_SOURCES),$(wildcard *.c ))
@@ -26,53 +23,19 @@ $(OBJ_DIR)/%.o: %.cpp
 	@mkdir -p $(@D)
 	$(CXX) $(CFLAGS) -c $< -o $@ $(LDFLAGS)
 
-$(APP_DIR)/$(TARGET): $(OBJECTS)
+./$(TARGET): $(OBJECTS)
 	@mkdir -p $(@D)
-	$(CXX) $(CFLAGS) -o $(APP_DIR)/$(TARGET) $^ $(LDFLAGS)
+	$(CXX) $(CFLAGS) -o ./$(TARGET) $^ $(LDFLAGS)
 
 %.o: %.cpp
 	$(CXX) $(CFLAGS) -c $< -o $@ $(LDFLAGS)
-
-libndpiReader.a: $(COMMON_SOURCES:%.c=%.o) $(LIBNDPI)
-	ar rsv libndpiReader.a $(COMMON_SOURCES:%.c=%.o)
-
-ndpiReader: libndpiReader.a $(LIBNDPI) $(EXECUTABLE_SOURCES:%.c=%.o)
-	$(CC) $(CFLAGS) $(EXECUTABLE_SOURCES:%.c=%.o) libndpiReader.a -o $@ $(LDFLAGS)
-
-ndpiSimpleIntegration: ndpiSimpleIntegration.o
-	$(CXX) $(CFLAGS) $< -o $@ $(LDFLAGS)
-
-nDPILight: nDPILight.o
-	$(CXX) $(CXXFLAGS) -o nDPILight $^ $(LDFLAGS)
 
 %.o: %.c $(HEADERS) Makefile
 	$(CC) $(CFLAGS) -c $< -o $@
 
 build:
-	@mkdir -p $(APP_DIR)
 	@mkdir -p $(OBJ_DIR)
 
-install: ndpiReader
-	mkdir -p $(DESTDIR)$(PREFIX)/bin/
-	mkdir -p $(DESTDIR)$(PREFIX)/share/ndpi
-	cp ndpiReader $(DESTDIR)$(PREFIX)/bin/
-	cp protos.txt $(DESTDIR)$(PREFIX)/share/ndpi/ndpiProtos.txt
-	cp mining_hosts.txt $(DESTDIR)$(PREFIX)/share/ndpi/ndpiCustomCategory.txt
-	[ -f build/app/ndpiReader.dpdk ] && cp build/app/ndpiReader.dpdk $(DESTDIR)$(PREFIX)/bin/ || true
-	[ -f ndpiReader.dpdk ] && cp ndpiReader.dpdk $(DESTDIR)$(PREFIX)/bin/ || true
-
-dpdk:
-	make -f Makefile.dpdk
-
-check:
-	 cppcheck --template='{file}:{line}:{severity}:{message}' --quiet --enable=all --force -I$(SRCHOME)/include *.c
-
 clean:
-	/bin/rm -f *.o ndpiReader ndpiReader.dpdk
-	/bin/rm -f .*.dpdk.cmd .*.o.cmd *.dpdk.map .*.o.d
-	/bin/rm -f _install _postbuild _postinstall _preinstall
-	/bin/rm -rf build
-
-distclean: clean
-	/bin/rm -f Makefile.dpdk
-	/bin/rm -f Makefile
+	/bin/rm -f nDPILight
+	/bin/rm -r -f build

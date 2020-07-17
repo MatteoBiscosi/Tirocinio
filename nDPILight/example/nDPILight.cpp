@@ -1,11 +1,10 @@
 #include <ndpi_light_includes.h>
-#include <reader_thread.h>
-#include <pcap_reader.h>
-#include <csignal>
-/*
- * ******** Need to revise includes *********
- */
+#include "ReaderThread.h"
+#include "PcapReader.h"
+
+
 using namespace std;
+
 
 
 ReaderThread reader_thread;
@@ -63,7 +62,8 @@ static int setup_pcap(char const * const file_or_device)
     PcapReader *tmp = new PcapReader(file_or_device);
     reader_thread.rdr = tmp;
 
-    reader_thread.rdr->initFileOrDevice();
+    if(reader_thread.rdr->initFileOrDevice() == -1)
+        return -1;
 
     return 0;
 }
@@ -193,11 +193,11 @@ static int check_error_or_eof()
 
 int main(int argc, char * argv[])
 {
-    cout << "\t----------------------------------------\n"
+    cout << "-------------------------------------------------\n"
          << "\tWELCOME TO NDPI LIGHT VERSION\n"
          << "\tnDPI version: " << ndpi_revision() << "\n"
          << "\tAPI version : " << ndpi_get_api_version() << "\n"
-         << "\t----------------------------------------\n\n";
+         << "-------------------------------------------------\n\n";
 
     char *dst;
 
@@ -214,13 +214,10 @@ int main(int argc, char * argv[])
     }
 
 
-    cout << "Setup reader finished\n";
-
     if(start_reader() != 0) {
         cerr << "nDPILight initialization failed\n";
         return 1;
     }
-    cout << "Start reader finished\n";
 
     /*  Setting up the sighandler bitmask   */
     signal(SIGINT, sighandler);
