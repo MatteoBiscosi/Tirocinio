@@ -12,15 +12,14 @@ SRC      	:=	$(wildcard src/lib/*.cpp)	\
                	$(wildcard nDPILight.cpp)
 TARGET		:= 	nDPILight
 
-
 .PHONY : all clean
 
 
 all: build ./$(TARGET)
 
-EXECUTABLE_SOURCES := nDPILight.c
-COMMON_SOURCES := $(filter-out $(EXECUTABLE_SOURCES),$(wildcard *.c ))
-OBJECTS  := $(SRC:%.cpp=$(OBJ_DIR)/%.o)
+EXECUTABLE_SOURCES	:=	nDPILight.c
+COMMON_SOURCES		:=	$(filter-out $(EXECUTABLE_SOURCES),$(wildcard *.c ))
+OBJECTS				:=	$(SRC:%.cpp=$(OBJ_DIR)/%.o)
 
 $(OBJ_DIR)/%.o: %.cpp
 	@mkdir -p $(@D)
