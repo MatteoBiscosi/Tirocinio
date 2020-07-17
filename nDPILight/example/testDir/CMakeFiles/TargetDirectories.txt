@@ -1,3 +1,0 @@
-/matteo/tirocinio/Tirocinio/nDPILight/testDir/CMakeFiles/rebuild_cache.dir
-/matteo/tirocinio/Tirocinio/nDPILight/testDir/CMakeFiles/edit_cache.dir
-/matteo/tirocinio/Tirocinio/nDPILight/testDir/CMakeFiles/nDPILight.dir
