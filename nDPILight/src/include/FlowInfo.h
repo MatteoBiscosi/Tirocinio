@@ -62,6 +62,9 @@ static void flowFreer(void * const node)
 {
     FlowInfo * const flow = (FlowInfo *) node;
 
+    if(flow == nullptr)
+        return;
+
     ndpi_free(flow->ndpi_dst);
     ndpi_free(flow->ndpi_src);
     ndpi_flow_free(flow->ndpi_flow);
