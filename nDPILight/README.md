@@ -12,7 +12,7 @@ Short guide:
   
 ## Run
 After compiling the necessary software (described into the previous session), run `./nDPILight -h` to check options. 
-**Important**: Required `sudo` permissions to run the program.
+<br />**Important**: Required `sudo` permissions to run the program.
 
 ### Authors
 - Matteo Biscosi
