@@ -1,5 +1,5 @@
 ## What is it
-A light version of nDPI software, developed by ntop (check [here](https://github.com/ntop/nDPI) for more infos).
+A light version of nDPI software, developed by ntop (check [here](https://github.com/ntop/nDPI/blob/dev/README.md) for more infos).
 
 ## Prerequisites
 For the program to run correctly, it requires a compiled nDPI software into the same directory of Tirocinio (check [here](https://github.com/ntop/nDPI/blob/dev/README.md) for infos about nDPI compiling).
