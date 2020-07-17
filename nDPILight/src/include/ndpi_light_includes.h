@@ -11,6 +11,7 @@
 #include <cstring>
 #include <cerrno>
 #include <cstdlib>
+#include <fstream>
 #include <algorithm>
 #include <memory>
 #include <pcap/pcap.h>
@@ -20,6 +21,8 @@
 #include <pthread.h>
 #include <unistd.h>
 #include <atomic>
+#include <sys/stat.h>
+#include <syslog.h>
 #include "ndpi_main.h"
 #include "ndpi_typedefs.h"
 #include "ndpi_classify.h"

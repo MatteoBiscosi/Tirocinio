@@ -1,6 +1,8 @@
-#include <ndpi_light_includes.h>
+#include "ndpi_light_includes.h"
 #include "ReaderThread.h"
 #include "PcapReader.h"
+#include "Trace.h"
+
 
 
 using namespace std;

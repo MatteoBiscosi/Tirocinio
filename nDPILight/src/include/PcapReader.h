@@ -5,7 +5,7 @@
 #ifndef NDPILIGHT_PCAP_READER_H
 #define NDPILIGHT_PCAP_READER_H
 
-#include <ndpi_light_includes.h>
+#include "ndpi_light_includes.h"
 #include "FlowInfo.h"
 #include "Reader.h"
 #include "ReaderThread.h"

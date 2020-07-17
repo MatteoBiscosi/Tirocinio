@@ -1,3 +1,10 @@
+# Visual code autogen files #
 /.vscode/
+
+# Files generated from compiling makefile
 /nDPILight/build/
-/nDPILight/nDPILight
+
+/nDPILight/
+nDPILight
+
+/.gitignore
