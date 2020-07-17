@@ -65,10 +65,14 @@ static void flowFreer(void * const node)
     if(flow == nullptr)
         return;
 
-    ndpi_free(flow->ndpi_dst);
-    ndpi_free(flow->ndpi_src);
-    ndpi_flow_free(flow->ndpi_flow);
-    ndpi_free(flow);
+    if(flow->ndpi_dst != nullptr)
+        ndpi_free(flow->ndpi_dst);
+    if(flow->ndpi_src != nullptr)
+        ndpi_free(flow->ndpi_src);
+    if(flow->ndpi_flow != nullptr)
+        ndpi_flow_free(flow->ndpi_flow);
+    if(flow != nullptr)
+        ndpi_free(flow);
 }
 
 #endif //NDPILIGHT_FLOW_INFO_H

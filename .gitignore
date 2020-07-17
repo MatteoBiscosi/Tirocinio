@@ -1,2 +1,3 @@
-.vscode/
-nDPILight/build/
+/.vscode/
+/nDPILight/build/
+/nDPILight/nDPILight
