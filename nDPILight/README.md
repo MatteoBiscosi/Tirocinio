@@ -8,10 +8,11 @@ Short guide:
 - git clone https://github.com/ntop/nDPI.git
 - cd nDPI; ./autogen.sh; ./configure; make; cd ..
 - git clone https://github.com/MatteoBiscosi/Tirocinio.git
-- cd Tirocinio; make
+- cd Tirocinio/nDPILight; make
   
 ## Run
 After compiling the necessary software (described into the previous session), run `./nDPILight -h` to check options. 
+\*\*Important\*\*: Required `sudo` permissions to run the program.
 
 ### Authors
 - Matteo Biscosi
