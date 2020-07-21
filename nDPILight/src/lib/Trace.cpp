@@ -5,7 +5,7 @@
  *
  */
 
-#include "Trace.h"
+#include "ndpi_light_includes.h"
 
 
 /* ******************************* */
@@ -23,14 +23,13 @@ bool inline file_exists(const char *path) {
 
 Trace::Trace() {
   traceLevel = TRACE_LEVEL_NORMAL;
-  logFile = "./log";
+  logFile = (char *) "./logs/log";
   logFd = NULL;
   pthread_mutex_init(&the_mutex, NULL);
 
   if(file_exists(logFile))
     open_log();
   else {
-
     open_log();
   }
 };
@@ -39,14 +38,10 @@ Trace::Trace() {
 
 Trace::~Trace() {
   if(logFd)      fclose(logFd);
-  if(logFile)    free(logFile);
+  //if(logFile)    free(logFile);
+  
+  pthread_mutex_destroy(&the_mutex);
 };
-
-/* ******************************* */
-
-Trace::init() {
-  if(file_exists(log_file))
-}
 
 /* ******************************* */
 
@@ -112,23 +107,25 @@ void Trace::set_trace_level(u_int8_t id) {
 
 /* ******************************* */
 
-void Trace::traceEvent(int eventTraceLevel, const char* _file,
-		       const int line, const char * format, ...) {
+void Trace::traceEvent(int eventTraceLevel, const char * format, ...) {
   va_list va_ap;
 #ifndef WIN32
   struct tm result;
 #endif
 
-  if((eventTraceLevel <= traceLevel) && (traceLevel > 0)) {
+  this->traceLevel;
+  int line = this->numLogLines;
+
+  if((eventTraceLevel <= this->traceLevel) && (this->traceLevel > 0)) {
     char buf[8100], out_buf[8192];
-    char theDate[32], *file = (char*)_file;
+    char theDate[32], *file = this->logFile;
     const char *extra_msg = "";
     time_t theTime = time(NULL);
 #ifndef WIN32
     char *syslogMsg;
 #endif
     char filebuf[MAX_PATH];
-    const char *backslash = strrchr(_file,
+    const char *backslash = strrchr(this->logFile,
 #ifdef WIN32
 				    '\\'
 #else
@@ -161,7 +158,7 @@ void Trace::traceEvent(int eventTraceLevel, const char* _file,
 
     while(buf[strlen(buf)-1] == '\n') buf[strlen(buf)-1] = '\0';
 
-    snprintf(out_buf, sizeof(out_buf), "%s [%s:%d] %s%s", theDate, file, line, extra_msg, buf);
+    snprintf(out_buf, sizeof(out_buf), "%s [%s:%d] %s%s", theDate, file, line, extra_msg, buf) < 0 ? abort() : (void)0;
 
     if(logFd) {
       pthread_mutex_lock(&the_mutex);

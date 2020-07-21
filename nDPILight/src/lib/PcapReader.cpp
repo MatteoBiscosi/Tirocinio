@@ -3,7 +3,7 @@
 //
 
 
-#include "PcapReader.h"
+#include "ndpi_light_includes.h"
 
 
 /* ********************************** */
@@ -50,7 +50,6 @@ static int ndpi_workflow_node_cmp(void const * const A, void const * const B)
     FlowInfo * const flow_info_b = (FlowInfo *)B;
 
     if(flow_info_a == nullptr || flow_info_b == nullptr) {
-        std::cout << "nullptr\n";
         return -1;
     }
 
@@ -155,20 +154,21 @@ int PcapReader::initFileOrDevice()
     }
 
     if(this->pcap_handle == nullptr) {
-        std::cerr << "Error, pcap_open_live / pcap_open_offline_with_tstamp_precision:\n"
-                  << pcap_error_buffer << "\n\n";
+        tracer->traceEvent(0, "Error, pcap_open_live\
+                                pcap_open_offline_with_tstamp_precision:\
+                                \n%s\n\n", pcap_error_buffer);
         this->freeReader();
         return -1;
     }
 
     if(this->initModule() != 0) {
-        std::cerr << "Error initializing detection module\n";
+        tracer->traceEvent(0, "Error initializing detection module\n");
         this->freeReader();
         return -1;
     }
 
     if(this->initInfos() != 0) {
-        std::cerr << "Error initializing structure infos\n";
+        tracer->traceEvent(0, "Error initializing structure infos\n");
         this->freeReader();
         return -1;
     }
@@ -208,12 +208,12 @@ int PcapReader::initInfos()
 void PcapReader::printInfos()
 /*  Prints infos about the packets and flows */
 {
-    std::cout << "Total packets captured.: " << this->packets_captured << "\n";
-    std::cout << "Total packets processed: " << this->packets_processed << "\n";
-    std::cout << "Total layer4 data size.: " << this->total_l4_data_len << "\n";
-    std::cout << "Total flows captured...: " << this->total_active_flows << "\n";
-    std::cout << "Total flows timed out..: " << this->total_idle_flows << "\n";
-    std::cout << "Total flows detected...: " << this->detected_flow_protocols << "\n";
+    tracer->traceEvent(2, "Total packets captured.: %llu\n", this->packets_captured);
+    tracer->traceEvent(2, "Total packets processed: %llu\n", this->packets_processed);
+    tracer->traceEvent(2, "Total layer4 data size.: %llu\n", this->total_l4_data_len);
+    tracer->traceEvent(2, "Total flows captured...: %llu\n", this->total_active_flows);
+    tracer->traceEvent(2, "Total flows timed out..: %llu\n", this->total_idle_flows);
+    tracer->traceEvent(2, "Total flows detected...: %llu\r\n\r\n\r\n", this->detected_flow_protocols);
 
     this->freeReader();
 }
@@ -227,8 +227,7 @@ int PcapReader::startRead()
         if (pcap_loop(this->pcap_handle, -1,
                       &process_helper, (uint8_t *) this) == PCAP_ERROR) {
 
-            std::cerr << "Error while reading using Pcap: "
-                      << pcap_geterr(this->pcap_handle) << "\n";
+            tracer->traceEvent(0, "Error while reading using Pcap: %s\n", pcap_geterr(this->pcap_handle));
 
             this->error_or_eof = 1;
 
@@ -282,11 +281,9 @@ void PcapReader::checkForIdleFlows()
                     continue;
 
                 if (tmp_f->flow_fin_ack_seen == 1) {
-                    std::cout << "[" << tmp_f->flow_id << "]"
-                              <<" Freeing flow due to fin\n";
+                    tracer->traceEvent(2, "[%8u] Freeing flow due to fin\n", tmp_f->flow_id);
                 } else {
-                    std::cout << "[" << tmp_f->flow_id << "]"
-                              <<" Freeing idle flow\n";
+                    tracer->traceEvent(2, "[%8u] Freeing idle flow\n", tmp_f->flow_id);
                 }
 
                 /*  Removes it from the active flows    */
@@ -329,7 +326,7 @@ int PcapReader::processL2(pcap_pkthdr const * const header,
         case DLT_EN10MB:
             /*  Ethernet    */
             if (header->len < sizeof(struct ndpi_ethhdr)) {
-                std::cerr << "[" << this->packets_captured << "] Ethernet packet too short - skipping\n";
+                tracer->traceEvent(1, "[%8llu] Ethernet packet too short - skipping\n", this->packets_captured);
                 return -1;
             }
             ethernet = (struct ndpi_ethhdr *) &packet[eth_offset];
@@ -339,7 +336,7 @@ int PcapReader::processL2(pcap_pkthdr const * const header,
                 case ETH_P_IP:
                     /* IPv4 */
                     if (header->len < sizeof(struct ndpi_ethhdr) + sizeof(struct ndpi_iphdr)) {
-                        std::cerr << "[" << this->packets_captured << "] Ethernet packet too short - skipping\n";
+                        tracer->traceEvent(1, "[%8llu] Ethernet packet too short - skipping\n", this->packets_captured);
                         return -1;
                     }
                     break;
@@ -347,7 +344,7 @@ int PcapReader::processL2(pcap_pkthdr const * const header,
                 case ETH_P_IPV6:
                     /* IPV6 */
                     if (header->len < sizeof(struct ndpi_ethhdr) + sizeof(struct ndpi_ipv6hdr)) {
-                        std::cerr << "[" << this->packets_captured << "] Ethernet packet too short - skipping\n";
+                        tracer->traceEvent(1, "[%8llu] Ethernet packet too short - skipping\n", this->packets_captured);
                         return -1;
                     }
                     break;
@@ -357,15 +354,15 @@ int PcapReader::processL2(pcap_pkthdr const * const header,
                     return -1;
 
                 default:
-                    std::cerr << "[" << this->packets_captured << "] Unknown Ethernet packet with type "
-                              << type << " - skipping\n";
+                    tracer->traceEvent(1, "[%8llu] Unknown Ethernet packet with \
+                                            type %s - skipping\n", this->packets_captured, type);
                     return -1;
             }
             break;
         default:
-            std::cerr << "[" << this->packets_captured
-                      << "] Captured non IP/Ethernet packet with datalink type "
-                      << pcap_datalink(this->pcap_handle) << " - skipping\n";
+            tracer->traceEvent(1, "[%8llu] Captured non IP/Ethernet packet with datalink \
+                                    type %s - skipping\n", this->packets_captured, 
+                                    pcap_datalink(this->pcap_handle));
             return -1;
     }
 
@@ -391,8 +388,9 @@ int PcapReader::setL2Ip(pcap_pkthdr const * const header,
         ip = nullptr;
         ip6 = (struct ndpi_ipv6hdr *)&packet[ip_offset];
     } else {
-        std::cerr << "[" << this->packets_captured << "] Captured non IPv4/IPv6 packet with type "
-                  << type << " - skipping\n";
+        tracer->traceEvent(1, "[%8llu] Captured non IPv4/IPv6 packet with type \
+                                     %s - skipping\n", this->packets_captured, 
+                                    type); 
         return -1;
     }
 
@@ -400,9 +398,8 @@ int PcapReader::setL2Ip(pcap_pkthdr const * const header,
 
     if (type == ETH_P_IP && header->len >= ip_offset) {
         if (header->caplen < header->len) {
-            std::cerr << "[" << this->packets_captured
-                      << "] Captured packet size is smaller than packet size: "
-                      << header->caplen << " < " << header->len << "\n";
+            tracer->traceEvent(0, "[%8llu] Captured packet size is smaller than packet size: %u < %u\n", 
+                                    this->packets_captured, header->caplen, header->len); 
             return -1;
         }
     }
@@ -427,9 +424,8 @@ int PcapReader::processL3(FlowInfo& flow,
     if (ip != nullptr && ip->version == 4) {
         /*  IPv4    */
         if (ip_size < sizeof(*ip)) {
-            std::cerr << "[" << this->packets_captured
-                      << "] Packet smaller than IP4 header length: "
-                      << ip_size << " < " << sizeof(*ip) << "\n";
+            tracer->traceEvent(0, "[%8llu] Packet smaller than IP4 header length: %u < %zu\n", 
+                                    this->packets_captured, ip_size, sizeof(*ip)); 
             return -1;
         }
 
@@ -438,9 +434,9 @@ int PcapReader::processL3(FlowInfo& flow,
         if (ndpi_detection_get_l4((uint8_t*)ip, ip_size, &l4_ptr, &l4_len,
                                   &flow.l4_protocol, NDPI_DETECTION_ONLY_IPV4) != 0)
         {
-            std::cerr << "[" << this->packets_captured
-                      << "] nDPI IPv4/L4 payload detection failed, L4 length: "
-                      << ip_size - sizeof(*ip) << "\n";
+
+            tracer->traceEvent(0, "[%8llu] nDPI IPv4/L4 payload detection failed, L4 length: %zu\n",
+                                    this->packets_captured, ip_size - sizeof(*ip));
             return -1;
         }
 
@@ -450,9 +446,8 @@ int PcapReader::processL3(FlowInfo& flow,
     } else if (ip6 != nullptr) {
         /*  IPv6    */
         if (ip_size < sizeof(ip6->ip6_hdr)) {
-            std::cerr << "[" << this->packets_captured
-                      << "] Packet smaller than IP6 header length: "
-                      << ip_size << " < " << sizeof(ip6->ip6_hdr) << "\n";
+            tracer->traceEvent(0, "[%8llu] Packet smaller than IP6 header length: %u < %zu\n",
+                                    this->packets_captured, ip_size, sizeof(ip6->ip6_hdr));
             return -1;
         }
 
@@ -460,10 +455,9 @@ int PcapReader::processL3(FlowInfo& flow,
 
         if (ndpi_detection_get_l4((uint8_t*)ip6, ip_size, &l4_ptr, &l4_len,
                                   &flow.l4_protocol, NDPI_DETECTION_ONLY_IPV6) != 0)
-        {
-            std::cerr << "[" << this->packets_captured
-                      << "] nDPI IPv6/L4 payload detection failed, L4 length: "
-                      << ip_size - sizeof(*ip) << "\n";
+        {   
+            tracer->traceEvent(0, "[%8llu] nDPI IPv6/L4 payload detection failed, L4 length: %zu\n",
+                                    this->packets_captured, ip_size - sizeof(*ip));
             return -1;
         }
 
@@ -472,9 +466,8 @@ int PcapReader::processL3(FlowInfo& flow,
         flow.ip_tuple.v6.dst[0] = ip6->ip6_dst.u6_addr.u6_addr64[0];
         flow.ip_tuple.v6.dst[1] = ip6->ip6_dst.u6_addr.u6_addr64[1];
     } else {
-        std::cerr << "[" << this->packets_captured
-                  << "] Non IP/IPv6 protocol detected: "
-                  << type << "\n";
+        tracer->traceEvent(0, "[%8llu] Non IP/IPv6 protocol detected: 0x%X\n",
+                                this->packets_captured, type);
         return -1;
     }
 
@@ -495,10 +488,8 @@ int PcapReader::processL4(FlowInfo& flow,
         const struct ndpi_tcphdr * tcp;
 
         if (header->len < (l4_ptr - packet) + sizeof(struct ndpi_tcphdr)) {
-            std::cerr << "[" << this->packets_captured
-                      << "] Malformed TCP packet, packet size smaller than expected : "
-                      << header->len << " < "
-                      << (l4_ptr - packet) + sizeof(struct ndpi_tcphdr) <<"\n";
+            tracer->traceEvent(0, "[%8llu] Malformed TCP packet, packet size smaller than expected: %u < %zu\n",
+                                this->packets_captured, header->len, (l4_ptr - packet) + sizeof(struct ndpi_tcphdr));
             return -1;
         }
 
@@ -515,11 +506,11 @@ int PcapReader::processL4(FlowInfo& flow,
         /*  UDP   */
         const struct ndpi_udphdr * udp;
 
+
+       
         if (header->len < (l4_ptr - packet) + sizeof(struct ndpi_udphdr)) {
-            std::cerr << "[" << this->packets_captured
-                      << "] Malformed TCP packet, packet size smaller than expected: "
-                      << header->len << " < "
-                      << (l4_ptr - packet) + sizeof(struct ndpi_udphdr) <<"\n";
+            tracer->traceEvent(0, "[%8llu] Malformed UDP packet, packet size smaller than expected: %u < %zu\n",
+                                this->packets_captured, header->len, (l4_ptr - packet) + sizeof(struct ndpi_udphdr));
             return -1;
         }
         udp = (struct ndpi_udphdr *)l4_ptr;
@@ -611,17 +602,15 @@ int PcapReader::addVal(FlowInfo& flow,
 {
     /* flow still not found, must be new */
     if (this->cur_active_flows == this->max_active_flows) {
-        std::cerr << "[" << this->packets_captured
-                  << "] max flows to track reached: "
-                  << this->max_active_flows << ", idle: "
-                  << this->cur_idle_flows <<"\n";
+        tracer->traceEvent(0, "[%8llu] max flows to track reached: %llu, idle: %llu\n",
+                                this->packets_captured, this->max_active_flows, this->cur_idle_flows);
         return -1;
     }
 
     flow_to_process = (FlowInfo *)ndpi_malloc(sizeof(*flow_to_process));
     if (flow_to_process == nullptr) {
-        std::cerr << "[" << this->packets_captured
-                  << "] Not enough memory for flow info\n";
+        tracer->traceEvent(0, "[%8llu] Not enough memory for flow info\n",
+                                this->packets_captured);
         return -1;
     }
 
@@ -632,11 +621,8 @@ int PcapReader::addVal(FlowInfo& flow,
 
     flow_to_process->ndpi_flow = (struct ndpi_flow_struct *)ndpi_flow_malloc(SIZEOF_FLOW_STRUCT);
     if (flow_to_process->ndpi_flow == nullptr) {
-        std::cerr << "[" << this->packets_captured
-                  << ", " << flow_to_process->flow_id
-                  << "] Not enough memory for flow struct\n"
-
-                  << this->cur_idle_flows <<"\n";
+        tracer->traceEvent(0, "[%8llu, %4u] Not enough memory for flow struct\n",
+                                this->packets_captured, flow_to_process->flow_id);
         return -1;
     }
 
@@ -644,30 +630,24 @@ int PcapReader::addVal(FlowInfo& flow,
 
     flow_to_process->ndpi_src = (struct ndpi_id_struct *)ndpi_calloc(1, SIZEOF_ID_STRUCT);
     if (flow_to_process->ndpi_src == nullptr) {
-        std::cerr << "[" << this->packets_captured
-                  << ", " << flow_to_process->flow_id
-                  << "] Not enough memory for src id struct\n"
-
-                  << this->cur_idle_flows <<"\n";
+        tracer->traceEvent(0, "[%8llu, %4u] Not enough memory for src id struct\n",
+                                this->packets_captured, flow_to_process->flow_id);
         return -1;
     }
 
     flow_to_process->ndpi_dst = (struct ndpi_id_struct *)ndpi_calloc(1, SIZEOF_ID_STRUCT);
     if (flow_to_process->ndpi_dst == nullptr) {
-        std::cerr << "[" << this->packets_captured
-                  << ", " << flow_to_process->flow_id
-                  << "] Not enough memory for dst id struct\n"
-
-                  << this->cur_idle_flows <<"\n";
+        tracer->traceEvent(0, "[%8llu, %4u] Not enough memory for dst id struct\n",
+                                this->packets_captured, flow_to_process->flow_id);
         return -1;
     }
 
-    std::cout << "[" << this->packets_captured << ", "
-              << flow_to_process->flow_id << "] new "
-              << (flow_to_process->is_midstream_flow != 0 ? "midstream-" : "") << "flow\n";
+    
+    tracer->traceEvent(2, "[%8llu, %4u] new %sflow\n", this->packets_captured, 
+                            flow_to_process->flow_id, (flow_to_process->is_midstream_flow != 0 ? "midstream-" : ""));
 
     if (ndpi_tsearch(flow_to_process, &this->ndpi_flows_active[hashed_index], ndpi_workflow_node_cmp) == nullptr) {
-        /* Possible Leak, but should not happen as we'd abort earlier. */
+        /* Possible Leak */
         return -1;
     }
 
@@ -696,19 +676,17 @@ void PcapReader::printFlowInfos(FlowInfo * & flow_to_process,
                                       1, &protocol_was_guessed);
         if (protocol_was_guessed != 0) {
             /*  Protocol guessed    */
-            std::cout << "[" << this->packets_captured
-                      << ", " << flow_to_process->flow_id
-                      << "][GUESSED] protocol: "
-                      << ndpi_get_proto_name(this->ndpi_struct, flow_to_process->guessed_protocol.master_protocol)
-                      << " | app protocol: "
-                      << ndpi_get_proto_name(this->ndpi_struct, flow_to_process->guessed_protocol.app_protocol)
-                      << " | category: "
-                      << ndpi_category_get_name(this->ndpi_struct, flow_to_process->guessed_protocol.category)
-                      << "\n";
+
+
+            tracer->traceEvent(2, "[%8llu, %4d][GUESSED] protocol: %s | app protocol: %s | category: %s\n",
+                    this->packets_captured,
+                    flow_to_process->flow_id,
+                    ndpi_get_proto_name(this->ndpi_struct, flow_to_process->guessed_protocol.master_protocol),
+                    ndpi_get_proto_name(this->ndpi_struct, flow_to_process->guessed_protocol.app_protocol),
+                    ndpi_category_get_name(this->ndpi_struct, flow_to_process->guessed_protocol.category));
         } else {
-            std::cout << "[" << this->packets_captured
-                      << ", " << flow_to_process->flow_id
-                      << "][FLOW NOT CLASSIFIED]\n";
+            tracer->traceEvent(2, "[%8llu, %d, %4d][FLOW NOT CLASSIFIED]\n",
+                                    this->packets_captured, flow_to_process->flow_id);
         }
     }
 
@@ -727,15 +705,12 @@ void PcapReader::printFlowInfos(FlowInfo * & flow_to_process,
 
             flow_to_process->detection_completed = 1;
             this->detected_flow_protocols++;
-            std::cout << "[" << this->packets_captured
-                      << ", " << flow_to_process->flow_id
-                      << "][DETECTED] protocol: "
-                      << ndpi_get_proto_name(this->ndpi_struct, flow_to_process->detected_l7_protocol.master_protocol)
-                      << " | app protocol: "
-                      << ndpi_get_proto_name(this->ndpi_struct, flow_to_process->detected_l7_protocol.app_protocol)
-                      << " | category: "
-                      << ndpi_category_get_name(this->ndpi_struct, flow_to_process->detected_l7_protocol.category)
-                      << "\n";
+            tracer->traceEvent(2, "[%8llu, %4d][DETECTED] protocol: %s | app protocol: %s | category: %s\n",
+                                    this->packets_captured,
+                                    flow_to_process->flow_id,
+                                    ndpi_get_proto_name(this->ndpi_struct, flow_to_process->detected_l7_protocol.master_protocol),
+                                    ndpi_get_proto_name(this->ndpi_struct, flow_to_process->detected_l7_protocol.app_protocol),
+                                    ndpi_category_get_name(this->ndpi_struct, flow_to_process->detected_l7_protocol.category));
         }
     }
 }
@@ -824,8 +799,8 @@ void PcapReader::processPacket(uint8_t * const args,
 /* TCP-FIN: indicates that at least one side wants to end the connection */
     if (flow.flow_fin_ack_seen != 0 && flow_to_process->flow_fin_ack_seen == 0) {
         flow_to_process->flow_fin_ack_seen = 1;
-        std::cout << "[" << this->packets_captured << ", "
-                  << flow_to_process->flow_id << "] end of flow\n";
+        tracer->traceEvent(2, "[%8llu, %4u] end of flow\n",
+                                    this->packets_captured, flow_to_process->flow_id);
         return;
     }
 

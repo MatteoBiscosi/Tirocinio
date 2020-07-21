@@ -6,8 +6,6 @@
 #define NDPILIGHT_READER_THREAD_H
 
 #include "ndpi_light_includes.h"
-#include "Reader.h"
-#include "PcapReader.h"
 
 
 class ReaderThread {

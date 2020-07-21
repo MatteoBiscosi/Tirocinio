@@ -9,6 +9,7 @@ using namespace std;
 
 
 
+Trace *tracer;
 ReaderThread reader_thread;
 atomic_int8_t terminate_thread {0};
 
@@ -24,7 +25,7 @@ static bool find_help(char ** begin, char ** end, const std::string& option)
 static char * check_args(int &argc, char ** argv)
 /*  Parsing of input args   */
 {
-    int opt;
+    int opt, tracelvl;
     char * dst = nullptr;
 
     /*  In case of -h arg, print infos and terminate    */
@@ -32,24 +33,46 @@ static char * check_args(int &argc, char ** argv)
         cout << "nDPILight -i <file|device> \n"
              << "Usage:\n"
              << "  -i <file.pcap|device>     | Specify a pcap file/playlist to read packets from or a\n"
-             << "                            | device for live capture (comma-separated list)\n";
+             << "                            | device for live capture (comma-separated list)\n"
+             << "  -t <tracelevel>           | Specify a trace level between 1 ad 6\n";
         return nullptr;
     }
 
-    while((opt = getopt(argc, argv, "i:")) != -1) {
+    while((opt = getopt(argc, argv, "i:t:")) != -1) {
         switch (opt) {
+            case 't':
+                tracelvl = atoi(optarg);
+
+                if(tracelvl > 6 || tracelvl < 1) {
+                    tracer->traceEvent(0, "Error: invalid trace level, please check -h\n");
+                    exit(1);
+                }
+
+                if(tracelvl <= 4) {
+                    tracer->set_trace_level(tracelvl);
+                }
+                else if(tracelvl == 5) {
+                    tracer->set_trace_level(6);
+                }
+                else {
+                    tracer->set_trace_level(9);
+                }
+                
+                break;
+
             case 'i':
                 dst = optarg;
-                break;
+                break;            
+
             default:
-                cerr << "Option not valid, to check usage: " << argv[0] << " -h\n";
+                tracer->traceEvent(0, "Option not valid, to check usage: %s\n", argv[0]);
                 return nullptr;
         }
     }
 
     /*  Device or File needed   */
     if(dst == nullptr) {
-        cerr << "Error: no device or file specified, please check -h\n";
+        tracer->traceEvent(0, "Error: no device or file specified, please check -h\n");
     }
 
     return dst;
@@ -99,7 +122,7 @@ static int setup_reader(char const * const file_or_device)
 static void * run_reader(void * const tmp)
 /*  Reader run function, it calls for the pcap_loop */
 {
-    cout << "Starting reader, Thread id: " << reader_thread.thread_id << "\n";
+    tracer->traceEvent(2, "Starting reader, Thread id: %d\n", reader_thread.thread_id);
 
     reader_thread.rdr->startRead();
 
@@ -118,19 +141,19 @@ static int start_reader()
     sigdelset(&thread_signal_set, SIGTERM);
 
     if (pthread_sigmask(SIG_BLOCK, &thread_signal_set, &old_signal_set) != 0) {
-        cerr << "Error pthread_sigmask: " << strerror(errno) << "\n";
+        tracer->traceEvent(0, "Error pthread_sigmask: %d\n", strerror(errno));
         return -1;
     }
 
     /*  Run necessary threads to monitor flows  */
     if (pthread_create(&reader_thread.thread_id, nullptr,
                        run_reader, nullptr) != 0) {
-        cerr << "Error pthread_create: " << strerror(errno) << "\n";
+        tracer->traceEvent(0, "Error pthread_create: %d\n", strerror(errno));
         return -1;
     }
 
     if (pthread_sigmask(SIG_BLOCK, &old_signal_set, nullptr) != 0) {
-        cerr << "Error pthread_sigmask: " << strerror(errno) << "\n";
+        tracer->traceEvent(0, "Error pthread_sigmask: %d\n", strerror(errno));
         return -1;
     }
 
@@ -144,12 +167,10 @@ static int stop_reader()
 {
     reader_thread.rdr->stopRead();
 
-    cout << "\nStopping reader,";
-
-    cout << "Thread id: " << reader_thread.thread_id << "\n";
+    tracer->traceEvent(1, "Stopping reader, Thread id: %d\n", reader_thread.thread_id);
 
     if (pthread_join(reader_thread.thread_id, nullptr) != 0) {
-        cerr << "Error in pthread_join: " << strerror(errno) << "\n";
+        tracer->traceEvent(0, "Error in pthread_join: %d\n", strerror(errno));
     }
 
     reader_thread.rdr->printInfos();
@@ -164,17 +185,17 @@ static int stop_reader()
 static void sighandler(int signum)
 /*  signal handler, set up with SIGINT and SIGTERM  */
 {
-    cerr << "\n\nReceived SIGNAL " << signum << "\n";
+    tracer->traceEvent(1, "Received SIGNAL %d\n", signum);
 
     if (terminate_thread == 0) {
         terminate_thread = 1;
 
         if (stop_reader() != 0) {
-            cerr << "Failed to stop reader threads!\n";
+            tracer->traceEvent(0, "Failed to stop reader threads!\n");
             exit(EXIT_FAILURE);
         }
     } else {
-        cerr << "Reader threads are already shutting down, please be patient.\n";
+        tracer->traceEvent(2, "Reader threads are already shutting down, please be patient.\n");
     }
 }
 
@@ -201,7 +222,9 @@ int main(int argc, char * argv[])
          << "\tAPI version : " << ndpi_get_api_version() << "\n"
          << "-------------------------------------------------\n\n";
 
+
     char *dst;
+    tracer = new Trace();
 
     /*  Args check  */
     if((dst = check_args(argc, argv)) == nullptr) {
@@ -211,13 +234,13 @@ int main(int argc, char * argv[])
 
     /*  Setting up and starting the worker thread   */
     if(setup_reader(dst) != 0) {
-        cerr << "nDPILight initialization failed\n";
+        tracer->traceEvent(0, "nDPILight initialization failed\n");
         return 1;
     }
 
 
     if(start_reader() != 0) {
-        cerr << "nDPILight initialization failed\n";
+        tracer->traceEvent(0, "nDPILight initialization failed\n");
         return 1;
     }
 
@@ -232,9 +255,11 @@ int main(int argc, char * argv[])
     }
 
     if (terminate_thread == 0 && stop_reader() != 0) {
-        cerr << "nDPILight: stop_reader\n";
+        tracer->traceEvent(2, "nDPILight: stop_reader\n");
         return 1;
     }
+
+    tracer->~Trace();
 
     return 0;
 }

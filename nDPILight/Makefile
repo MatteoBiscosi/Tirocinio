@@ -34,7 +34,9 @@ $(OBJ_DIR)/%.o: %.cpp
 
 build:
 	@mkdir -p $(OBJ_DIR)
+	@mkdir -p logs
 
 clean:
 	/bin/rm -f nDPILight
 	/bin/rm -r -f build
+	/bin/rm -r -f logs

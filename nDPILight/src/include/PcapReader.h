@@ -9,6 +9,11 @@
 #include "FlowInfo.h"
 #include "Reader.h"
 #include "ReaderThread.h"
+#include "Trace.h"
+
+
+
+extern Trace *tracer;
 
 /*
  * ****** HAVE TO THINK IF IT'S NEEDED DYNAMIC ALLOCATION OR NOT ******

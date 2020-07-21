@@ -7,7 +7,6 @@
 
 
 #include "ndpi_light_includes.h"
-#include "Reader.h"
 
 class NapatechReader : public Reader {
 public:
