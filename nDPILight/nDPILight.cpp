@@ -30,7 +30,7 @@ static char * check_args(int &argc, char ** argv)
 
     /*  In case of -h arg, print infos and terminate    */
     if(find_help(argv, argv + argc, "-h")) {
-        cout << "nDPILight -i <file|device> \n"
+        cout << "nDPILight -i <file|device> [-t <tracelevel>]\n"
              << "Usage:\n"
              << "  -i <file.pcap|device>     | Specify a pcap file/playlist to read packets from or a\n"
              << "                            | device for live capture (comma-separated list)\n"

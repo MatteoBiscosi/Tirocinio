@@ -213,7 +213,7 @@ void PcapReader::printInfos()
     tracer->traceEvent(2, "Total layer4 data size.: %llu\n", this->total_l4_data_len);
     tracer->traceEvent(2, "Total flows captured...: %llu\n", this->total_active_flows);
     tracer->traceEvent(2, "Total flows timed out..: %llu\n", this->total_idle_flows);
-    tracer->traceEvent(2, "Total flows detected...: %llu\r\n\r\n\r\n", this->detected_flow_protocols);
+    tracer->traceEvent(2, "Total flows detected...: %llu\n", this->detected_flow_protocols);
 
     this->freeReader();
 }
@@ -281,9 +281,9 @@ void PcapReader::checkForIdleFlows()
                     continue;
 
                 if (tmp_f->flow_fin_ack_seen == 1) {
-                    tracer->traceEvent(2, "[%8u] Freeing flow due to fin\n", tmp_f->flow_id);
+                    tracer->traceEvent(2, "[%4u] Freeing flow due to fin\n", tmp_f->flow_id);
                 } else {
-                    tracer->traceEvent(2, "[%8u] Freeing idle flow\n", tmp_f->flow_id);
+                    tracer->traceEvent(2, "[%4u] Freeing idle flow\n", tmp_f->flow_id);
                 }
 
                 /*  Removes it from the active flows    */
