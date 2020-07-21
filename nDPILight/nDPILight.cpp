@@ -9,6 +9,7 @@ using namespace std;
 Trace *tracer;
 ReaderThread reader_thread;
 atomic_int8_t terminate_thread {0};
+PacketDissector pkt_parser;
 
 
 static bool find_help(char ** begin, char ** end, const std::string& option)
@@ -119,7 +120,7 @@ static int setup_reader(char const * const file_or_device)
 static void * run_reader(void * const tmp)
 /*  Reader run function, it calls for the pcap_loop */
 {
-    tracer->traceEvent(2, "Starting reader, Thread id: %d\n", reader_thread.thread_id);
+    tracer->traceEvent(2, "Starting reader, Thread id: %d\r\n\r\n", reader_thread.thread_id);
 
     reader_thread.rdr->startRead();
 
@@ -256,7 +257,7 @@ int main(int argc, char * argv[])
         return 1;
     }
 
-    tracer->~Trace();
+    delete(tracer);
 
     return 0;
 }

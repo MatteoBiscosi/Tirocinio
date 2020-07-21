@@ -45,9 +45,11 @@ class Trace {
  private:
   char *logFile;
   FILE *logFd;
-  int numLogLines;
-  volatile u_int8_t traceLevel;
+  int numLogLines = 0;
+  volatile u_int8_t traceLevel = 0;
   pthread_mutex_t the_mutex;
+
+private:
   void open_log();
 #ifdef WIN32
   void AddToMessageLog(LPTSTR lpszMsg);
