@@ -82,9 +82,8 @@ int PcapReader::initFileOrDevice()
     }
 
     if(this->pcap_handle == nullptr) {
-        tracer->traceEvent(0, "Error, pcap_open_live\
-                                pcap_open_offline_with_tstamp_precision:\
-                                \n%s\n\n", pcap_error_buffer);
+        tracer->traceEvent(0, "Error, pcap_open_live pcap_open_offline_with_tstamp_precision:\n%s\n\n",
+                            pcap_error_buffer);
         this->freeReader();
         return -1;
     }

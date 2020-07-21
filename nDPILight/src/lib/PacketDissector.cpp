@@ -57,14 +57,14 @@ int PacketDissector::processL2(Reader * const reader,
                     return -1;
 
                 default:
-                    tracer->traceEvent(1, "[%8llu] Unknown Ethernet packet with \
-                                            type %s - skipping\n", this->packets_captured, type);
+                    tracer->traceEvent(1, "[%8llu] Unknown Ethernet packet with type %s - skipping\n", 
+                                        this->packets_captured, type);
                     return -1;
             }
             break;
         default:
-            tracer->traceEvent(1, "[%8llu] Captured non IP/Ethernet packet with datalink \
-                                    type %s - skipping\n", this->packets_captured, 
+            tracer->traceEvent(1, "[%8llu] Captured non IP/Ethernet packet with datalink type %s - skipping\n",
+                                    this->packets_captured, 
                                     pcap_datalink(reader->pcap_handle));
             return -1;
     }
@@ -90,9 +90,8 @@ int PacketDissector::setL2Ip(pcap_pkthdr const * const header,
         ip = nullptr;
         ip6 = (struct ndpi_ipv6hdr *)&packet[ip_offset];
     } else {
-        tracer->traceEvent(1, "[%8llu] Captured non IPv4/IPv6 packet with type \
-                                     %s - skipping\n", this->packets_captured, 
-                                    type); 
+        tracer->traceEvent(1, "[%8llu] Captured non IPv4/IPv6 packet with type %s - skipping\n",
+                            this->packets_captured, type); 
         return -1;
     }
 
