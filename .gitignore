@@ -4,9 +4,8 @@
 # Files generated from compiling makefile
 /nDPILight/build/
 
-/nDPILight/
-nDPILight
+/nDPILight/logs/
+
+/nDPILight/nDPILight
 
 /.gitignore
-
-/.logs/
