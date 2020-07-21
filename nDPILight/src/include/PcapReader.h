@@ -6,10 +6,6 @@
 #define NDPILIGHT_PCAP_READER_H
 
 #include "ndpi_light_includes.h"
-#include "FlowInfo.h"
-#include "Reader.h"
-#include "ReaderThread.h"
-#include "Trace.h"
 
 
 

@@ -28,10 +28,10 @@
 #include "ndpi_classify.h"
 #include "Trace.h"
 #include "Reader.h"
-#include "PcapReader.h"
 #include "NapatechReader.h"
 #include "FlowInfo.h"
 #include "ReaderThread.h"
+#include "PcapReader.h"
 
 
 #define MAX_FLOW_ROOTS_PER_THREAD 2048
