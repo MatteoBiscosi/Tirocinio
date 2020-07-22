@@ -2,6 +2,7 @@
 #include "ndpi_light_includes.h"
 
 
+static uint32_t flow_id = 0;
 
 
 /* ********************************** */
@@ -436,7 +437,7 @@ void PacketDissector::processPacket(uint8_t * const args,
     const uint8_t * l4_ptr = nullptr;
     uint16_t l4_len = 0;
 
-    int thread_index = INITIAL_THREAD_HASH; /* generated with `dd if=/dev/random bs=1024 count=1 |& hd' */
+    //int thread_index = INITIAL_THREAD_HASH; /* generated with `dd if=/dev/random bs=1024 count=1 |& hd' */
 
 
 

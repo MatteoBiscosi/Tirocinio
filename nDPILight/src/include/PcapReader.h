@@ -17,7 +17,6 @@ extern Trace *tracer;
 class PcapReader : public Reader {
 public:
     const char *file_or_device;
-    int error_or_eof = 0;
 
 private:
     unsigned long long int packets_processed = 0;
@@ -68,7 +67,5 @@ private:
     int initModule();
     int initInfos();
 };
-
-static uint32_t flow_id = 0;
 
 #endif //NDPILIGHT_PCAP_READER_H
