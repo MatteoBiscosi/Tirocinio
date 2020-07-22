@@ -25,6 +25,8 @@ private:
     uint64_t last_idle_scan_time = 0;
     uint64_t last_time = 0;
     unsigned long long int last_packets_scan = 0;
+    size_t idle_scan_index = 0;
+    size_t max_idle_scan_index = 0;
 
     unsigned long long int cur_active_flows = 0;
     unsigned long long int total_active_flows = 0;
