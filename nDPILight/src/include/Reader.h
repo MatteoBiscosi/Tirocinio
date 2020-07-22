@@ -11,6 +11,8 @@
 
 class Reader {
 public:
+    uint8_t error_or_eof = 0;
+
     pcap_t *pcap_handle = nullptr;
     
     void **ndpi_flows_active = nullptr;
@@ -23,11 +25,12 @@ public:
 
     struct ndpi_detection_module_struct * ndpi_struct = nullptr;
 public:
+    virtual ~Reader() {};
+
     virtual void newPacket(pcap_pkthdr const * const header) = 0;
     virtual int startRead() = 0;
     virtual void printInfos() = 0;
     virtual int initFileOrDevice() = 0;
-    virtual void freeReader() = 0;
     virtual void stopRead() = 0;
     virtual int checkEnd() = 0;
     virtual int newFlow(FlowInfo * & flow_to_process) = 0;

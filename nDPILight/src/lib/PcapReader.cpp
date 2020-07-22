@@ -24,18 +24,6 @@ PcapReader::PcapReader(char const * const dst) : file_or_device(nullptr)
 PcapReader::~PcapReader()
 /*  Destructor  */
 {
-    if(this->ndpi_struct != nullptr)
-        free(ndpi_struct);
-}
-
-/* ********************************** */
-
-void PcapReader::freeReader()
-/*  Sort of destructor  */
-{
-    if(this == nullptr)
-        return;
-
     if (this->pcap_handle != nullptr) {
         pcap_close(this->pcap_handle);
         this->pcap_handle = nullptr;
@@ -84,19 +72,19 @@ int PcapReader::initFileOrDevice()
     if(this->pcap_handle == nullptr) {
         tracer->traceEvent(0, "Error, pcap_open_live pcap_open_offline_with_tstamp_precision:\n%s\n\n",
                             pcap_error_buffer);
-        this->freeReader();
+        delete(this);
         return -1;
     }
 
     if(this->initModule() != 0) {
         tracer->traceEvent(0, "Error initializing detection module\n");
-        this->freeReader();
+        delete(this);
         return -1;
     }
 
     if(this->initInfos() != 0) {
         tracer->traceEvent(0, "Error initializing structure infos\n");
-        this->freeReader();
+        delete(this);
         return -1;
     }
 
@@ -141,8 +129,6 @@ void PcapReader::printInfos()
     tracer->traceEvent(2, "Total flows captured...: %llu\n", this->total_active_flows);
     tracer->traceEvent(2, "Total flows timed out..: %llu\n", this->total_idle_flows);
     tracer->traceEvent(2, "Total flows detected...: %llu\r\n\r\n\r\n", this->detected_flow_protocols);
-
-    this->freeReader();
 }
 
 /* ********************************** */
@@ -151,7 +137,7 @@ int PcapReader::startRead()
 /*  Function used to start the pcap_loop    */
 {
     if(this->pcap_handle != nullptr) {
-        if (pcap_loop(this->pcap_handle, -1,
+        if (pcap_dispatch(this->pcap_handle, -1,
                       &process_helper, (uint8_t *) this) == PCAP_ERROR) {
 
             tracer->traceEvent(0, "Error while reading using Pcap: %s\n", pcap_geterr(this->pcap_handle));
@@ -160,6 +146,8 @@ int PcapReader::startRead()
 
             return -1;
         }
+
+        this->error_or_eof = 1;
     }
 
     return -1;

@@ -38,7 +38,6 @@ Trace::Trace() {
 
 Trace::~Trace() {
   if(this->logFd)      fclose(logFd);
-  //if(this->logFile)    free(logFile);
   
   pthread_mutex_destroy(&the_mutex);
 };

@@ -8,7 +8,7 @@ using namespace std;
 
 Trace *tracer;
 ReaderThread reader_thread;
-atomic_int8_t terminate_thread {0};
+int terminate_thread {0};
 PacketDissector pkt_parser;
 
 
@@ -124,6 +124,8 @@ static void * run_reader(void * const tmp)
 
     reader_thread.rdr->startRead();
 
+    reader_thread.rdr->error_or_eof == 1;
+
     return nullptr;
 }
 
@@ -173,7 +175,8 @@ static int stop_reader()
 
     reader_thread.rdr->printInfos();
 
-    delete(reader_thread.rdr);
+    if(reader_thread.reader_type == 1 && reader_thread.rdr != nullptr)
+        delete(reader_thread.rdr);
 
     return 0;
 }
@@ -249,7 +252,7 @@ int main(int argc, char * argv[])
 
     /*  have to find a better way of doing this job */
     while (terminate_thread == 0 && check_error_or_eof() == 0) {
-        sleep(1);
+        sleep(3);
     }
 
     if (terminate_thread == 0 && stop_reader() != 0) {

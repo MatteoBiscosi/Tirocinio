@@ -44,7 +44,6 @@ public:
 
     void printInfos() override;
     int initFileOrDevice() override;
-    void freeReader() override;
     int checkEnd() override;
 
     int startRead() override;
