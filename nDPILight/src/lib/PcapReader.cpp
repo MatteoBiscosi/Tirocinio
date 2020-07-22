@@ -137,7 +137,7 @@ int PcapReader::startRead()
 /*  Function used to start the pcap_loop    */
 {
     if(this->pcap_handle != nullptr) {
-        if (pcap_dispatch(this->pcap_handle, -1,
+        if (pcap_loop(this->pcap_handle, -1,
                       &process_helper, (uint8_t *) this) == PCAP_ERROR) {
 
             tracer->traceEvent(0, "Error while reading using Pcap: %s\n", pcap_geterr(this->pcap_handle));

@@ -169,8 +169,16 @@ static int stop_reader()
 
     tracer->traceEvent(1, "Stopping reader, Thread id: %d\n", reader_thread.thread_id);
 
-    if (pthread_join(reader_thread.thread_id, nullptr) != 0) {
-        tracer->traceEvent(0, "Error in pthread_join: %d\n", strerror(errno));
+    struct timespec abstime;
+
+    clock_gettime(CLOCK_REALTIME, &abstime);
+    abstime.tv_sec += 10; 
+
+    if (pthread_timedjoin_np(reader_thread.thread_id, nullptr, &abstime) != 0) {
+        tracer->traceEvent(0, "Error in pthread_join: %d; Forcing termination\n", strerror(errno));
+        reader_thread.rdr->printInfos();
+        pcap_close(reader_thread.rdr->pcap_handle);
+        return -1;
     }
 
     reader_thread.rdr->printInfos();
@@ -189,7 +197,7 @@ static void sighandler(int signum)
     tracer->traceEvent(1, "Received SIGNAL %d\n", signum);
 
     if (terminate_thread == 0) {
-        terminate_thread = 1;
+        terminate_thread = 1;        
 
         if (stop_reader() != 0) {
             tracer->traceEvent(0, "Failed to stop reader threads!\n");
