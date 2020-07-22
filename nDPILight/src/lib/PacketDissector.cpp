@@ -293,12 +293,12 @@ int PacketDissector::addVal(Reader * & reader,
     }
 
     
-    tracer->traceEvent(2, "[%8llu, %4u] new %sflow\n", this->packets_captured, 
+    tracer->traceEvent(4, "[%8llu, %4u] new %sflow\n", this->packets_captured, 
                             flow_to_process->flow_id, (flow_to_process->is_midstream_flow != 0 ? "midstream-" : ""));
 
     if (ndpi_tsearch(flow_to_process, &reader->ndpi_flows_active[hashed_index], ndpi_workflow_node_cmp) == nullptr) {
         /* Possible Leak */
-        return -1;
+        return -1;  
     }
 
     ndpi_src = flow_to_process->ndpi_src;
@@ -327,16 +327,14 @@ void PacketDissector::printFlowInfos(Reader * & reader,
                                       1, &protocol_was_guessed);
         if (protocol_was_guessed != 0) {
             /*  Protocol guessed    */
-
-
-            tracer->traceEvent(2, "[%8llu, %4d][GUESSED] protocol: %s | app protocol: %s | category: %s\n",
+            tracer->traceEvent(3, "[%8llu, %4d][GUESSED] protocol: %s | app protocol: %s | category: %s\n",
                     this->packets_captured,
                     flow_to_process->flow_id,
                     ndpi_get_proto_name(reader->ndpi_struct, flow_to_process->guessed_protocol.master_protocol),
                     ndpi_get_proto_name(reader->ndpi_struct, flow_to_process->guessed_protocol.app_protocol),
                     ndpi_category_get_name(reader->ndpi_struct, flow_to_process->guessed_protocol.category));
         } else {
-            tracer->traceEvent(2, "[%8llu, %d, %4d][FLOW NOT CLASSIFIED]\n",
+            tracer->traceEvent(3, "[%8llu, %d, %4d][FLOW NOT CLASSIFIED]\n",
                                     this->packets_captured, flow_to_process->flow_id);
         }
     }
@@ -356,7 +354,7 @@ void PacketDissector::printFlowInfos(Reader * & reader,
 
             flow_to_process->detection_completed = 1;
             reader->detected_flow_protocols++;
-            tracer->traceEvent(2, "[%8llu, %4d][DETECTED] protocol: %s | app protocol: %s | category: %s\n",
+            tracer->traceEvent(3, "[%8llu, %4d][DETECTED] protocol: %s | app protocol: %s | category: %s\n",
                                     this->packets_captured,
                                     flow_to_process->flow_id,
                                     ndpi_get_proto_name(reader->ndpi_struct, flow_to_process->detected_l7_protocol.master_protocol),
@@ -449,7 +447,7 @@ void PacketDissector::processPacket(uint8_t * const args,
     /* TCP-FIN: indicates that at least one side wants to end the connection */
     if (flow.flow_fin_ack_seen != 0 && flow_to_process->flow_fin_ack_seen == 0) {
         flow_to_process->flow_fin_ack_seen = 1;
-        tracer->traceEvent(2, "[%8llu, %4u] end of flow\n",
+        tracer->traceEvent(4, "[%8llu, %4u] end of flow\n",
                                     this->packets_captured, flow_to_process->flow_id);
         return;
     }

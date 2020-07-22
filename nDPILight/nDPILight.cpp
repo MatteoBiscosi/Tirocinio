@@ -32,7 +32,7 @@ static char * check_args(int &argc, char ** argv)
              << "Usage:\n"
              << "  -i <file.pcap|device>     | Specify a pcap file/playlist to read packets from or a\n"
              << "                            | device for live capture (comma-separated list)\n"
-             << "  -t <tracelevel>           | Specify a trace level between 1 ad 6\n";
+             << "  -t <tracelevel>           | Specify a trace level between 1 ad 6 (standard trace level is 2)\n";
         return nullptr;
     }
 

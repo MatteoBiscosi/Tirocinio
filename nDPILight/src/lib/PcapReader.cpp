@@ -96,6 +96,11 @@ int PcapReader::initFileOrDevice()
 int PcapReader::initInfos()
 /*  Initialize flow's infos */
 {
+    /* Actual time */
+    struct timeval actual_time;
+    gettimeofday(&actual_time, nullptr);
+    this->last_idle_scan_time = (uint64_t) actual_time.tv_sec * TICK_RESOLUTION + actual_time.tv_usec / (1000000 / TICK_RESOLUTION);
+
     this->total_active_flows = 0; /* First initialize active flow's infos */
     this->max_active_flows = MAX_FLOW_ROOTS_PER_THREAD;
     this->max_idle_scan_index = MAX_FLOW_ROOTS_PER_THREAD / 8;
@@ -182,7 +187,6 @@ void PcapReader::checkForIdleFlows()
     /*  Check if at least IDLE_SCAN_PERIOD passed since last scan   */
     if (this->last_idle_scan_time + IDLE_SCAN_PERIOD < this->last_time || 
         pkt_parser.getPktCaptured() - this->last_packets_scan > PACKET_SCAN_PERIOD) {
-            tracer->traceEvent(2, "idle scan \n");
         for (this->idle_scan_index; this->idle_scan_index < this->max_idle_scan_index; ++this->idle_scan_index) {
             if(this->ndpi_flows_active[this->idle_scan_index] == nullptr)
                 continue;
@@ -199,9 +203,9 @@ void PcapReader::checkForIdleFlows()
                     continue;
 
                 if (tmp_f->flow_fin_ack_seen == 1) {
-                    tracer->traceEvent(2, "[%4u] Freeing flow due to fin\n", tmp_f->flow_id);
+                    tracer->traceEvent(4, "[%4u] Freeing flow due to fin\n", tmp_f->flow_id);
                 } else {
-                    tracer->traceEvent(2, "[%4u] Freeing idle flow\n", tmp_f->flow_id);
+                    tracer->traceEvent(4, "[%4u] Freeing idle flow\n", tmp_f->flow_id);
                 }
 
                 /*  Removes it from the active flows    */
@@ -228,10 +232,7 @@ void PcapReader::checkForIdleFlows()
 void PcapReader::newPacket(pcap_pkthdr const * const header) {
     uint64_t time_ms = ((uint64_t) header->ts.tv_sec) * TICK_RESOLUTION + header->ts.tv_usec / (1000000 / TICK_RESOLUTION);
     this->last_time = time_ms;
-    /*  Scan done every 15000 ms more or less   */
-    if(pkt_parser.getPktCaptured() == 1)
-        this->last_idle_scan_time = this->last_time;
-    
+    /*  Scan done every 15000 ms more or less   */    
     this->checkForIdleFlows();
 }
 

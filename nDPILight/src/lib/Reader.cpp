@@ -17,12 +17,6 @@ void ndpi_idle_scan_walker(void const * const A, ndpi_VISIT which, int depth, vo
         return;
     }
 
-    /* Is this limit needed?
-    if (workflow->cur_idle_flows == MAX_IDLE_FLOWS_PER_THREAD) {
-        return;
-    }
-    */
-
     if (which == ndpi_preorder || which == ndpi_leaf) {
         if ((flow->flow_fin_ack_seen == 1 && flow->flow_ack_seen == 1) ||
             flow->last_seen + MAX_IDLE_TIME < workflow->getLastTime())
