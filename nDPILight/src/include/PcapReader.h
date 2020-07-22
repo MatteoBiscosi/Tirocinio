@@ -24,6 +24,7 @@ private:
 
     uint64_t last_idle_scan_time = 0;
     uint64_t last_time = 0;
+    unsigned long long int last_packets_scan = 0;
 
     unsigned long long int cur_active_flows = 0;
     unsigned long long int total_active_flows = 0;
@@ -33,7 +34,6 @@ private:
     unsigned long long int total_idle_flows = 0;
 
     char pcap_error_buffer[PCAP_ERRBUF_SIZE];
-
 public:
     explicit PcapReader();
     explicit PcapReader(char const * dst);
@@ -67,5 +67,6 @@ private:
     int initModule();
     int initInfos();
 };
+
 
 #endif //NDPILIGHT_PCAP_READER_H

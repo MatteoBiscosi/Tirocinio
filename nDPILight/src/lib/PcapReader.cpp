@@ -179,7 +179,9 @@ void PcapReader::checkForIdleFlows()
 /*  Scan used to check if there are idle flows  */
 {
     /*  Check if at least IDLE_SCAN_PERIOD passed since last scan   */
-    if (this->last_idle_scan_time + IDLE_SCAN_PERIOD < this->last_time) {
+    if (this->last_idle_scan_time + IDLE_SCAN_PERIOD < this->last_time || 
+        pkt_parser.getPktCaptured() - this->last_packets_scan > PACKET_SCAN_PERIOD) {
+            tracer->traceEvent(2, "idle scan \n");
         for (size_t idle_scan_index = 0; idle_scan_index < this->max_active_flows; ++idle_scan_index) {
             if(this->ndpi_flows_active[idle_scan_index] == nullptr)
                 continue;
@@ -213,6 +215,7 @@ void PcapReader::checkForIdleFlows()
         }
 
         this->last_idle_scan_time = this->last_time;
+        this->last_packets_scan = pkt_parser.getPktCaptured();
     }
 }
 
@@ -221,7 +224,10 @@ void PcapReader::checkForIdleFlows()
 void PcapReader::newPacket(pcap_pkthdr const * const header) {
     uint64_t time_ms = ((uint64_t) header->ts.tv_sec) * TICK_RESOLUTION + header->ts.tv_usec / (1000000 / TICK_RESOLUTION);
     this->last_time = time_ms;
-    /*  Scan done every 10000 ms more or less   */
+    /*  Scan done every 15000 ms more or less   */
+    if(pkt_parser.getPktCaptured() == 1)
+        this->last_idle_scan_time = this->last_time;
+    
     this->checkForIdleFlows();
 }
 

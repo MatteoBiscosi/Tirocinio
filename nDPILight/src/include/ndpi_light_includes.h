@@ -12,7 +12,6 @@
 #include <cerrno>
 #include <cstdlib>
 #include <fstream>
-#include <chrono>
 #include <algorithm>
 #include <memory>
 #include <pcap/pcap.h>
@@ -37,11 +36,11 @@
 
 
 
-#define MAX_FLOW_ROOTS_PER_THREAD 16384
-#define MAX_IDLE_FLOWS_PER_THREAD 512
-#define INITIAL_THREAD_HASH 0x03dd018b
+#define MAX_FLOW_ROOTS_PER_THREAD 1048576
+#define MAX_IDLE_FLOWS_PER_THREAD 65536
 #define TICK_RESOLUTION 1000
-#define IDLE_SCAN_PERIOD 10000 /* msec */
+#define IDLE_SCAN_PERIOD 15000 /* msec */
+#define PACKET_SCAN_PERIOD 524288 /* n_pkts */
 #define MAX_IDLE_TIME 300000 /* msec */
 
 #ifndef ETH_P_IP

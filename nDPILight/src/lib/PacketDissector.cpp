@@ -227,59 +227,21 @@ int PacketDissector::searchVal(Reader * & reader,
                           FlowInfo& flow,
                           void * & tree_result,
                           struct ndpi_ipv6hdr * & ip6,
-                          size_t& hashed_index,
-                          int& direction_changed)
+                          size_t& hashed_index)
 /* calculate flow hash for btree find, search(insert) */
 {
     if (flow.getFlowL3Type() == 4) {
         /*  IPv4    */
-        if (ndpi_flowv4_flow_hash(flow.l4_protocol, flow.ip_tuple.v4.src, flow.ip_tuple.v4.dst,
-                                  flow.src_port, flow.dst_port, 0, 0,
-                                  (uint8_t *)&flow.hashval, sizeof(flow.hashval)) != 0)
-        {
-            flow.hashval = flow.ip_tuple.v4.src + flow.ip_tuple.v4.dst; // fallback
-        }
+        flow.hashval = flow.ip_tuple.v4.src + flow.ip_tuple.v4.dst;
     } else if (flow.getFlowL3Type() == 6) {
         /*  IPv6    */
-        if (ndpi_flowv6_flow_hash(flow.l4_protocol, &ip6->ip6_src, &ip6->ip6_dst,
-                                  flow.src_port, flow.dst_port, 0, 0,
-                                  (uint8_t *)&flow.hashval, sizeof(flow.hashval)) != 0)
-        {
-            flow.hashval = flow.ip_tuple.v6.src[0] + flow.ip_tuple.v6.src[1];
-            flow.hashval += flow.ip_tuple.v6.dst[0] + flow.ip_tuple.v6.dst[1];
-        }
+        flow.hashval = flow.ip_tuple.v6.src[0] + flow.ip_tuple.v6.src[1];
+        flow.hashval += flow.ip_tuple.v6.dst[0] + flow.ip_tuple.v6.dst[1];
     }
     flow.hashval += flow.l4_protocol + flow.src_port + flow.dst_port;
 
     hashed_index = flow.hashval % reader->max_active_flows;
     tree_result = ndpi_tfind(&flow, &reader->ndpi_flows_active[hashed_index], ndpi_workflow_node_cmp);
-
-    if (tree_result == nullptr) {
-        /* flow not found in btree: switch src <-> dst and try to find it again */
-        uint64_t orig_src_ip[2] = { flow.ip_tuple.v6.src[0], flow.ip_tuple.v6.src[1] };
-        uint64_t orig_dst_ip[2] = { flow.ip_tuple.v6.dst[0], flow.ip_tuple.v6.dst[1] };
-        uint16_t orig_src_port = flow.src_port;
-        uint16_t orig_dst_port = flow.dst_port;
-
-        flow.ip_tuple.v6.src[0] = orig_dst_ip[0];
-        flow.ip_tuple.v6.src[1] = orig_dst_ip[1];
-        flow.ip_tuple.v6.dst[0] = orig_src_ip[0];
-        flow.ip_tuple.v6.dst[1] = orig_src_ip[1];
-        flow.src_port = orig_dst_port;
-        flow.dst_port = orig_src_port;
-
-        tree_result = ndpi_tfind(&flow, &reader->ndpi_flows_active[hashed_index], ndpi_workflow_node_cmp);
-        if (tree_result != nullptr) {
-            direction_changed = 1;
-        }
-
-        flow.ip_tuple.v6.src[0] = orig_src_ip[0];
-        flow.ip_tuple.v6.src[1] = orig_src_ip[1];
-        flow.ip_tuple.v6.dst[0] = orig_dst_ip[0];
-        flow.ip_tuple.v6.dst[1] = orig_dst_ip[1];
-        flow.src_port = orig_src_port;
-        flow.dst_port = orig_dst_port;
-    }
 
     if(tree_result == nullptr)
         /*  Not Found   */
@@ -420,7 +382,6 @@ void PacketDissector::processPacket(uint8_t * const args,
     void * tree_result = nullptr;
     FlowInfo * flow_to_process = nullptr;
 
-    int direction_changed = 0;
     struct ndpi_id_struct * ndpi_src = nullptr;
     struct ndpi_id_struct * ndpi_dst = nullptr;
 
@@ -436,9 +397,6 @@ void PacketDissector::processPacket(uint8_t * const args,
 
     const uint8_t * l4_ptr = nullptr;
     uint16_t l4_len = 0;
-
-    //int thread_index = INITIAL_THREAD_HASH; /* generated with `dd if=/dev/random bs=1024 count=1 |& hd' */
-
 
 
     this->packets_captured++;
@@ -463,13 +421,13 @@ void PacketDissector::processPacket(uint8_t * const args,
     reader->incrL4Ctrs(l4_len);
 
 
-    if(this->searchVal(reader, flow, tree_result, ip6, hashed_index, direction_changed) != 0) {
+    if(this->searchVal(reader, flow, tree_result, ip6, hashed_index) != 0) {
         if(this->addVal(reader, flow, flow_to_process, hashed_index, ndpi_src, ndpi_dst) != 0)
             return;
     } else {
         flow_to_process = *(FlowInfo **)tree_result;
 
-        if (direction_changed != 0) {
+        if (ndpi_src != flow_to_process->ndpi_src) {
             ndpi_src = flow_to_process->ndpi_dst;
             ndpi_dst = flow_to_process->ndpi_src;
         } else {

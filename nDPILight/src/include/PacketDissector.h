@@ -52,8 +52,7 @@ private:
                 FlowInfo& flow,
                 void * & tree_result,
                 struct ndpi_ipv6hdr * & ip6,
-                size_t& hashed_index,
-                int& direction_changed);
+                size_t& hashed_index);
 
     int addVal(Reader * & reader,
                 FlowInfo& flow,
