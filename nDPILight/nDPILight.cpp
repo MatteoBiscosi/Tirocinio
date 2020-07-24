@@ -124,8 +124,6 @@ static void * run_reader(void * const tmp)
 
     reader_thread.rdr->startRead();
 
-    reader_thread.rdr->error_or_eof == 1;
-
     return nullptr;
 }
 
