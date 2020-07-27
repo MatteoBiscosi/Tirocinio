@@ -5,13 +5,30 @@
 class PacketDissector {
 private:
     unsigned long long int packets_captured = 0;
+    unsigned long long int discarded_bytes = 0;
+    unsigned long long int ip_pkts = 0;
+    unsigned long long int ip_bytes = 0;
+    unsigned long long int tcp_pkts = 0;
+    unsigned long long int udp_pkts = 0;
+    
+    unsigned long long int total_flows_captured = 0;
 
+    struct timeval pcap_start {0, 0}, pcap_end {0, 0};
+    
 public:
     void processPacket(uint8_t * args,
                         pcap_pkthdr const * header,
                         uint8_t const * packet);
 
     unsigned long long int getPktCaptured();
+    unsigned long long int getDiscardedBytes();
+    unsigned long long int getIpPkts();
+    unsigned long long int getIpBytes();
+    unsigned long long int getTcpPkts();
+    unsigned long long int getUdpPkts();
+    unsigned long long int getFlowsCount();
+    time_t * getPcapStart();
+    time_t * getPcapEnd();
 
 private:
     int processL2(Reader * reader,

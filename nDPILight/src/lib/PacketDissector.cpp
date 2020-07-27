@@ -173,6 +173,9 @@ int PacketDissector::processL3(FlowInfo& flow,
         return -1;
     }
 
+    this->ip_pkts++;
+    this->ip_bytes += (header->len - 14);
+
     return 0;
 }
 
@@ -204,6 +207,8 @@ int PacketDissector::processL4(FlowInfo& flow,
         flow.src_port = ntohs(tcp->source);
         flow.dst_port = ntohs(tcp->dest);
 
+        this->tcp_pkts++;
+
     } else if (flow.l4_protocol == IPPROTO_UDP) {
         /*  UDP   */
         const struct ndpi_udphdr * udp;
@@ -216,6 +221,8 @@ int PacketDissector::processL4(FlowInfo& flow,
         udp = (struct ndpi_udphdr *)l4_ptr;
         flow.src_port = ntohs(udp->source);
         flow.dst_port = ntohs(udp->dest);
+
+        this->udp_pkts++;
     }
 
     return 0;
@@ -327,15 +334,19 @@ void PacketDissector::printFlowInfos(Reader * & reader,
                                       1, &protocol_was_guessed);
         if (protocol_was_guessed != 0) {
             /*  Protocol guessed    */
-            tracer->traceEvent(3, "[%8llu, %4d][GUESSED] protocol: %s | app protocol: %s | category: %s\n",
+            tracer->traceEvent(3, "\t[%8llu, %4d][GUESSED] protocol: %s | app protocol: %s | category: %s\n",
                     this->packets_captured,
                     flow_to_process->flow_id,
                     ndpi_get_proto_name(reader->ndpi_struct, flow_to_process->guessed_protocol.master_protocol),
                     ndpi_get_proto_name(reader->ndpi_struct, flow_to_process->guessed_protocol.app_protocol),
                     ndpi_category_get_name(reader->ndpi_struct, flow_to_process->guessed_protocol.category));
+            
+            reader->protos_cnt[flow_to_process->guessed_protocol.master_protocol]++;
+            reader->guessed_flow_protocols++;
         } else {
-            tracer->traceEvent(3, "[%8llu, %d, %4d][FLOW NOT CLASSIFIED]\n",
+            tracer->traceEvent(3, "\t[%8llu, %d, %4d][FLOW NOT CLASSIFIED]\n",
                                     this->packets_captured, flow_to_process->flow_id);
+            reader->unclassified_flow_protocols++;
         }
     }
 
@@ -351,10 +362,10 @@ void PacketDissector::printFlowInfos(Reader * & reader,
         if (flow_to_process->detected_l7_protocol.master_protocol != NDPI_PROTOCOL_UNKNOWN ||
             flow_to_process->detected_l7_protocol.app_protocol != NDPI_PROTOCOL_UNKNOWN) {
             //Protocol detected
-
+            reader->protos_cnt[flow_to_process->detected_l7_protocol.master_protocol]++;
             flow_to_process->detection_completed = 1;
             reader->detected_flow_protocols++;
-            tracer->traceEvent(3, "[%8llu, %4d][DETECTED] protocol: %s | app protocol: %s | category: %s\n",
+            tracer->traceEvent(3, "\t[%8llu, %4d][DETECTED] protocol: %s | app protocol: %s | category: %s\n",
                                     this->packets_captured,
                                     flow_to_process->flow_id,
                                     ndpi_get_proto_name(reader->ndpi_struct, flow_to_process->detected_l7_protocol.master_protocol),
@@ -396,32 +407,49 @@ void PacketDissector::processPacket(uint8_t * const args,
     const uint8_t * l4_ptr = nullptr;
     uint16_t l4_len = 0;
 
-
     this->packets_captured++;
+    if(!this->pcap_start.tv_sec) {
+        this->pcap_start.tv_sec = header->ts.tv_sec ;
+        this->pcap_start.tv_usec = header->ts.tv_usec;
+    }
+    this->pcap_end.tv_sec = header->ts.tv_sec;
+    this->  pcap_end.tv_usec = header->ts.tv_usec;
 
     reader->newPacket(header);
 
     /*  Process L2  */
-    if(this->processL2(reader, header, packet, type, ip_size, ip_offset, eth_offset, ethernet) != 0)
+    if(this->processL2(reader, header, packet, type, ip_size, ip_offset, eth_offset, ethernet) != 0) {
+        this->discarded_bytes += header->len;
         return;
+    }
 
-    if(this->setL2Ip(header, packet, type, ip_size, ip_offset, ip, ip6) != 0)
+    if(this->setL2Ip(header, packet, type, ip_size, ip_offset, ip, ip6) != 0) {
+        this->discarded_bytes += header->len;
         return;
+    }
 
     /*  Process L3  */
-    if(this->processL3(flow, header, packet, type, ip_size, ip_offset, ip, ip6, l4_ptr, l4_len) != 0)
+    if(this->processL3(flow, header, packet, type, ip_size, ip_offset, ip, ip6, l4_ptr, l4_len) != 0) {
+        this->discarded_bytes += header->len;
         return;
+    }
 
     /*  Process L4  */
-    if(this->processL4(flow, header, packet, l4_ptr, l4_len) != 0)
+    if(this->processL4(flow, header, packet, l4_ptr, l4_len) != 0) {
+        this->discarded_bytes += header->len;
         return;
+    }
 
     reader->incrL4Ctrs(l4_len);
 
 
     if(this->searchVal(reader, flow, tree_result, ip6, hashed_index) != 0) {
-        if(this->addVal(reader, flow, flow_to_process, hashed_index, ndpi_src, ndpi_dst) != 0)
+        if(this->addVal(reader, flow, flow_to_process, hashed_index, ndpi_src, ndpi_dst) != 0) {
+            this->discarded_bytes += header->len;
             return;
+        }
+        else
+            this->total_flows_captured++;
     } else {
         flow_to_process = *(FlowInfo **)tree_result;
 
@@ -449,6 +477,7 @@ void PacketDissector::processPacket(uint8_t * const args,
         flow_to_process->flow_fin_ack_seen = 1;
         tracer->traceEvent(4, "[%8llu, %4u] end of flow\n",
                                     this->packets_captured, flow_to_process->flow_id);
+        this->discarded_bytes += header->len;
         return;
     }
 
@@ -460,4 +489,36 @@ void PacketDissector::processPacket(uint8_t * const args,
 
 unsigned long long int PacketDissector::getPktCaptured() {
     return this->packets_captured;
+}
+
+unsigned long long int PacketDissector::getDiscardedBytes() {
+    return this->discarded_bytes;
+}
+
+unsigned long long int PacketDissector::getIpPkts() {
+    return this->ip_pkts;
+}
+
+unsigned long long int PacketDissector::getIpBytes() {
+    return this->ip_bytes;
+}
+
+unsigned long long int PacketDissector::getTcpPkts() {
+    return this->tcp_pkts;
+}
+
+unsigned long long int PacketDissector::getUdpPkts() {
+    return this->udp_pkts;
+}
+
+unsigned long long int PacketDissector::getFlowsCount() {
+    return this->total_flows_captured;
+}
+
+time_t * PacketDissector::getPcapStart() {
+    return &(this->pcap_start.tv_sec);
+}
+
+time_t * PacketDissector::getPcapEnd() {
+    return &(this->pcap_end.tv_sec);
 }

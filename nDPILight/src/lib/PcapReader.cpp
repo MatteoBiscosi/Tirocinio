@@ -41,7 +41,7 @@ PcapReader::~PcapReader()
         ndpi_free(this->ndpi_flows_active);
     if(this->ndpi_flows_idle != nullptr)
         ndpi_free(this->ndpi_flows_idle);
-}
+}   
 
 /* ********************************** */
 
@@ -121,20 +121,76 @@ int PcapReader::initInfos()
     ndpi_set_protocol_detection_bitmask2(this->ndpi_struct, &protos);
     ndpi_finalize_initalization(this->ndpi_struct);
 
+    this->protos_cnt = new uint16_t[ndpi_get_num_supported_protocols(this->ndpi_struct)];
+
     return 0;
 }
 
 /* ********************************** */
 
-void PcapReader::printInfos()
-/*  Prints infos about the packets and flows */
+void PcapReader::printStats() 
+/*  Prints infos about packets, flows and bytes */
 {
-    tracer->traceEvent(2, "Total packets captured.: %llu\n", pkt_parser.getPktCaptured());
-    tracer->traceEvent(2, "Total packets processed: %llu\n", this->packets_processed);
-    tracer->traceEvent(2, "Total layer4 data size.: %llu\n", this->total_l4_data_len);
-    tracer->traceEvent(2, "Total flows captured...: %llu\n", this->total_active_flows);
-    tracer->traceEvent(2, "Total flows timed out..: %llu\n", this->total_idle_flows);
-    tracer->traceEvent(2, "Total flows detected...: %llu\r\n\r\n\r\n", this->detected_flow_protocols);
+    long long unsigned int avg_pkt_size = 0;
+    long long unsigned int breed_stats[NUM_BREEDS] = { 0 };
+    char buf[32];
+    //long long unsigned int breed_stats[NUM_BREEDS] = { 0 };
+
+    tracer->traceEvent(2, "\tTraffic statistics:\r\n");
+    tracer->traceEvent(2, "\t\tEthernet bytes:             %-20llu (includes ethernet CRC/IFC/trailer)\n",
+        this->total_wire_bytes);
+    tracer->traceEvent(2, "\t\tDiscarded bytes:            %-20llu\n",
+        pkt_parser.getDiscardedBytes());
+    tracer->traceEvent(2, "\t\tIP packets:                 %-20llu of %llu packets total\n",
+        pkt_parser.getIpPkts(),
+        pkt_parser.getPktCaptured());
+    /* In order to prevent Floating point exception in case of no traffic*/
+    if(pkt_parser.getIpBytes() && pkt_parser.getPktCaptured())
+        avg_pkt_size = pkt_parser.getIpBytes()/pkt_parser.getPktCaptured();
+
+    tracer->traceEvent(2, "\t\tIP bytes:                   %-20llu (avg pkt size %u bytes)\n",
+        pkt_parser.getIpBytes(), avg_pkt_size);
+    tracer->traceEvent(2, "\t\tUnique flows:               %-20u\n", pkt_parser.getFlowsCount());
+
+    tracer->traceEvent(2, "\t\tTCP Packets:                %-20lu\n", pkt_parser.getTcpPkts());
+    tracer->traceEvent(2, "\t\tUDP Packets:                %-20lu\n", pkt_parser.getUdpPkts());
+
+    char when[64];
+    struct tm result;
+
+    strftime(when, sizeof(when), "%d/%b/%Y %H:%M:%S", localtime_r(pkt_parser.getPcapStart(), &result));
+    tracer->traceEvent(2, "\t\tAnalysis begin:             %s\n", when);
+    strftime(when, sizeof(when), "%d/%b/%Y %H:%M:%S", localtime_r(pkt_parser.getPcapEnd(), &result));
+    tracer->traceEvent(2, "\t\tAnalysis end:               %s\n", when);
+
+    tracer->traceEvent(2, "\t\tDetected flow protos:       %-20u\n", this->detected_flow_protocols);
+    tracer->traceEvent(2, "\t\tGuessed flow protos:        %-20u\n", this->guessed_flow_protocols);
+    tracer->traceEvent(2, "\t\tUnclassified flow protos:   %-20u\r\n", this->unclassified_flow_protocols);
+
+
+    tracer->traceEvent(2, "\tDetected protocols:\r\n");
+
+    for(u_int32_t i = 0; i <= ndpi_get_num_supported_protocols(this->ndpi_struct); i++) {
+        ndpi_protocol_breed_t breed = ndpi_get_proto_breed((this->ndpi_struct), i);
+        if(this->protos_cnt[i] > 0) {
+            breed_stats[i] += this->protos_cnt[i];
+
+            tracer->traceEvent(2, "\t\t%-20s flows: %-13u\r\n",
+                ndpi_get_proto_name((this->ndpi_struct), i), this->protos_cnt[i]);
+        }
+    }
+
+
+
+    tracer->traceEvent(2, "\tProtocol statistics:\n");
+
+    for(u_int32_t i = 0; i < NUM_BREEDS; i++) {
+      if(breed_stats[i] > 0) {
+	    tracer->traceEvent(2, "\t\t%-20s flows: %-13u\n",
+	       ndpi_get_proto_breed_name(this->ndpi_struct, ndpi_get_proto_breed(this->ndpi_struct, i)),
+	       breed_stats[i]);
+      }
+    }
 }
 
 /* ********************************** */
@@ -233,6 +289,7 @@ void PcapReader::newPacket(pcap_pkthdr const * const header) {
     uint64_t time_ms = ((uint64_t) header->ts.tv_sec) * TICK_RESOLUTION + header->ts.tv_usec / (1000000 / TICK_RESOLUTION);
     this->last_time = time_ms;
     /*  Scan done every 15000 ms more or less   */    
+    this->total_wire_bytes += header->len;
     this->checkForIdleFlows();
 }
 

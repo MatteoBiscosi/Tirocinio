@@ -7,6 +7,8 @@
 
 #include "ndpi_light_includes.h"
 
+
+
 extern PacketDissector pkt_parser;
 extern Trace *tracer;
 
@@ -21,6 +23,7 @@ public:
 private:
     unsigned long long int packets_processed = 0;
     unsigned long long int total_l4_data_len = 0;
+    unsigned long long int total_wire_bytes = 0;
 
     uint64_t last_idle_scan_time = 0;
     uint64_t last_time = 0;
@@ -43,7 +46,7 @@ public:
 
     ~PcapReader();
 
-    void printInfos() override;
+    void printStats() override;
     int initFileOrDevice() override;
     int checkEnd() override;
 

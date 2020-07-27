@@ -151,9 +151,9 @@ void Trace::traceEvent(int eventTraceLevel, const char * format, ...) {
     vsnprintf(buf, sizeof(buf)-1, format, va_ap);
 
     if(eventTraceLevel == 0 /* TRACE_ERROR */)
-      extra_msg = "ERROR: ";
+      extra_msg = "\tERROR: ";
     else if(eventTraceLevel == 1 /* TRACE_WARNING */)
-      extra_msg = "WARNING: ";
+      extra_msg = "\tWARNING: ";
 
     while(buf[strlen(buf)-1] == '\n') buf[strlen(buf)-1] = '\0';
 

@@ -120,7 +120,7 @@ static int setup_reader(char const * const file_or_device)
 static void * run_reader(void * const tmp)
 /*  Reader run function, it calls for the pcap_loop */
 {
-    tracer->traceEvent(2, "Starting reader, Thread id: %d\r\n\r\n", reader_thread.thread_id);
+    tracer->traceEvent(2, "\tStarting reader, Thread id: %d\r\n\r\n", reader_thread.thread_id);
 
     reader_thread.rdr->startRead();
 
@@ -165,7 +165,7 @@ static int stop_reader()
 {
     reader_thread.rdr->stopRead();
 
-    tracer->traceEvent(1, "Stopping reader, Thread id: %d\n", reader_thread.thread_id);
+    tracer->traceEvent(1, "Stopping reader, Thread id: %d\r\n\r\n\r\n", reader_thread.thread_id);
 
     struct timespec abstime;
 
@@ -174,12 +174,12 @@ static int stop_reader()
 
     if (pthread_timedjoin_np(reader_thread.thread_id, nullptr, &abstime) != 0) {
         tracer->traceEvent(0, "Error in pthread_join: %d; Forcing termination\n", strerror(errno));
-        reader_thread.rdr->printInfos();
+        reader_thread.rdr->printStats();
         pcap_close(reader_thread.rdr->pcap_handle);
         return -1;
     }
 
-    reader_thread.rdr->printInfos();
+    reader_thread.rdr->printStats();
 
     if(reader_thread.reader_type == 1 && reader_thread.rdr != nullptr)
         delete(reader_thread.rdr);
@@ -202,7 +202,7 @@ static void sighandler(int signum)
             exit(EXIT_FAILURE);
         }
     } else {
-        tracer->traceEvent(2, "Reader threads are already shutting down, please be patient.\n");
+        tracer->traceEvent(2, "\tReader threads are already shutting down, please be patient.\n");
     }
 }
 
@@ -262,7 +262,7 @@ int main(int argc, char * argv[])
     }
 
     if (terminate_thread == 0 && stop_reader() != 0) {
-        tracer->traceEvent(2, "nDPILight: stop_reader\n");
+        tracer->traceEvent(2, "\tnDPILight: stop_reader\n");
         return 1;
     }
 
