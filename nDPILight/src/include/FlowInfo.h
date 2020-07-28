@@ -1,7 +1,3 @@
-//
-// Created by matteo on 12/07/2020.
-//
-
 #ifndef NDPILIGHT_FLOW_INFO_H
 #define NDPILIGHT_FLOW_INFO_H
 
@@ -50,14 +46,39 @@ public:
     struct ndpi_id_struct * ndpi_dst;
 
 public:
+
+    /*  
+     *  Function used to convert an ip_tuple to a String 
+     */
     int ipTupleToString(char * src_addr_str, size_t src_addr_len,
                         char * dst_addr_str, size_t dst_addr_len);
+    
+    /*  
+     *  Checks if this and B are equals 
+     */
     int ipTuplesEqual(FlowInfo const * B);
+
+    /*  
+     *  Compares this with B and checks if they are equals or who is 
+     *  minor and who is major
+     */
     int ipTuplesCompare(FlowInfo const * B);
+
+    /*  
+     *  Set this.l3_type to A
+     */
     void setFlowL3Type(int A);
+
+    /*  
+     *  Return this.l3_type
+     */
     int getFlowL3Type();
 };
 
+
+/*
+ *  Frees flow's stats and infos
+ */
 static void flowFreer(void * const node)
 {
     FlowInfo * const flow = (FlowInfo *) node;

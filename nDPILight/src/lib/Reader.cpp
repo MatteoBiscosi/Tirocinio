@@ -6,7 +6,6 @@
 /* ********************************** */
 
 void ndpi_idle_scan_walker(void const * const A, ndpi_VISIT which, int depth, void * const user_data)
-/*  Function used to search for idle flows  */
 {
     PcapReader * const workflow = (PcapReader *)user_data;
     FlowInfo * const flow = *(FlowInfo **)A;
@@ -35,7 +34,6 @@ void ndpi_idle_scan_walker(void const * const A, ndpi_VISIT which, int depth, vo
 /* ********************************** */
 
 int ndpi_workflow_node_cmp(void const * const A, void const * const B)
-/*  Checks if two nodes of the tree, A and B, are equals    */
 {
     FlowInfo * const flow_info_a = (FlowInfo *)A;
     FlowInfo * const flow_info_b = (FlowInfo *)B;

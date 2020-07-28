@@ -10,7 +10,6 @@
 
 int FlowInfo::ipTupleToString(char * const src_addr_str, size_t src_addr_len,
                               char * const dst_addr_str, size_t dst_addr_len)
-/*  Function used to convert an ip_tuple to a String    */
 {
     switch (this->l3_type) {
         case L3_IP:
@@ -31,7 +30,6 @@ int FlowInfo::ipTupleToString(char * const src_addr_str, size_t src_addr_len,
 /* ********************************** */
 
 int FlowInfo::ipTuplesEqual(FlowInfo const * const B)
-/*  Checks if this and B are equals */
 {
     if (this->l3_type == L3_IP && B->l3_type == L3_IP) {
         return this->ip_tuple.v4.src == B->ip_tuple.v4.src &&
@@ -48,7 +46,6 @@ int FlowInfo::ipTuplesEqual(FlowInfo const * const B)
 /* ********************************** */
 
 int FlowInfo::ipTuplesCompare(FlowInfo const * const B)
-/*  Compares this with B and checks if they are equals  */
 {
     /*  IPv4    */
     if (this->l3_type == L3_IP && B->l3_type == L3_IP) {
@@ -101,6 +98,7 @@ int FlowInfo::ipTuplesCompare(FlowInfo const * const B)
 }
 
 /* ********************************** */
+/*  Getters and Setters  */
 
 void FlowInfo::setFlowL3Type(int const type)
 {
@@ -109,6 +107,8 @@ void FlowInfo::setFlowL3Type(int const type)
     else
         this->l3_type = L3_IP6;
 }
+
+/* ********************************** */
 
 int FlowInfo::getFlowL3Type()
 {

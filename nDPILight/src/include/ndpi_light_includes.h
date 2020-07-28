@@ -1,7 +1,3 @@
-//
-// Created by matteo on 09/07/2020.
-//
-
 #ifndef NDPILIGHT_NDPI_LIGHT_INCLUDES_H
 #define NDPILIGHT_NDPI_LIGHT_INCLUDES_H
 
@@ -27,6 +23,7 @@
 #include "ndpi_main.h"
 #include "ndpi_typedefs.h"
 #include "ndpi_classify.h"
+#include "CaptureStats.h"
 #include "Trace.h"
 #include "FlowInfo.h"
 #include "Reader.h"

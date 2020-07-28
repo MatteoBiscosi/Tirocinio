@@ -5,10 +5,6 @@
 #include "ndpi_light_includes.h"
 
 
-int NapatechReader::prova() {
-    return 0;
-}
-
 NapatechReader::NapatechReader(const char *dst) {
 
 }

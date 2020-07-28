@@ -1,7 +1,3 @@
-//
-// Created by matteo on 09/07/2020.
-//
-
 #ifndef NDPILIGHT_NAPATECH_READER_H
 #define NDPILIGHT_NAPATECH_READER_H
 
@@ -15,7 +11,6 @@ public:
 public:
     explicit NapatechReader();
     explicit NapatechReader(char const * dst);
-    int prova();
 };
 
 #endif //NDPILIGHT_NAPATECH_READER_H

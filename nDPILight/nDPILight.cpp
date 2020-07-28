@@ -12,6 +12,7 @@ int terminate_thread {0};
 PacketDissector pkt_parser;
 
 
+
 static bool find_help(char ** begin, char ** end, const std::string& option)
 /*  Function used to find if help is an option requested    */
 {
@@ -41,7 +42,7 @@ static char * check_args(int &argc, char ** argv)
             case 't':
                 tracelvl = atoi(optarg);
 
-                if(tracelvl > 6 || tracelvl < 1) {
+                if(tracelvl > 6 || tracelvl < 0) {
                     tracer->traceEvent(0, "Error: invalid trace level, please check -h\n");
                     exit(1);
                 }
@@ -165,7 +166,7 @@ static int stop_reader()
 {
     reader_thread.rdr->stopRead();
 
-    tracer->traceEvent(1, "Stopping reader, Thread id: %d\r\n\r\n\r\n", reader_thread.thread_id);
+    tracer->traceEvent(1, "Stopping reader, Thread id: %d\r\n\r\n", reader_thread.thread_id);
 
     struct timespec abstime;
 

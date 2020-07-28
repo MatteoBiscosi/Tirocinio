@@ -5,8 +5,8 @@
  *
  */
 
-#ifndef _TRACE_H_
-#define _TRACE_H_
+#ifndef NDPILIGHT_TRACE_H
+#define NDPILIGHT_TRACE_H
 
 #include "ndpi_light_includes.h"
 
@@ -42,29 +42,32 @@
 /* ******************************* */
 
 class Trace {
- private:
-  char *logFile;
-  FILE *logFd;
-  int numLogLines = 0;
-  volatile u_int8_t traceLevel = 0;
-  pthread_mutex_t the_mutex;
+    private:
 
-private:
-  void open_log();
-#ifdef WIN32
-  void AddToMessageLog(LPTSTR lpszMsg);
-#endif
+        char *logFile;
+        FILE *logFd;
+        int numLogLines = 0;
+        volatile u_int8_t traceLevel = 0;
+        pthread_mutex_t the_mutex;
 
- public:
-  Trace();
-  ~Trace();
+    private:
 
-  void rotate_logs(bool forceRotation);
-  void set_log_file(const char *log_file);
-  void set_trace_level(u_int8_t id);
-  inline u_int8_t get_trace_level() { return(traceLevel); };
-  void traceEvent(int eventTraceLevel, const char * format, ...);
+        void open_log();
+      #ifdef WIN32
+        void AddToMessageLog(LPTSTR lpszMsg);
+      #endif
+
+    public:
+
+        Trace();
+        ~Trace();
+
+        void rotate_logs(bool forceRotation);
+        void set_log_file(const char *log_file);
+        void set_trace_level(u_int8_t id);
+        inline u_int8_t get_trace_level() { return(traceLevel); };
+        void traceEvent(int eventTraceLevel, const char * format, ...);
 };
 
 
-#endif /* _TRACE_H_ */
+#endif /* NDPILIGHT_TRACE_H */
