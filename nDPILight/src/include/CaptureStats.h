@@ -26,7 +26,7 @@ class CaptureStats {
         unsigned long long int guessed_flow_protocols = 0;
         unsigned long long int unclassified_flow_protocols = 0;
 
-        uint16_t * protos_cnt;
+        uint16_t* protos_cnt;
 }; 
 
 

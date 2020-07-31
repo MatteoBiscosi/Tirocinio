@@ -117,7 +117,7 @@ int PcapReader::initInfos()
     ndpi_set_protocol_detection_bitmask2(this->ndpi_struct, &protos);
     ndpi_finalize_initalization(this->ndpi_struct);
 
-    pkt_parser.captured_stats.protos_cnt = new uint16_t[ndpi_get_num_supported_protocols(this->ndpi_struct)];
+    pkt_parser.captured_stats.protos_cnt = new uint16_t[ndpi_get_num_supported_protocols(this->ndpi_struct) + 1] ();
 
     return 0;
 }
