@@ -40,6 +40,9 @@ PcapReader::~PcapReader()
         ndpi_free(this->ndpi_flows_active);
     if(this->ndpi_flows_idle != nullptr)
         ndpi_free(this->ndpi_flows_idle);
+
+    if(pkt_parser.captured_stats.protos_cnt != nullptr)
+        delete [] pkt_parser.captured_stats.protos_cnt;
 }   
 
 /* ********************************** */
