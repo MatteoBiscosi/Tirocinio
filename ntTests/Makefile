@@ -2,10 +2,11 @@ CC			:= 	gcc
 CXX			:= 	g++ -std=c++11
 BUILD		:= 	./build
 OBJ_DIR		:= 	$(BUILD)/objects
+LIB_DIR		:= 	/opt/napatech3/lib
 LIBNT		:=	/opt/napatech3/include
 LIBFLAGS	:=	$(LIBNDPI)
-CFLAGS		:=	-fPIC -DPIC -I$(LIBNT)/ -g -O2
-LDFLAGS		:=	-lpcap -lpthread
+CFLAGS		:=	-fPIC -DPIC -I$(LIBNT) -g -O2
+LDFLAGS		:=	-L$(LIB_DIR) -lntapi -lpcap -lpthread
 SRC      	:= 	$(wildcard main.cpp)
 TARGET		:= 	test
 
@@ -15,18 +16,19 @@ TARGET		:= 	test
 all: build ./$(TARGET)
 
 EXECUTABLE_SOURCES	:=	main.cpp
-OBJECTS				:=	$(SRC:%.cpp=$(OBJ_DIR)/%.o)
+OBJECTS			:=	$(SRC:%.cpp=$(OBJ_DIR)/%.o)
+
 
 $(OBJ_DIR)/%.o: %.cpp
 	@mkdir -p $(@D)
-	$(CXX) $(CFLAGS) -c $< -o $@
+	$(CXX) -D_NT_NTAPI_NO_COMPAT $(CFLAGS) -c $< -o $@ 
 
 %.o: %.cpp
-	$(CXX) $(CFLAGS) -c $< -o $@ $(LDFLAGS)
+	$(CXX) -D_NT_NTAPI_NO_COMPAT $(CFLAGS) -c $< -o $@ $(LDFLAGS)
 
-./$(TARGET): $(OBJECTS)
+./$(TARGET):$(OBJECTS)
 	@mkdir -p $(@D)
-	$(CXX) $(CFLAGS) -o ./$(TARGET) $^ $(LIBFLAGS) $(LDFLAGS) 
+	$(CXX) -o ./$(TARGET) $^ $(LIBFLAGS) $(LDFLAGS) 
 
 build:
 	@mkdir -p $(OBJ_DIR)

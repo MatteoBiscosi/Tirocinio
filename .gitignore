@@ -8,4 +8,6 @@
 
 /nDPILight/nDPILight
 
+/nDPILight/core*
+
 /.gitignore
