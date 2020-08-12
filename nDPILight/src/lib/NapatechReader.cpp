@@ -22,17 +22,15 @@ int NapatechReader::handleErrorStatus(int status, const char* message)
   if(this->status != NT_SUCCESS) {
     char errorBuffer[NT_ERRBUF_SIZE];
     NT_ExplainError(this->status, errorBuffer, sizeof(errorBuffer));
-    std::cerr << message << ": " << errorBuffer << std::endl;
+    tracer->traceEvent(0, "%s: %s\n", message, errorBuffer);
     return 1;
   }
 }
 
 /* ********************************** */
 
-void NapatechReader::ntplCall(const char* str)
+int NapatechReader::ntplCall(const char* str)
 {
-  std::cout << str << std::endl;
-
   NtNtplInfo_t ntplInfo;
   this->status = NT_NTPL(this->hCfgStream, str, &ntplInfo, NT_NTPL_PARSER_VALIDATE_NORMAL);
   return handleErrorStatus(this->status, "NT_NTPL() failed");
@@ -169,28 +167,22 @@ void NapatechReader::getDyn(NtNetBuf_t& hNetBuffer)
     uint8_t* packet = reinterpret_cast<uint8_t*>(pDyn1) + pDyn1->descrLength;
 
     if (pDyn1->color & (1 << 6)) {
-        printf("Packet contain an error and decoding cannot be trusted\n");
+        tracer->traceEvent(1, "Packet contain an error and decoding cannot be trusted\n");
     } else {
         if (pDyn1->color & (1 << 5)) {
-            printf("A non IPv4,IPv6 packet received\n");
-        } else if (pDyn1->color & 3) {
-            printf("Fragmented packet. Must be assembled before the netflow information can be gathered\n");
+            tracer->traceEvent(1, "A non IPv4,IPv6 packet received\n");
         } else {
             switch (pDyn1->color >> 2) {
             case 0:  // IPv4
-                    printf("IPv4 packet received\n");
                     DumpIPv4(pDyn1);
                     break;
             case 1:  // IPv6
-                    printf("IPv6 packet received\n");
                     DumpIPv6(pDyn1);
                     break;
             case 2:  // Tunneled IPv4
-                    printf("Tunneled IPv4 packet received\n");
                     DumpIPv4(pDyn1);
-                break;
+                    break;
             case 3:  // Tunneled IPv6
-                    printf("Tunneled IPv6 packet received\n");
                     DumpIPv6(pDyn1);
                     break;
             }
@@ -204,12 +196,15 @@ int NapatechReader::startRead()
 {
     NtNetBuf_t hNetBuffer;
 
-    while(true) {
+    while(this->error_or_eof == 0) {
         // Get package from rx stream.
         this->status = NT_NetRxGetNextPacket(hNetRx, &hNetBuffer, -1);
         
         if(this->status == NT_STATUS_TIMEOUT || status == NT_STATUS_TRYAGAIN) 
             continue;
+
+        if(this->status == NT_ERROR_NT_TERMINATING)
+	    break;
 
         if(handleErrorStatus(this->status, "Error while sniffing next packet") != 0) {
             this->error_or_eof = 1;
@@ -218,16 +213,12 @@ int NapatechReader::startRead()
 
         pktCounter++;
 
-        std::cout << "Packet received;\tPacket number: " << pktCounter << "\n";
+        tracer->traceEvent(2, "Packet received;\tPacket number: %3llu\n", this->pktCounter);
 	
         this->getDyn(hNetBuffer);
     }	
 
-    // Closes flow programming stream
-    status = NT_FlowClose(flowStream);
-    handleErrorStatus(status, "NT_FlowClose() failed");
-
-    this->error_or_eof = 1
+    this->error_or_eof = 1;
 
     return 0;
 }
@@ -236,9 +227,11 @@ int NapatechReader::startRead()
 
 void NapatechReader::stopRead()
 {
+    this->error_or_eof = 1;
+    sleep(5);    
+
     // Closes rx stream.
-    int status = NT_NetRxClose(hNetRx);
-    handleErrorStatus(status, "NT_NetRxClose() failed")
+    NT_NetRxClose(hNetRx);    
 }
 
 /* ********************************** */

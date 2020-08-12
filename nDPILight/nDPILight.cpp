@@ -19,13 +19,10 @@ static bool find_help(char ** begin, char ** end, const string& option)
     return find(begin, end, option) != end;
 }
 
-static bool starts_with(char const * const file_or_device, char const * const marker)
+static bool starts_with(const char *file_or_device, const char *marker)
 /*  Function used to know if file_or_device is a nt or not  */
 {
-    transform(file_or_device->begin(), file_or_device->end(), file_or_device->begin(), ::tolower);
-    // Convert toMatch to lower case
-    transform(marker->begin(), marker->end(), marker->begin(), ::tolower);
-    if(file_or_device.find(marker) == 0)
+    if(strstr(file_or_device, marker) == file_or_device)
         return true;
     else
         return false;

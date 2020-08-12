@@ -29,27 +29,27 @@ public:
     explicit NapatechReader();
     explicit NapatechReader(char const * dst);
 
-    int startRead() = 0;
-    int initFileOrDevice() = 0;
-    void stopRead() = 0;
-    int checkEnd() = 0;
+    int startRead();
+    int initFileOrDevice();
+    void stopRead();
+    int checkEnd();
 
-    void printStats() = 0;
-    void newPacket(pcap_pkthdr const * const header) = 0;
-    int newFlow(FlowInfo * & flow_to_process) = 0;
+    void printStats(){};
+    void newPacket(pcap_pkthdr const * const header){};
+    int newFlow(FlowInfo * & flow_to_process){};
 
 private:
     int handleErrorStatus(int status, const char* message);
-    int ntplCall(NtConfigStream_t& hCfgStream, const char* str);
+    int ntplCall(const char* str);
 
     int setFilters();
     int setFlow();
     int setStream();
     void getDyn(NtNetBuf_t& hNetBuffer);
 
-    void DumpL4(NtDyn1Descr_t *pDyn1);
-    void DumpIPv4(NtDyn1Descr_t *pDyn1);
-    void DumpIPv6(NtDyn1Descr_t *pDyn1);
+    void DumpL4(NtDyn1Descr_t * & pDyn1);
+    void DumpIPv4(NtDyn1Descr_t * & pDyn1);
+    void DumpIPv6(NtDyn1Descr_t * & pDyn1);
 };
 
 /* ********************************** */
