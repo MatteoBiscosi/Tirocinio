@@ -20,6 +20,10 @@
 #include <sys/stat.h>
 #include <syslog.h>
 #include <sys/time.h>
+#include <inttypes.h>
+
+#include <nt.h>
+
 #include "ndpi_main.h"
 #include "ndpi_typedefs.h"
 #include "ndpi_classify.h"

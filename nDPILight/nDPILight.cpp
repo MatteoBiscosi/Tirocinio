@@ -13,10 +13,22 @@ PacketDissector pkt_parser;
 
 
 
-static bool find_help(char ** begin, char ** end, const std::string& option)
+static bool find_help(char ** begin, char ** end, const string& option)
 /*  Function used to find if help is an option requested    */
 {
     return find(begin, end, option) != end;
+}
+
+static bool starts_with(char const * const file_or_device, char const * const marker)
+/*  Function used to know if file_or_device is a nt or not  */
+{
+    transform(file_or_device->begin(), file_or_device->end(), file_or_device->begin(), ::tolower);
+    // Convert toMatch to lower case
+    transform(marker->begin(), marker->end(), marker->begin(), ::tolower);
+    if(file_or_device.find(marker) == 0)
+        return true;
+    else
+        return false;
 }
 
 /* ********************************** */
@@ -94,23 +106,34 @@ static int setup_pcap(char const * const file_or_device)
 
 /* ********************************** */
 
-static int setup_reader(char const * const file_or_device)
-/*
- * ********** WHEN NAPATECH IS READY, NEED TO ADD THE CHECK AND SWITCH BETWEEN NAPATECH AND PCAP **********
- */
+static int setup_napatech(char const * const file_or_device)
+/*  Setup the reader_thread */
 {
-    /*
-     * if(file_or_device != napatech) {
-     *      setup_pcap();
-     * }
-     * else {
-     *      setup_napatech();
-     * }
-     */
+    reader_thread.reader_type = 0;
+    NapatechReader *tmp = new NapatechReader(file_or_device);
+    reader_thread.rdr = tmp;
 
-
-    if(setup_pcap(file_or_device) != 0) {
+    if(reader_thread.rdr->initFileOrDevice() == -1)
         return -1;
+
+    return 0;
+}
+
+/* ********************************** */
+
+static int setup_reader(char const * const file_or_device)
+{
+    /*  Napatech    */
+    if(starts_with(file_or_device, "nt")) {
+        if(setup_napatech(file_or_device) != 0) {
+            return -1;
+        }
+    }
+    /*  Pcap    */
+    else {
+        if(setup_pcap(file_or_device) != 0) {
+            return -1;
+        }
     }
 
     return 0;
