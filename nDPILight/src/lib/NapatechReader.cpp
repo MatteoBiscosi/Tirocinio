@@ -38,60 +38,6 @@ int NapatechReader::ntplCall(const char* str)
 
 /* ********************************** */
 
-void NapatechReader::DumpL4(NtDyn1Descr_t * & pDyn1)
-{
-    printf("    %3d %8s | ", pDyn1->ipProtocol, pDyn1->ipProtocol == 6 ? "TCP" : pDyn1->ipProtocol == 17 ? "UDP" : "Other");
-    if (pDyn1->ipProtocol == 6) {
-      struct TCPHeader_s *pl4 = (struct TCPHeader_s*)((uint8_t*)pDyn1 + pDyn1->descrLength + pDyn1->offset1);
-      printf("    %04X |      %04X | ", ntohs(pl4->tcp_src), ntohs(pl4->tcp_dest));
-      printf("      %03X | ", (pl4->reserved & 1) << 8 | pl4->tcp_ec_ctl);
-    } else if (pDyn1->ipProtocol == 17) {
-      struct UDPHeader_s *pl4 = (struct UDPHeader_s*)((uint8_t*)pDyn1 + pDyn1->descrLength + pDyn1->offset1);
-      printf("    %04d |      %04d | ", ntohs(pl4->udp_src), ntohs(pl4->udp_dest));
-      printf("%9s | ", "N/A");
-    } else {
-      printf("%8s %9s | ", " ", " ");
-      printf("%9s | ", " ");
-    }
-    printf("%8d bytes\n", pDyn1->capLength - 4 - pDyn1->descrLength - pDyn1->offset0);
-}
-
-/* ********************************** */
-
-void NapatechReader::DumpIPv4(NtDyn1Descr_t * & pDyn1)
-{
-    uint32_t ipaddr;
-    struct IPv4Header_s *pl3 = (struct IPv4Header_s*)((uint8_t*)pDyn1 + pDyn1->descrLength + pDyn1->offset0);
-    printf("%-16s | %-15s - %-15s | %-16s | %-8s | %-9s | %-9s | %-8s\n", "Time", "Src", "Dest", "Protocol", "Src port", "Dest port", "TCP flags", "Bytes");
-    printf("%16llu | ", pDyn1->timestamp);
-    ipaddr = ntohl(pl3->ip_src);
-    printf("%03d.%03d.%03d.%03d - ", (ipaddr >> 24) & 0xFF, (ipaddr >> 16) & 0xFF, (ipaddr >> 8) & 0xFF, ipaddr & 0xFF);
-    ipaddr = ntohl(pl3->ip_dest);
-    printf("%03d.%03d.%03d.%03d | ", (ipaddr >> 24) & 0xFF, (ipaddr >> 16) & 0xFF, (ipaddr >> 8) & 0xFF, ipaddr & 0xFF);
-    DumpL4(pDyn1);
-}
-
-/* ********************************** */
-
-void NapatechReader::DumpIPv6(NtDyn1Descr_t * & pDyn1)
-{
-    int i;
-    struct IPv6Header_s *pl3 = (struct IPv6Header_s*)((uint8_t*)pDyn1 + pDyn1->descrLength + pDyn1->offset0);
-    printf("%-16s | %-32s - %-32s | %-16s | %-8s | %-9s | %-9s | %-8s\n", "Time", "Src", "Dest", "Protocol", "Src port", "Dest port", "TCP flags", "Bytes");
-    printf("%16" PRIx64 " | ", pDyn1->timestamp);
-    for(i=0; i < 16; i++) {
-      printf("%02x", *(((uint8_t*)&pl3->ip_src)+i));
-    }
-    printf(" - ");
-    for(i=0; i < 16; i++) {
-      printf("%02x", *(((uint8_t*)&pl3->ip_dest)+i));
-    }
-    printf(" | ");
-    DumpL4(pDyn1);
-}
-
-/* ********************************** */
-
 int NapatechReader::setFilters() 
 {
     // Deletion of filters and macros, and clear FPGA flow tables.
@@ -160,33 +106,58 @@ int NapatechReader::initFileOrDevice()
 
 /* ********************************** */
 
-void NapatechReader::getDyn(NtNetBuf_t& hNetBuffer)
-{
-    // descriptor DYN1 is used, which is set up via NTPL.
-    NtDyn1Descr_t* pDyn1 = NT_NET_DESCR_PTR_DYN1(hNetBuffer);
-    uint8_t* packet = reinterpret_cast<uint8_t*>(pDyn1) + pDyn1->descrLength;
+void NapatechReader::newPacket(void * header) {
+    uint64_t time_ms = ((uint64_t) NT_NET_GET_PKT_TIMESTAMP(hNetBuffer)->sec) * TICK_RESOLUTION + NT_NET_GET_PKT_TIMESTAMP(hNetBuffer)->usec / (1000000 / TICK_RESOLUTION);
+    this->last_time = time_ms;
+    /*  Scan done every 15000 ms more or less   */    
+    pkt_parser.captured_stats.total_wire_bytes += NT_NET_GET_PKT_CAP_LENGTH();
+    this->checkForIdleFlows();
+}
 
-    if (pDyn1->color & (1 << 6)) {
-        tracer->traceEvent(1, "Packet contain an error and decoding cannot be trusted\n");
-    } else {
-        if (pDyn1->color & (1 << 5)) {
-            tracer->traceEvent(1, "A non IPv4,IPv6 packet received\n");
-        } else {
-            switch (pDyn1->color >> 2) {
-            case 0:  // IPv4
-                    DumpIPv4(pDyn1);
-                    break;
-            case 1:  // IPv6
-                    DumpIPv6(pDyn1);
-                    break;
-            case 2:  // Tunneled IPv4
-                    DumpIPv4(pDyn1);
-                    break;
-            case 3:  // Tunneled IPv6
-                    DumpIPv6(pDyn1);
-                    break;
+/* ********************************** */
+
+void PcapReader::checkForIdleFlows()
+{
+    /*  Check if at least IDLE_SCAN_PERIOD passed since last scan   */
+    if (this->last_idle_scan_time + IDLE_SCAN_PERIOD < this->last_time || 
+        pkt_parser.captured_stats.packets_captured - this->last_packets_scan > PACKET_SCAN_PERIOD) {
+        for (this->idle_scan_index; this->idle_scan_index < this->max_idle_scan_index; ++this->idle_scan_index) {
+            if(this->ndpi_flows_active[this->idle_scan_index] == nullptr)
+                continue;
+
+            ndpi_twalk(this->ndpi_flows_active[this->idle_scan_index], ndpi_idle_scan_walker, this);
+
+            /*  Removes all idle flows that were copied into ndpi_flows_idle from the ndpi_twalk    */
+            while (this->cur_idle_flows > 0) {
+                /*  Get the flow    */
+                FlowInfo * const tmp_f =
+                        (FlowInfo *)this->ndpi_flows_idle[--this->cur_idle_flows];
+
+                if(tmp_f == nullptr)
+                    continue;
+
+                if (tmp_f->flow_fin_ack_seen == 1) {
+                    tracer->traceEvent(4, "[%4u] Freeing flow due to fin\n", tmp_f->flow_id);
+                } else {
+                    tracer->traceEvent(4, "[%4u] Freeing idle flow\n", tmp_f->flow_id);
+                }
+
+                /*  Removes it from the active flows    */
+                ndpi_tdelete(tmp_f, &this->ndpi_flows_active[this->idle_scan_index],
+                             ndpi_workflow_node_cmp);
+
+                if(tmp_f != nullptr)
+                    flowFreer(tmp_f);
+
+                this->cur_active_flows--;
             }
         }
+
+        this->last_idle_scan_time = this->last_time;
+        this->last_packets_scan = pkt_parser.captured_stats.packets_captured;
+
+        /* Updating next max_idle_scan_index */
+        this->max_idle_scan_index = ((this->idle_scan_index + this->max_idle_scan_index) % this->max_active_flows) + 1;
     }
 }
 
@@ -194,11 +165,9 @@ void NapatechReader::getDyn(NtNetBuf_t& hNetBuffer)
 
 int NapatechReader::startRead()
 {
-    NtNetBuf_t hNetBuffer;
-
     while(this->error_or_eof == 0) {
         // Get package from rx stream.
-        this->status = NT_NetRxGetNextPacket(hNetRx, &hNetBuffer, -1);
+        this->status = NT_NetRxGetNextPacket(this->hNetRx, &(this->hNetBuffer), -1);
         
         if(this->status == NT_STATUS_TIMEOUT || status == NT_STATUS_TRYAGAIN) 
             continue;
@@ -211,11 +180,7 @@ int NapatechReader::startRead()
             return 1;
         }
 
-        pktCounter++;
-
-        tracer->traceEvent(2, "Packet received;\tPacket number: %3llu\n", this->pktCounter);
-	
-        this->getDyn(hNetBuffer);
+        pkt_parser.processPacket(this, &(this->hNetBuffer), nullptr);
     }	
 
     this->error_or_eof = 1;

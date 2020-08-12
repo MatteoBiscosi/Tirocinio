@@ -6,7 +6,7 @@ static uint32_t flow_id = 0;
 
 /* ********************************** */
 
-int PacketDissector::processL2(Reader * const reader,
+int PcapDissector::processL2(Reader * const reader,
                                 pcap_pkthdr const * const header,
                                 uint8_t const * const packet,
                                 uint16_t& type,
@@ -73,7 +73,7 @@ int PacketDissector::processL2(Reader * const reader,
 
 /* ********************************** */
 
-int PacketDissector::setL2Ip(pcap_pkthdr const * const header,
+int PcapDissector::setL2Ip(pcap_pkthdr const * const header,
                             uint8_t const * const packet,
                             uint16_t& type,
                             uint16_t& ip_size,
@@ -108,7 +108,7 @@ int PacketDissector::setL2Ip(pcap_pkthdr const * const header,
 
 /* ********************************** */
 
-int PacketDissector::processL3(FlowInfo& flow,
+int PcapDissector::processL3(FlowInfo& flow,
                           pcap_pkthdr const * const header,
                           uint8_t const * const packet,
                           uint16_t& type,
@@ -177,7 +177,7 @@ int PacketDissector::processL3(FlowInfo& flow,
 
 /* ********************************** */
 
-int PacketDissector::processL4(FlowInfo& flow,
+int PcapDissector::processL4(FlowInfo& flow,
                           pcap_pkthdr const * const header,
                           uint8_t const * const packet,
                           const uint8_t * & l4_ptr,
@@ -225,7 +225,7 @@ int PacketDissector::processL4(FlowInfo& flow,
 
 /* ********************************** */
 
-int PacketDissector::searchVal(Reader * & reader,
+int PcapDissector::searchVal(Reader * & reader,
                           FlowInfo& flow,
                           void * & tree_result,
                           struct ndpi_ipv6hdr * & ip6,
@@ -254,7 +254,7 @@ int PacketDissector::searchVal(Reader * & reader,
 
 /* ********************************** */
 
-int PacketDissector::addVal(Reader * & reader,
+int PcapDissector::addVal(Reader * & reader,
                             FlowInfo& flow,
                             FlowInfo * & flow_to_process,
                             size_t& hashed_index,
@@ -309,7 +309,7 @@ int PacketDissector::addVal(Reader * & reader,
 
 /* ********************************** */
 
-void PacketDissector::printFlowInfos(Reader * & reader,
+void PcapDissector::printFlowInfos(Reader * & reader,
                                     FlowInfo * & flow_to_process,
                                     const struct ndpi_iphdr * & ip,
                                     struct ndpi_ipv6hdr * & ip6,
@@ -372,13 +372,14 @@ void PacketDissector::printFlowInfos(Reader * & reader,
 
 /* ********************************** */
 
-void PacketDissector::processPacket(uint8_t * const args,
-                                    pcap_pkthdr const * const header,
+void PcapDissector::processPacket(uint8_t * const args,
+                                    void * header_tmp,
                                     uint8_t const * const packet)
 {
     FlowInfo flow = FlowInfo();
     Reader * reader = (Reader *) args;
        
+    pcap_pkthdr const * const header = (pcap_pkthdr const * const) header_tmp;
 
     size_t hashed_index = 0;
     void * tree_result = nullptr;
