@@ -9,7 +9,7 @@ LIBNT           :=      /opt/napatech3/include
 LIBNDPI		:=	$(NDPILIB)/lib/libndpi.a
 LIBFLAGS	:=	$(LIBNDPI)
 CFLAGS		:=	-fPIC -DPIC -I$(LIBNT) -I$(SRCHOME) -I$(NDPILIB)/include -g -O2
-LDFLAGS		:=	-L$(LIB_DIR) -lntapi -lpcap -lpthread
+LDFLAGS		:=	-lntapi -lpcap -lpthread
 SRC      	:=	$(wildcard src/lib/*.cpp)	\
                	$(wildcard nDPILight.cpp)
 TARGET		:= 	nDPILight
@@ -29,7 +29,7 @@ $(OBJ_DIR)/%.o: %.cpp
 
 ./$(TARGET): $(OBJECTS)
 	@mkdir -p $(@D)
-	$(CXX) $(CFLAGS) -o ./$(TARGET) $^ $(NTOPNGOBJ) $(LIBFLAGS) $(LDFLAGS) 
+	$(CXX) $(CFLAGS) -o ./$(TARGET) -L$(LIB_DIR) $^ $(NTOPNGOBJ) $(LIBFLAGS) $(LDFLAGS) 
 
 %.o: %.cpp
 	$(CXX) $(CFLAGS) -c $< -o $@ $(LDFLAGS)

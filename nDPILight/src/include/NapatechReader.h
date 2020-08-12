@@ -5,6 +5,7 @@
 #include "ndpi_light_includes.h"
 
 
+extern PacketDissector * pkt_parser;
 
 class NapatechReader : public Reader {
 public:

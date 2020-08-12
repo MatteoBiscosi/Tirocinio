@@ -100,6 +100,7 @@ static int setup_pcap(char const * const file_or_device)
 
     pkt_parser = new PcapDissector();
 
+
     return 0;
 }
 

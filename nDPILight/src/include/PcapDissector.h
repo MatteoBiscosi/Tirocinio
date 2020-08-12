@@ -5,7 +5,7 @@
 #include "ndpi_light_includes.h"
 
 
-class PcapDissector : PacketDissector {
+class PcapDissector : public PacketDissector {
     public:
         void processPacket(void * args,
                             void * header,
@@ -89,6 +89,7 @@ class PcapDissector : PacketDissector {
                             uint64_t& time_ms);
 };
 
+extern PacketDissector * pkt_parser;
 
 /*  
  *  Function called for every packet  

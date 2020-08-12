@@ -11,7 +11,7 @@ class PacketDissector {
         CaptureStats captured_stats;
 
     public:
-        /*  
+	/*  
          *  This function is called every time a new packets appears;
          *  it process all the packets, adding new flows, updating infos, ecc.  
          */
@@ -20,6 +20,5 @@ class PacketDissector {
                                     void * packet);
 };
 
-extern PacketDissector pkt_parser;
 
 #endif

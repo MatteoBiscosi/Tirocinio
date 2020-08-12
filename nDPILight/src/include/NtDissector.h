@@ -5,7 +5,7 @@
 #include "ndpi_light_includes.h"
 
 
-class NtDissector : PacketDissector{
+class NtDissector : public PacketDissector{
     private:
         NtDyn1Descr_t* pDyn1;
         uint8_t* packet;
