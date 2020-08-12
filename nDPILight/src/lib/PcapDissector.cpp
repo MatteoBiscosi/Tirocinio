@@ -435,8 +435,8 @@ void PcapDissector::processPacket(void * const args,
         return;
     }
 
-    pkt_parser.captured_stats.packets_processed++;
-    pkt_parser.captured_stats.total_l4_data_len += l4_len;
+    pkt_parser->captured_stats.packets_processed++;
+    pkt_parser->captured_stats.total_l4_data_len += l4_len;
 
     if(this->searchVal(reader, flow, tree_result, ip6, hashed_index) != 0) {
         if(this->addVal(reader, flow, flow_to_process, hashed_index, ndpi_src, ndpi_dst) != 0) {

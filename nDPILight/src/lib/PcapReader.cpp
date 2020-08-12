@@ -41,8 +41,8 @@ PcapReader::~PcapReader()
     if(this->ndpi_flows_idle != nullptr)
         ndpi_free(this->ndpi_flows_idle);
 
-    if(pkt_parser.captured_stats.protos_cnt != nullptr)
-        delete [] pkt_parser.captured_stats.protos_cnt;
+    if(pkt_parser->captured_stats.protos_cnt != nullptr)
+        delete [] pkt_parser->captured_stats.protos_cnt;
 }   
 
 /* ********************************** */
@@ -120,7 +120,7 @@ int PcapReader::initInfos()
     ndpi_set_protocol_detection_bitmask2(this->ndpi_struct, &protos);
     ndpi_finalize_initalization(this->ndpi_struct);
 
-    pkt_parser.captured_stats.protos_cnt = new uint16_t[ndpi_get_num_supported_protocols(this->ndpi_struct) + 1] ();
+    pkt_parser->captured_stats.protos_cnt = new uint16_t[ndpi_get_num_supported_protocols(this->ndpi_struct) + 1] ();
 
     return 0;
 }
@@ -136,48 +136,48 @@ void PcapReader::printStats()
 
     tracer->traceEvent(2, "\tTraffic statistics:\r\n");
     tracer->traceEvent(2, "\t\tEthernet bytes:             %-20llu (includes ethernet CRC/IFC/trailer)\n",
-                            pkt_parser.captured_stats.total_wire_bytes);
+                            pkt_parser->captured_stats.total_wire_bytes);
     tracer->traceEvent(2, "\t\tDiscarded bytes:            %-20llu\n",
-                            pkt_parser.captured_stats.discarded_bytes);
+                            pkt_parser->captured_stats.discarded_bytes);
     tracer->traceEvent(2, "\t\tIP packets:                 %-20llu of %llu packets total\n",
-                            pkt_parser.captured_stats.ip_pkts,
-                            pkt_parser.captured_stats.packets_captured);
+                            pkt_parser->captured_stats.ip_pkts,
+                            pkt_parser->captured_stats.packets_captured);
 
     /* In order to prevent Floating point exception in case of no traffic*/
-    if(pkt_parser.captured_stats.ip_bytes && pkt_parser.captured_stats.packets_captured)
-        avg_pkt_size = pkt_parser.captured_stats.ip_bytes/pkt_parser.captured_stats.packets_captured;
+    if(pkt_parser->captured_stats.ip_bytes && pkt_parser->captured_stats.packets_captured)
+        avg_pkt_size = pkt_parser->captured_stats.ip_bytes/pkt_parser->captured_stats.packets_captured;
 
     tracer->traceEvent(2, "\t\tIP bytes:                   %-20llu (avg pkt size %u bytes)\n",
-                            pkt_parser.captured_stats.ip_bytes, avg_pkt_size);
+                            pkt_parser->captured_stats.ip_bytes, avg_pkt_size);
 
-    tracer->traceEvent(2, "\t\tUnique flows:               %-20u\n", pkt_parser.captured_stats.total_flows_captured);
+    tracer->traceEvent(2, "\t\tUnique flows:               %-20u\n", pkt_parser->captured_stats.total_flows_captured);
 
-    tracer->traceEvent(2, "\t\tTCP Packets:                %-20lu\n", pkt_parser.captured_stats.tcp_pkts);
-    tracer->traceEvent(2, "\t\tUDP Packets:                %-20lu\n", pkt_parser.captured_stats.udp_pkts);
+    tracer->traceEvent(2, "\t\tTCP Packets:                %-20lu\n", pkt_parser->captured_stats.tcp_pkts);
+    tracer->traceEvent(2, "\t\tUDP Packets:                %-20lu\n", pkt_parser->captured_stats.udp_pkts);
 
     char when[64];
     struct tm result;
 
-    strftime(when, sizeof(when), "%d/%b/%Y %H:%M:%S", localtime_r(&pkt_parser.captured_stats.pcap_start.tv_sec, &result));
+    strftime(when, sizeof(when), "%d/%b/%Y %H:%M:%S", localtime_r(&pkt_parser->captured_stats.pcap_start.tv_sec, &result));
     tracer->traceEvent(2, "\t\tAnalysis begin:             %s\n", when);
 
-    strftime(when, sizeof(when), "%d/%b/%Y %H:%M:%S", localtime_r(&pkt_parser.captured_stats.pcap_end.tv_sec, &result));
+    strftime(when, sizeof(when), "%d/%b/%Y %H:%M:%S", localtime_r(&pkt_parser->captured_stats.pcap_end.tv_sec, &result));
     tracer->traceEvent(2, "\t\tAnalysis end:               %s\n", when);
 
-    tracer->traceEvent(2, "\t\tDetected flow protos:       %-20u\n", pkt_parser.captured_stats.detected_flow_protocols);
-    tracer->traceEvent(2, "\t\tGuessed flow protos:        %-20u\n", pkt_parser.captured_stats.guessed_flow_protocols);
-    tracer->traceEvent(2, "\t\tUnclassified flow protos:   %-20u\r\n", pkt_parser.captured_stats.unclassified_flow_protocols);
+    tracer->traceEvent(2, "\t\tDetected flow protos:       %-20u\n", pkt_parser->captured_stats.detected_flow_protocols);
+    tracer->traceEvent(2, "\t\tGuessed flow protos:        %-20u\n", pkt_parser->captured_stats.guessed_flow_protocols);
+    tracer->traceEvent(2, "\t\tUnclassified flow protos:   %-20u\r\n", pkt_parser->captured_stats.unclassified_flow_protocols);
 
 
     tracer->traceEvent(2, "\tDetected protocols:\r\n");
 
     for(u_int32_t i = 0; i <= ndpi_get_num_supported_protocols(this->ndpi_struct); i++) {
         ndpi_protocol_breed_t breed = ndpi_get_proto_breed((this->ndpi_struct), i);
-        if(pkt_parser.captured_stats.protos_cnt[i] > 0) {
-            breed_stats[i] += pkt_parser.captured_stats.protos_cnt[i];
+        if(pkt_parser->captured_stats.protos_cnt[i] > 0) {
+            breed_stats[i] += pkt_parser->captured_stats.protos_cnt[i];
 
             tracer->traceEvent(2, "\t\t%-20s flows: %-13u\r\n",
-                ndpi_get_proto_name((this->ndpi_struct), i), pkt_parser.captured_stats.protos_cnt[i]);
+                ndpi_get_proto_name((this->ndpi_struct), i), pkt_parser->captured_stats.protos_cnt[i]);
         }
     }
 
@@ -240,7 +240,7 @@ void PcapReader::checkForIdleFlows()
 {
     /*  Check if at least IDLE_SCAN_PERIOD passed since last scan   */
     if (this->last_idle_scan_time + IDLE_SCAN_PERIOD < this->last_time || 
-        pkt_parser.captured_stats.packets_captured - this->last_packets_scan > PACKET_SCAN_PERIOD) {
+        pkt_parser->captured_stats.packets_captured - this->last_packets_scan > PACKET_SCAN_PERIOD) {
         for (this->idle_scan_index; this->idle_scan_index < this->max_idle_scan_index; ++this->idle_scan_index) {
             if(this->ndpi_flows_active[this->idle_scan_index] == nullptr)
                 continue;
@@ -274,7 +274,7 @@ void PcapReader::checkForIdleFlows()
         }
 
         this->last_idle_scan_time = this->last_time;
-        this->last_packets_scan = pkt_parser.captured_stats.packets_captured;
+        this->last_packets_scan = pkt_parser->captured_stats.packets_captured;
 
         /* Updating next max_idle_scan_index */
         this->max_idle_scan_index = ((this->idle_scan_index + this->max_idle_scan_index) % this->max_active_flows) + 1;
@@ -289,7 +289,7 @@ void PcapReader::newPacket(void * header) {
     uint64_t time_ms = ((uint64_t) header_tmp->ts.tv_sec) * TICK_RESOLUTION + header_tmp->ts.tv_usec / (1000000 / TICK_RESOLUTION);
     this->last_time = time_ms;
     /*  Scan done every 15000 ms more or less   */    
-    pkt_parser.captured_stats.total_wire_bytes += header_tmp->len;
+    pkt_parser->captured_stats.total_wire_bytes += header_tmp->len;
     this->checkForIdleFlows();
 }
 
@@ -298,14 +298,14 @@ void PcapReader::newPacket(void * header) {
 int PcapReader::newFlow(FlowInfo * & flow_to_process) {
     if (this->cur_active_flows == this->max_active_flows) {
         tracer->traceEvent(0, "[%8llu] max flows to track reached: %llu, idle: %llu\n",
-                                pkt_parser.captured_stats.packets_captured, this->max_active_flows, this->cur_idle_flows);
+                                pkt_parser->captured_stats.packets_captured, this->max_active_flows, this->cur_idle_flows);
         return -1;
     }
 
     flow_to_process = (FlowInfo *)ndpi_malloc(sizeof(*flow_to_process));
     if (flow_to_process == nullptr) {
         tracer->traceEvent(0, "[%8llu] Not enough memory for flow info\n",
-                                pkt_parser.captured_stats.packets_captured);
+                                pkt_parser->captured_stats.packets_captured);
         return -1;
     }
 

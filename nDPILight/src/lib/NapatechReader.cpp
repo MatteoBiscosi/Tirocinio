@@ -113,7 +113,7 @@ void NapatechReader::newPacket(void * header) {
 			 ((struct ntpcap_ts_s *) NT_NET_GET_PKT_TIMESTAMP(hNetBuffer))->usec / (1000000 / TICK_RESOLUTION);
     this->last_time = time_ms;
     /*  Scan done every 15000 ms more or less   */    
-    pkt_parser.captured_stats.total_wire_bytes += NT_NET_GET_PKT_CAP_LENGTH(hNetBuffer);
+    pkt_parser->captured_stats.total_wire_bytes += NT_NET_GET_PKT_CAP_LENGTH(hNetBuffer);
     this->checkForIdleFlows();
 }
 
@@ -123,7 +123,7 @@ void NapatechReader::checkForIdleFlows()
 {
     /*  Check if at least IDLE_SCAN_PERIOD passed since last scan   */
     if (this->last_idle_scan_time + IDLE_SCAN_PERIOD < this->last_time || 
-        pkt_parser.captured_stats.packets_captured - this->last_packets_scan > PACKET_SCAN_PERIOD) {
+        pkt_parser->captured_stats.packets_captured - this->last_packets_scan > PACKET_SCAN_PERIOD) {
         for (this->idle_scan_index; this->idle_scan_index < this->max_idle_scan_index; ++this->idle_scan_index) {
             if(this->ndpi_flows_active[this->idle_scan_index] == nullptr)
                 continue;
@@ -157,7 +157,7 @@ void NapatechReader::checkForIdleFlows()
         }
 
         this->last_idle_scan_time = this->last_time;
-        this->last_packets_scan = pkt_parser.captured_stats.packets_captured;
+        this->last_packets_scan = pkt_parser->captured_stats.packets_captured;
 
         /* Updating next max_idle_scan_index */
         this->max_idle_scan_index = ((this->idle_scan_index + this->max_idle_scan_index) % this->max_active_flows) + 1;
@@ -183,7 +183,7 @@ int NapatechReader::startRead()
             return 1;
         }
 
-        pkt_parser.processPacket(this, &(this->hNetBuffer), nullptr);
+        pkt_parser->processPacket(this, &(this->hNetBuffer), nullptr);
     }	
 
     this->error_or_eof = 1;

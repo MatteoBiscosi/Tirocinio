@@ -138,8 +138,8 @@ void NtDissector::processPacket(void * args,
 
     this->getDyn(hNetBuffer);
 
-    pkt_parser.captured_stats.packets_processed++;
-    pkt_parser.captured_stats.total_l4_data_len += l4_len;
+    pkt_parser->captured_stats.packets_processed++;
+    pkt_parser->captured_stats.total_l4_data_len += l4_len;
 
     /*
     if(this->searchVal(reader, flow, tree_result, ip6, hashed_index) != 0) {

@@ -9,7 +9,7 @@ using namespace std;
 Trace *tracer;
 ReaderThread reader_thread;
 int terminate_thread {0};
-PacketDissector pkt_parser;
+PacketDissector * pkt_parser;
 
 
 
