@@ -372,14 +372,15 @@ void PcapDissector::printFlowInfos(Reader * & reader,
 
 /* ********************************** */
 
-void PcapDissector::processPacket(uint8_t * const args,
+void PcapDissector::processPacket(void * const args,
                                     void * header_tmp,
-                                    uint8_t const * const packet)
+                                    void * packet_tmp)
 {
     FlowInfo flow = FlowInfo();
     Reader * reader = (Reader *) args;
        
     pcap_pkthdr const * const header = (pcap_pkthdr const * const) header_tmp;
+    uint8_t const * const packet = (uint8_t const * const) packet_tmp;
 
     size_t hashed_index = 0;
     void * tree_result = nullptr;
@@ -409,7 +410,7 @@ void PcapDissector::processPacket(uint8_t * const args,
     this->captured_stats.pcap_end.tv_sec = header->ts.tv_sec;
     this->captured_stats.pcap_end.tv_usec = header->ts.tv_usec;
 
-    reader->newPacket(header);
+    reader->newPacket((void *) header);
 
     /*  Process L2  */
     if(this->processL2(reader, header, packet, type, ip_size, ip_offset, eth_offset, ethernet) != 0) {

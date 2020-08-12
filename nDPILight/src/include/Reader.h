@@ -25,7 +25,7 @@ class Reader {
         virtual ~Reader() {};
 
         virtual void printStats() = 0;
-        virtual void newPacket(pcap_pkthdr const * const header) = 0;
+        virtual void newPacket(void * header) = 0;
         virtual int startRead() = 0;
         virtual int initFileOrDevice() = 0;
         virtual void stopRead() = 0;

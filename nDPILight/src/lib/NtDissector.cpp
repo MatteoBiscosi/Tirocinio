@@ -5,7 +5,7 @@
 
 /* ********************************** */
 
-void NapatechReader::DumpL4(NtDyn1Descr_t * & pDyn1)
+void NtDissector::DumpL4(NtDyn1Descr_t * & pDyn1)
 {
     printf("    %3d %8s | ", pDyn1->ipProtocol, pDyn1->ipProtocol == 6 ? "TCP" : pDyn1->ipProtocol == 17 ? "UDP" : "Other");
     if (pDyn1->ipProtocol == 6) {
@@ -25,7 +25,7 @@ void NapatechReader::DumpL4(NtDyn1Descr_t * & pDyn1)
 
 /* ********************************** */
 
-void NapatechReader::DumpIPv4(NtDyn1Descr_t * & pDyn1)
+void NtDissector::DumpIPv4(NtDyn1Descr_t * & pDyn1)
 {
     uint32_t ipaddr;
     struct IPv4Header_s *pl3 = (struct IPv4Header_s*)((uint8_t*)pDyn1 + pDyn1->descrLength + pDyn1->offset0);
@@ -40,7 +40,7 @@ void NapatechReader::DumpIPv4(NtDyn1Descr_t * & pDyn1)
 
 /* ********************************** */
 
-void NapatechReader::DumpIPv6(NtDyn1Descr_t * & pDyn1)
+void NtDissector::DumpIPv6(NtDyn1Descr_t * & pDyn1)
 {
     int i;
     struct IPv6Header_s *pl3 = (struct IPv6Header_s*)((uint8_t*)pDyn1 + pDyn1->descrLength + pDyn1->offset0);
@@ -59,7 +59,7 @@ void NapatechReader::DumpIPv6(NtDyn1Descr_t * & pDyn1)
 
 /* ********************************** */
 
-void NapatechReader::getDyn(NtNetBuf_t& hNetBuffer)
+void NtDissector::getDyn(NtNetBuf_t& hNetBuffer)
 {
     // descriptor DYN1 is used, which is set up via NTPL.
     this->pDyn1 = NT_NET_DESCR_PTR_DYN1(hNetBuffer);
@@ -91,9 +91,9 @@ void NapatechReader::getDyn(NtNetBuf_t& hNetBuffer)
 
 /* ********************************** */
 
-void PcapDissector::processPacket(uint8_t * const args,
+void NtDissector::processPacket(void * args,
                                     void * header_tmp,
-                                    uint8_t const * const packet)
+                                    void * packet)
 {
     FlowInfo flow = FlowInfo();
     Reader * reader = (Reader *) args;
@@ -123,18 +123,18 @@ void PcapDissector::processPacket(uint8_t * const args,
     this->captured_stats.packets_captured++;
 
     if(!this->captured_stats.pcap_start.tv_sec) {
-        this->captured_stats.pcap_start.tv_sec = NT_NET_GET_PKT_TIMESTAMP(hNetBuffer)->sec;
-        this->captured_stats.pcap_start.tv_usec = NT_NET_GET_PKT_TIMESTAMP(hNetBuffer)->usec;
+        this->captured_stats.pcap_start.tv_sec = ((struct ntpcap_ts_s *) NT_NET_GET_PKT_TIMESTAMP(hNetBuffer))->sec;
+        this->captured_stats.pcap_start.tv_usec = ((struct ntpcap_ts_s *) NT_NET_GET_PKT_TIMESTAMP(hNetBuffer))->usec;
     }
 
-    printf("\r\n%3llu | %3llu\r\n", this->captured_stats.pcap_start.tv_sec, this->captured_stats.pcap_start.tv_usec)
+    printf("\r\n%3llu | %3llu\r\n", this->captured_stats.pcap_start.tv_sec, this->captured_stats.pcap_start.tv_usec);
 
-    this->captured_stats.pcap_end.tv_sec = NT_NET_GET_PKT_TIMESTAMP(hNetBuffer)->sec;
-    this->captured_stats.pcap_end.tv_usec = NT_NET_GET_PKT_TIMESTAMP(hNetBuffer)->usec;
+    this->captured_stats.pcap_end.tv_sec =((struct ntpcap_ts_s *) NT_NET_GET_PKT_TIMESTAMP(hNetBuffer))->sec;
+    this->captured_stats.pcap_end.tv_usec = ((struct ntpcap_ts_s *) NT_NET_GET_PKT_TIMESTAMP(hNetBuffer))->usec;
 
     reader->newPacket((void *) hNetBuffer);
 
-    tracer->traceEvent(2, "Packet received;\tPacket number: %3llu\n", this->pktCounter);
+    tracer->traceEvent(2, "Packet received;\tPacket number: %3llu\n", this->captured_stats.packets_captured);
 
     this->getDyn(hNetBuffer);
 

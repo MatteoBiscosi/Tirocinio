@@ -7,9 +7,9 @@
 
 class PcapDissector : PacketDissector {
     public:
-        void processPacket(uint8_t * args,
+        void processPacket(void * args,
                             void * header,
-                            uint8_t const * packet);
+                            void * packet);
     private:
         /*  
          *  Process datalink layer  
@@ -97,5 +97,7 @@ static void process_helper(uint8_t * const args,
                            pcap_pkthdr const * const header,
                            uint8_t const * const packet)
 {
-    pkt_parser.processPacket(args, (void *) header, packet);
+    pkt_parser.processPacket(args, (void *) header, (void *) packet);
 };
+
+#endif

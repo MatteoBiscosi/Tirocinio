@@ -284,13 +284,12 @@ void PcapReader::checkForIdleFlows()
 /* ********************************** */
 
 void PcapReader::newPacket(void * header) {
+    pcap_pkthdr const * const header_tmp = (pcap_pkthdr const * const) header;
 
-    NtNetBuf_t hNetBuffer = (NtNetBuf_t) header_tmp;
-
-    uint64_t time_ms = ((uint64_t) header->ts.tv_sec) * TICK_RESOLUTION + header->ts.tv_usec / (1000000 / TICK_RESOLUTION);
+    uint64_t time_ms = ((uint64_t) header_tmp->ts.tv_sec) * TICK_RESOLUTION + header_tmp->ts.tv_usec / (1000000 / TICK_RESOLUTION);
     this->last_time = time_ms;
     /*  Scan done every 15000 ms more or less   */    
-    pkt_parser.captured_stats.total_wire_bytes += header->len;
+    pkt_parser.captured_stats.total_wire_bytes += header_tmp->len;
     this->checkForIdleFlows();
 }
 

@@ -49,12 +49,14 @@ public:
     int checkEnd();
 
     void printStats(){};
-    void newPacket(pcap_pkthdr const * const header){};
+    void newPacket(void * header);
     int newFlow(FlowInfo * & flow_to_process){};
 
 private:
     int handleErrorStatus(int status, const char* message);
     int ntplCall(const char* str);
+
+    void checkForIdleFlows();
 
     int setFilters();
     int setFlow();

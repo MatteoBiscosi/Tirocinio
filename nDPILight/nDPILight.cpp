@@ -98,6 +98,8 @@ static int setup_pcap(char const * const file_or_device)
     if(reader_thread.rdr->initFileOrDevice() == -1)
         return -1;
 
+    pkt_parser = new PcapDissector();
+
     return 0;
 }
 
@@ -112,6 +114,8 @@ static int setup_napatech(char const * const file_or_device)
 
     if(reader_thread.rdr->initFileOrDevice() == -1)
         return -1;
+
+    pkt_parser = new NtDissector();
 
     return 0;
 }

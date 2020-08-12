@@ -15,9 +15,9 @@ class PacketDissector {
          *  This function is called every time a new packets appears;
          *  it process all the packets, adding new flows, updating infos, ecc.  
          */
-        virtual void processPacket(uint8_t * args,
+        virtual void processPacket(void * args,
                                     void * header,
-                                    uint8_t const * packet);
+                                    void * packet);
 };
 
 extern PacketDissector pkt_parser;

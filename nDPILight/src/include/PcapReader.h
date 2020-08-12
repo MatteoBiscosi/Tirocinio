@@ -68,7 +68,7 @@ class PcapReader : public Reader {
         /*  
          *  Function called each packet for updating infos  
          */
-        void newPacket(pcap_pkthdr const * const header) override;
+        void newPacket(void * header) override;
 
         /*  
          *  Function called each new flow, used to update

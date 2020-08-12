@@ -107,16 +107,19 @@ int NapatechReader::initFileOrDevice()
 /* ********************************** */
 
 void NapatechReader::newPacket(void * header) {
-    uint64_t time_ms = ((uint64_t) NT_NET_GET_PKT_TIMESTAMP(hNetBuffer)->sec) * TICK_RESOLUTION + NT_NET_GET_PKT_TIMESTAMP(hNetBuffer)->usec / (1000000 / TICK_RESOLUTION);
+    NtNetBuf_t hNetBuffer = (NtNetBuf_t) header;   
+ 
+    uint64_t time_ms = ((uint64_t) ((struct ntpcap_ts_s *) NT_NET_GET_PKT_TIMESTAMP(hNetBuffer))->sec) * TICK_RESOLUTION +
+			 ((struct ntpcap_ts_s *) NT_NET_GET_PKT_TIMESTAMP(hNetBuffer))->usec / (1000000 / TICK_RESOLUTION);
     this->last_time = time_ms;
     /*  Scan done every 15000 ms more or less   */    
-    pkt_parser.captured_stats.total_wire_bytes += NT_NET_GET_PKT_CAP_LENGTH();
+    pkt_parser.captured_stats.total_wire_bytes += NT_NET_GET_PKT_CAP_LENGTH(hNetBuffer);
     this->checkForIdleFlows();
 }
 
 /* ********************************** */
 
-void PcapReader::checkForIdleFlows()
+void NapatechReader::checkForIdleFlows()
 {
     /*  Check if at least IDLE_SCAN_PERIOD passed since last scan   */
     if (this->last_idle_scan_time + IDLE_SCAN_PERIOD < this->last_time || 
