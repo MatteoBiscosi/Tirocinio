@@ -62,6 +62,8 @@ private:
     int setFilters();
     int setFlow();
     int setStream();
+    int initInfos();
+    int initModule();
     void getDyn(NtNetBuf_t& hNetBuffer);
 
     void DumpL4(NtDyn1Descr_t * & pDyn1);

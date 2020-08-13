@@ -82,6 +82,53 @@ int NapatechReader::setStream()
 
 /* ********************************** */
 
+int NapatechReader::initModule()
+{
+    ndpi_init_prefs init_prefs = ndpi_no_prefs;
+    this->ndpi_struct = ndpi_init_detection_module(init_prefs);
+    if (this->ndpi_struct == nullptr) {
+        return -1;
+    }
+
+    return 0;
+}
+
+/* ********************************** */
+
+int NapatechReader::initInfos()
+{
+    /* Actual time */
+    struct timeval actual_time;
+    gettimeofday(&actual_time, nullptr);
+    this->last_idle_scan_time = (uint64_t) actual_time.tv_sec * TICK_RESOLUTION + actual_time.tv_usec / (1000000 / TICK_RESOLUTION);
+
+    this->total_active_flows = 0; /* First initialize active flow's infos */
+    this->max_active_flows = MAX_FLOW_ROOTS_PER_THREAD;
+    this->max_idle_scan_index = MAX_FLOW_ROOTS_PER_THREAD / 8;
+    this->ndpi_flows_active = (void **)ndpi_calloc(this->max_active_flows, sizeof(void *));
+    if (this->ndpi_flows_active == nullptr) {
+        return -1;
+    }
+
+    this->total_idle_flows = 0; /* Then initialize idle flow's infos */
+    this->max_idle_flows = MAX_IDLE_FLOWS_PER_THREAD;
+    this->ndpi_flows_idle = (void **)ndpi_calloc(this->max_idle_flows, sizeof(void *));
+    if (this->ndpi_flows_idle == nullptr) {
+        return -1;
+    }
+
+    NDPI_PROTOCOL_BITMASK protos; /* In the end initialize bitmask's infos */
+    NDPI_BITMASK_SET_ALL(protos);
+    ndpi_set_protocol_detection_bitmask2(this->ndpi_struct, &protos);
+    ndpi_finalize_initalization(this->ndpi_struct);
+
+    pkt_parser->captured_stats.protos_cnt = new uint16_t[ndpi_get_num_supported_protocols(this->ndpi_struct) + 1] ();
+
+    return 0;
+}
+
+/* ********************************** */
+
 int NapatechReader::initFileOrDevice()
 {
     // Initialize napatech
@@ -92,14 +139,35 @@ int NapatechReader::initFileOrDevice()
     if(this->handleErrorStatus(status, "NT_ConfigOpen() failed") != 0)
         return 1;
     
-    if(this->setFilters() != 0)
+    if(this->setFilters() != 0){
+        tracer->traceEvent(0, "Error initializing filters\n");
+        delete(this);
         return 1;
+    }
 
-    if(this->setFlow() != 0)
+    if(this->setFlow() != 0){
+        tracer->traceEvent(0, "Error initializing flows structure\n");
+        delete(this);
         return 1;
+    }
 
-    if(this->setStream() != 0)
+    if(this->setStream() != 0) {
+        tracer->traceEvent(0, "Error initializing capture stream\n");
+        delete(this);
         return 1;
+    }
+
+    if(this->initModule() != 0) {
+        tracer->traceEvent(0, "Error initializing detection module\n");
+        delete(this);
+        return -1;
+    }
+
+    if(this->initInfos() != 0) {
+        tracer->traceEvent(0, "Error initializing structure infos\n");
+        delete(this);
+        return -1;
+    }
 
     return 0;
 }
