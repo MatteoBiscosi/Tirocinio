@@ -338,9 +338,8 @@ void PcapDissector::printFlowInfos(Reader * & reader,
             
             this->captured_stats.protos_cnt[flow_to_process->guessed_protocol.master_protocol]++;
             this->captured_stats.guessed_flow_protocols++;
-            tracer->traceEvent(1, "\t\t%-20s flows: %-13u\n",
-                ndpi_get_proto_breed_name(this->ndpi_struct, ndpi_get_proto_breed(this->ndpi_struct, i)),
-                breed_stats[i]);
+            tracer->traceEvent(1, "\t\t%-20s flows\n",
+                ndpi_get_proto_breed_name(reader->ndpi_struct, ndpi_get_proto_breed(reader->ndpi_struct, flow_to_process->detected_l7_protocol.master_protocol)));
         } else {
             tracer->traceEvent(3, "\t[%8llu, %d, %4d][FLOW NOT CLASSIFIED]\n",
                                     this->captured_stats.packets_captured, flow_to_process->flow_id);
@@ -370,9 +369,8 @@ void PcapDissector::printFlowInfos(Reader * & reader,
                                     ndpi_get_proto_name(reader->ndpi_struct, flow_to_process->detected_l7_protocol.app_protocol),
                                     ndpi_category_get_name(reader->ndpi_struct, flow_to_process->detected_l7_protocol.category));
             
-            tracer->traceEvent(1, "\t\t%-20s flows: %-13u\n",
-                ndpi_get_proto_breed_name(this->ndpi_struct, ndpi_get_proto_breed(this->ndpi_struct, i)),
-                breed_stats[i]);
+            tracer->traceEvent(1, "\t\t%-20s flows\n",
+                ndpi_get_proto_breed_name(reader->ndpi_struct, ndpi_get_proto_breed(reader->ndpi_struct, flow_to_process->detected_l7_protocol.master_protocol)));
         }
     }
 }

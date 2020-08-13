@@ -91,90 +91,8 @@ void NtDissector::getDyn(NtNetBuf_t& hNetBuffer)
 
 /* ********************************** */
 
-int PcapDissector::processL2(Reader * const reader,
-                                NtNetBuf_t& hNetBuffer,
-                                uint16_t& type,
-                                uint16_t& ip_size,
-                                uint16_t& ip_offset,
-                                const uint16_t& eth_offset,
-                                const struct ndpi_ethhdr * & ethernet)
-{
-    if (this->pDyn1->capLenght < sizeof(struct ndpi_ethhdr)) {
-        tracer->traceEvent(1, "[%8llu] Ethernet packet too short - skipping\n", this->captured_stats.packets_captured);
-        return -1;
-    }
 
-    ethernet = (struct ndpi_ethhdr *) &(this->packet)[eth_offset];
-    ip_offset = sizeof(struct ndpi_ethhdr) + eth_offset;
-    type = ntohs(ethernet->h_proto);
-    switch (type) {
-        case ETH_P_IP:
-            /* IPv4 */
-            if (this->pDyn1->capLenght < sizeof(struct ndpi_ethhdr) + sizeof(struct ndpi_iphdr)) {
-                tracer->traceEvent(1, "[%8llu] Ethernet packet too short - skipping\n", this->captured_stats.packets_captured);
-                return -1;
-            }
-            break;
-
-        case ETH_P_IPV6:
-            /* IPV6 */
-            if (this->pDyn1->capLenght < sizeof(struct ndpi_ethhdr) + sizeof(struct ndpi_ipv6hdr)) {
-                tracer->traceEvent(1, "[%8llu] Ethernet packet too short - skipping\n", this->captured_stats.packets_captured);
-                return -1;
-            }
-            break;
-
-        case ETH_P_ARP:
-            /* ARP */
-            return -1;
-
-        default:
-            tracer->traceEvent(1, "[%8llu] Unknown Ethernet packet with type 0x%X - skipping\n", 
-                                this->captured_stats.packets_captured, type);
-            return -1;
-    }
-
-    return 0;
-}
-
-/* ********************************** */
-
-int PcapDissector::setL2Ip(pcap_pkthdr const * const header,
-                            uint8_t const * const packet,
-                            uint16_t& type,
-                            uint16_t& ip_size,
-                            uint16_t& ip_offset,
-                            const struct ndpi_iphdr * & ip,
-                            struct ndpi_ipv6hdr * & ip6)
-{
-    if (type == ETH_P_IP) {
-        ip = (struct ndpi_iphdr *)&packet[ip_offset];
-        ip6 = nullptr;
-    } else if (type == ETH_P_IPV6) {
-        ip = nullptr;
-        ip6 = (struct ndpi_ipv6hdr *)&packet[ip_offset];
-    } else {
-        tracer->traceEvent(1, "[%8llu] Captured non IPv4/IPv6 packet with type 0x%X - skipping\n",
-                            this->captured_stats.packets_captured, type); 
-        return -1;
-    }
-
-    ip_size = this->pDyn1->descrLength - ip_offset;
-
-    if (type == ETH_P_IP && this->pDyn1->capLenght >= ip_offset) {
-        if (this->pDyn1->capLenght < header->len) {
-            tracer->traceEvent(0, "[%8llu] Captured packet size is smaller than packet size: %u < %u\n", 
-                                    this->captured_stats.packets_captured, header->caplen, header->len); 
-            return -1;
-        }
-    }
-
-    return 0;
-}
-
-/* ********************************** */
-
-int PcapDissector::processL3(FlowInfo& flow,
+int NtDissector::processL3(FlowInfo& flow,
                           pcap_pkthdr const * const header,
                           uint8_t const * const packet,
                           uint16_t& type,
@@ -243,7 +161,7 @@ int PcapDissector::processL3(FlowInfo& flow,
 
 /* ********************************** */
 
-int PcapDissector::processL4(FlowInfo& flow,
+int NtDissector::processL4(FlowInfo& flow,
                           pcap_pkthdr const * const header,
                           uint8_t const * const packet,
                           const uint8_t * & l4_ptr,
@@ -291,7 +209,7 @@ int PcapDissector::processL4(FlowInfo& flow,
 
 /* ********************************** */
 
-int PcapDissector::searchVal(Reader * & reader,
+int NtDissector::searchVal(Reader * & reader,
                           FlowInfo& flow,
                           void * & tree_result,
                           struct ndpi_ipv6hdr * & ip6,
@@ -320,7 +238,7 @@ int PcapDissector::searchVal(Reader * & reader,
 
 /* ********************************** */
 
-int PcapDissector::addVal(Reader * & reader,
+int NtDissector::addVal(Reader * & reader,
                             FlowInfo& flow,
                             FlowInfo * & flow_to_process,
                             size_t& hashed_index,
@@ -333,7 +251,7 @@ int PcapDissector::addVal(Reader * & reader,
     
 
     memcpy(flow_to_process, &flow, sizeof(*flow_to_process));
-    flow_to_process->flow_id = flow_id++;
+//    flow_to_process->flow_id = flow_id++;
 
     flow_to_process->ndpi_flow = (struct ndpi_flow_struct *)ndpi_flow_malloc(SIZEOF_FLOW_STRUCT);
     if (flow_to_process->ndpi_flow == nullptr) {
@@ -375,7 +293,7 @@ int PcapDissector::addVal(Reader * & reader,
 
 /* ********************************** */
 
-void PcapDissector::printFlowInfos(Reader * & reader,
+void NtDissector::printFlowInfos(Reader * & reader,
                                     FlowInfo * & flow_to_process,
                                     const struct ndpi_iphdr * & ip,
                                     struct ndpi_ipv6hdr * & ip6,
