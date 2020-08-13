@@ -41,6 +41,8 @@ PcapReader::~PcapReader()
     if(this->ndpi_flows_idle != nullptr)
         ndpi_free(this->ndpi_flows_idle);
 
+    if(pkt_parser == nullptr)
+	return;
     if(pkt_parser->captured_stats.protos_cnt != nullptr)
         delete [] pkt_parser->captured_stats.protos_cnt;
 }   
@@ -288,6 +290,7 @@ void PcapReader::newPacket(void * header) {
 
     uint64_t time_ms = ((uint64_t) header_tmp->ts.tv_sec) * TICK_RESOLUTION + header_tmp->ts.tv_usec / (1000000 / TICK_RESOLUTION);
     this->last_time = time_ms;
+	printf("%llu\n", time_ms); 
     /*  Scan done every 15000 ms more or less   */    
     pkt_parser->captured_stats.total_wire_bytes += header_tmp->len;
     this->checkForIdleFlows();

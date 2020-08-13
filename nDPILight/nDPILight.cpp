@@ -21,8 +21,8 @@ static bool find_help(char ** begin, char ** end, const string& option)
 
 static bool starts_with(const char *file_or_device, const char *marker)
 /*  Function used to know if file_or_device is a nt or not  */
-{
-    if(strstr(file_or_device, marker) == file_or_device)
+{ 
+   if(strstr(file_or_device, marker) == file_or_device)
         return true;
     else
         return false;
@@ -95,11 +95,10 @@ static int setup_pcap(char const * const file_or_device)
     PcapReader *tmp = new PcapReader(file_or_device);
     reader_thread.rdr = tmp;
 
-    if(reader_thread.rdr->initFileOrDevice() == -1)
-        return -1;
-
     pkt_parser = new PcapDissector();
 
+    if(reader_thread.rdr->initFileOrDevice() == -1)
+        return -1;
 
     return 0;
 }
@@ -263,7 +262,6 @@ int main(int argc, char * argv[])
     if((dst = check_args(argc, argv)) == nullptr) {
         return 0;
     }
-
 
     /*  Setting up and starting the worker thread   */
     if(setup_reader(dst) != 0) {

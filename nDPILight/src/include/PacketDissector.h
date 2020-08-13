@@ -17,7 +17,7 @@ class PacketDissector {
          */
         virtual void processPacket(void * args,
                                     void * header,
-                                    void * packet);
+                                    void * packet) = 0;
 };
 
 

@@ -18,6 +18,8 @@ class CaptureStats {
 
         struct timeval pcap_start {0, 0}, pcap_end {0, 0};
 
+	unsigned long long int nt_time_start = 0, nt_time_end = 0; 
+
         unsigned long long int packets_processed = 0;
         unsigned long long int total_l4_data_len = 0;
         unsigned long long int total_wire_bytes = 0;

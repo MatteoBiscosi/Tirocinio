@@ -33,8 +33,8 @@
 #include "Reader.h"
 #include "ReaderThread.h"
 #include "PacketDissector.h"
-#include "PcapDissector.h"
 #include "NtDissector.h"
+#include "PcapDissector.h"
 #include "NapatechReader.h"
 #include "PcapReader.h"
 

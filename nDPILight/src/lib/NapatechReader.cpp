@@ -107,13 +107,13 @@ int NapatechReader::initFileOrDevice()
 /* ********************************** */
 
 void NapatechReader::newPacket(void * header) {
-    NtNetBuf_t hNetBuffer = (NtNetBuf_t) header;   
+    std::cout << "Prova 2\n";
+    
+    NtNetBuf_t * hNetBuffer = (NtNetBuf_t *) header;   
  
-    uint64_t time_ms = ((uint64_t) ((struct ntpcap_ts_s *) NT_NET_GET_PKT_TIMESTAMP(hNetBuffer))->sec) * TICK_RESOLUTION +
-			 ((struct ntpcap_ts_s *) NT_NET_GET_PKT_TIMESTAMP(hNetBuffer))->usec / (1000000 / TICK_RESOLUTION);
-    this->last_time = time_ms;
+    this->last_time = (uint64_t) NT_NET_GET_PKT_TIMESTAMP(* hNetBuffer);
     /*  Scan done every 15000 ms more or less   */    
-    pkt_parser->captured_stats.total_wire_bytes += NT_NET_GET_PKT_CAP_LENGTH(hNetBuffer);
+    pkt_parser->captured_stats.total_wire_bytes += NT_NET_GET_PKT_CAP_LENGTH(* hNetBuffer);
     this->checkForIdleFlows();
 }
 
@@ -121,13 +121,17 @@ void NapatechReader::newPacket(void * header) {
 
 void NapatechReader::checkForIdleFlows()
 {
+	return;
+	this->last_idle_scan_time + IDLE_SCAN_PERIOD * 10000 < this->last_time;
+    printf("Prova check\n");    
+
     /*  Check if at least IDLE_SCAN_PERIOD passed since last scan   */
-    if (this->last_idle_scan_time + IDLE_SCAN_PERIOD < this->last_time || 
+    if (this->last_idle_scan_time + IDLE_SCAN_PERIOD * 10000 < this->last_time || 
         pkt_parser->captured_stats.packets_captured - this->last_packets_scan > PACKET_SCAN_PERIOD) {
         for (this->idle_scan_index; this->idle_scan_index < this->max_idle_scan_index; ++this->idle_scan_index) {
             if(this->ndpi_flows_active[this->idle_scan_index] == nullptr)
                 continue;
-
+	    printf("Prova 2\n");
             ndpi_twalk(this->ndpi_flows_active[this->idle_scan_index], ndpi_idle_scan_walker, this);
 
             /*  Removes all idle flows that were copied into ndpi_flows_idle from the ndpi_twalk    */
@@ -155,7 +159,7 @@ void NapatechReader::checkForIdleFlows()
                 this->cur_active_flows--;
             }
         }
-
+	printf("Prova fuori check");
         this->last_idle_scan_time = this->last_time;
         this->last_packets_scan = pkt_parser->captured_stats.packets_captured;
 
@@ -183,7 +187,10 @@ int NapatechReader::startRead()
             return 1;
         }
 
-        pkt_parser->processPacket(this, &(this->hNetBuffer), nullptr);
+	std::cout << "Prova 1\n";
+
+        printf("%llu", NT_NET_GET_PKT_TIMESTAMP(hNetBuffer));
+        pkt_parser->processPacket(this, &hNetBuffer, nullptr);
     }	
 
     this->error_or_eof = 1;

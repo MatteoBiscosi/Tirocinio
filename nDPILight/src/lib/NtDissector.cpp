@@ -98,7 +98,7 @@ void NtDissector::processPacket(void * args,
     FlowInfo flow = FlowInfo();
     Reader * reader = (Reader *) args;
     
-    NtNetBuf_t hNetBuffer = (NtNetBuf_t) header_tmp;
+    NtNetBuf_t * hNetBuffer = ((NtNetBuf_t *) header_tmp);
 
     size_t hashed_index = 0;
     void * tree_result = nullptr;
@@ -122,22 +122,22 @@ void NtDissector::processPacket(void * args,
 
     this->captured_stats.packets_captured++;
 
-    if(!this->captured_stats.pcap_start.tv_sec) {
-        this->captured_stats.pcap_start.tv_sec = ((struct ntpcap_ts_s *) NT_NET_GET_PKT_TIMESTAMP(hNetBuffer))->sec;
-        this->captured_stats.pcap_start.tv_usec = ((struct ntpcap_ts_s *) NT_NET_GET_PKT_TIMESTAMP(hNetBuffer))->usec;
-    }
+    printf("prova 2\n");
+    if(!this->captured_stats.nt_time_start)
+    	this->captured_stats.nt_time_start = (uint64_t) NT_NET_GET_PKT_TIMESTAMP(* hNetBuffer);
+    printf("prova 2\n");
+    printf("Prova 1, time: %llu\n", this->captured_stats.nt_time_start);
 
-    printf("\r\n%3llu | %3llu\r\n", this->captured_stats.pcap_start.tv_sec, this->captured_stats.pcap_start.tv_usec);
+    this->captured_stats.nt_time_end = (uint64_t) NT_NET_GET_PKT_TIMESTAMP(* hNetBuffer);
+    
+    reader->newPacket((void *)hNetBuffer);
 
-    this->captured_stats.pcap_end.tv_sec =((struct ntpcap_ts_s *) NT_NET_GET_PKT_TIMESTAMP(hNetBuffer))->sec;
-    this->captured_stats.pcap_end.tv_usec = ((struct ntpcap_ts_s *) NT_NET_GET_PKT_TIMESTAMP(hNetBuffer))->usec;
-
-    reader->newPacket((void *) hNetBuffer);
-
+    std::cout << "Prova 3\n";
     tracer->traceEvent(2, "Packet received;\tPacket number: %3llu\n", this->captured_stats.packets_captured);
 
-    this->getDyn(hNetBuffer);
+    this->getDyn(* hNetBuffer);
 
+    std::cout << "Prova 4\n";
     pkt_parser->captured_stats.packets_processed++;
     pkt_parser->captured_stats.total_l4_data_len += l4_len;
 
