@@ -44,14 +44,14 @@ public:
     explicit NapatechReader();
     explicit NapatechReader(char const * dst);
 
-    int startRead();
-    int initFileOrDevice();
-    void stopRead();
-    int checkEnd();
+    int startRead() override;
+    int initFileOrDevice() override;
+    void stopRead() override;
+    int checkEnd() override;
 
-    void printStats(){};
-    void newPacket(void * header);
-    int newFlow(FlowInfo * & flow_to_process){};
+    void printStats() override;
+    void newPacket(void * header) override;
+    int newFlow(FlowInfo * & flow_to_process) override;
 
 private:
     int handleErrorStatus(int status, const char* message);
