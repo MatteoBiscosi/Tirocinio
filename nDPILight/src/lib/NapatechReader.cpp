@@ -122,7 +122,7 @@ int NapatechReader::initInfos()
     ndpi_set_protocol_detection_bitmask2(this->ndpi_struct, &protos);
     ndpi_finalize_initalization(this->ndpi_struct);
 
-    //pkt_parser->captured_stats.protos_cnt = new uint16_t[ndpi_get_num_supported_protocols(this->ndpi_struct) + 1] ();
+    pkt_parser->captured_stats.protos_cnt = new uint16_t[ndpi_get_num_supported_protocols(this->ndpi_struct) + 1] ();
 
     return 0;
 }
@@ -279,7 +279,7 @@ int NapatechReader::checkEnd()
 
 /* ********************************** */
 
-void PcapReader::printStats()
+void NapatechReader::printStats()
 {
     long long unsigned int avg_pkt_size = 0;
     long long unsigned int breed_stats[NUM_BREEDS] = { 0 };
@@ -344,6 +344,28 @@ void PcapReader::printStats()
                 breed_stats[i]);
       }
     }
+}
+
+/* ********************************** */
+
+int NapatechReader::newFlow(FlowInfo * & flow_to_process) {
+    if (this->cur_active_flows == this->max_active_flows) {
+        tracer->traceEvent(0, "[%8llu] max flows to track reached: %llu, idle: %llu\n",
+                                pkt_parser->captured_stats.packets_captured, this->max_active_flows, this->cur_idle_flows);
+        return -1;
+    }
+
+    flow_to_process = (FlowInfo *)ndpi_malloc(sizeof(*flow_to_process));
+    if (flow_to_process == nullptr) {
+        tracer->traceEvent(0, "[%8llu] Not enough memory for flow info\n",
+                                pkt_parser->captured_stats.packets_captured);
+        return -1;
+    }
+
+    this->cur_active_flows++;
+    this->total_active_flows++;
+
+    return 0;
 }
 
 /* ********************************** */

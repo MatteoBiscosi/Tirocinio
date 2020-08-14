@@ -112,10 +112,10 @@ static int setup_napatech(char const * const file_or_device)
     NapatechReader *tmp = new NapatechReader(file_or_device);
     reader_thread.rdr = tmp;
 
+    pkt_parser = new NtDissector();
+
     if(reader_thread.rdr->initFileOrDevice() == -1)
         return -1;
-
-    pkt_parser = new NtDissector();
 
     return 0;
 }
