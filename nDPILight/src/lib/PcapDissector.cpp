@@ -340,20 +340,20 @@ void PcapDissector::printFlowInfos(Reader * & reader,
             this->captured_stats.guessed_flow_protocols++;
             char *tmp = ndpi_get_proto_breed_name(reader->ndpi_struct, ndpi_get_proto_breed(reader->ndpi_struct, flow_to_process->detected_l7_protocol.master_protocol));
             if(flow_to_process->l3_type == L3_IP) {
-                if(strcmp(tmp, "Unsafe"))
-                    tracer->traceEvent(1, "\t\t[%-20s flow] src ip: %lu | port: %u\n", 
+                if(strcmp(tmp, "Unsafe") == 0)
+                    tracer->traceEvent(1, " [%s flow] src ip: %lu | port: %u\n", 
                                             tmp, flow_to_process->ip_tuple.v4.src, flow_to_process->dst_port);
                 else
-                    tracer->traceEvent(3, "\t\t[%-20s flow] src ip: %lu | port: %u\n", 
+                    tracer->traceEvent(3, " [%s flow] src ip: %lu | port: %u\n", 
                                             tmp, flow_to_process->ip_tuple.v4.src, flow_to_process->dst_port);
             }
             else
             {
-                if(strcmp(tmp, "Unsafe"))
-                    tracer->traceEvent(1, "\t\t[%-20s flow] src ip: %lu%lu | port: %u\n", 
+                if(strcmp(tmp, "Unsafe") == 0)
+                    tracer->traceEvent(1, " [%s flow] src ip: %lu%lu | port: %u\n", 
                                             tmp, flow_to_process->ip_tuple.v6.src[0], flow_to_process->ip_tuple.v6.src[1], flow_to_process->dst_port);
                 else
-                    tracer->traceEvent(1, "\t\t[%-20s flow] src ip: %lu | port: %u\n", 
+                    tracer->traceEvent(1, " [%s flow] src ip: %lu | port: %u\n", 
                                             tmp, flow_to_process->ip_tuple.v4.src, flow_to_process->dst_port);
             }
             
@@ -387,22 +387,26 @@ void PcapDissector::printFlowInfos(Reader * & reader,
                                     ndpi_category_get_name(reader->ndpi_struct, flow_to_process->detected_l7_protocol.category));
             
             char *tmp = ndpi_get_proto_breed_name(reader->ndpi_struct, ndpi_get_proto_breed(reader->ndpi_struct, flow_to_process->detected_l7_protocol.master_protocol));
-            if(flow_to_process->l3_type == L3_IP) {
-                if(strcmp(tmp, "Unsafe"))
-                    tracer->traceEvent(1, "\t\t[%-20s flow] src ip: %lu | port: %u\n", 
-                                            tmp, flow_to_process->ip_tuple.v4.src, flow_to_process->dst_port);
+            
+	
+	    if(flow_to_process->l3_type == L3_IP) {
+		uint8_t *ip_format = (uint8_t *) &flow_to_process->ip_tuple.v4.src;
+
+                if(strcmp(tmp, "Unsafe") == 0)
+                    tracer->traceEvent(1, "[%s flow] src ip: %d.%d.%d.%d | port: %u\n", 
+                                            tmp, ip_format[0], ip_format[1], ip_format[1], ip_format[3], flow_to_process->dst_port);
                 else
-                    tracer->traceEvent(3, "\t\t[%-20s flow] src ip: %lu | port: %u\n", 
-                                            tmp, flow_to_process->ip_tuple.v4.src, flow_to_process->dst_port);
+                    tracer->traceEvent(3, "[%s flow] src ip: %d.%d.%d.%d | port: %u\n",
+                                            tmp, ip_format[0], ip_format[1], ip_format[2], ip_format[3], flow_to_process->dst_port);
             }
             else
             {
-                if(strcmp(tmp, "Unsafe"))
-                    tracer->traceEvent(1, "\t\t[%-20s flow] src ip: %lu%lu | port: %u\n", 
+                if(strcmp(tmp, "Unsafe") == 0)
+                    tracer->traceEvent(1, "[%s flow] src ip: %llu%llu | port: %u\n",
                                             tmp, flow_to_process->ip_tuple.v6.src[0], flow_to_process->ip_tuple.v6.src[1], flow_to_process->dst_port);
                 else
-                    tracer->traceEvent(1, "\t\t[%-20s flow] src ip: %lu | port: %u\n", 
-                                            tmp, flow_to_process->ip_tuple.v4.src, flow_to_process->dst_port);
+                    tracer->traceEvent(3, "[%s flow] src ip: %llu%llu | port: %u\n",
+                                            tmp, flow_to_process->ip_tuple.v6.src[0], flow_to_process->ip_tuple.v6.src[1], flow_to_process->dst_port);
             }
         }
     }

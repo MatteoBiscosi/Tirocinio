@@ -5,7 +5,7 @@
 
 /* ********************************** */
 
-int NtDissector::DumpL4(FlowInfo& flow
+int NtDissector::DumpL4(FlowInfo& flow,
                             Reader * & reader)
 {
     if (flow.l4_protocol == IPPROTO_TCP) {
@@ -39,7 +39,7 @@ int NtDissector::DumpL4(FlowInfo& flow
 
 /* ********************************** */
 
-int NtDissector::DumpIPv4(FlowInfo& flow
+int NtDissector::DumpIPv4(FlowInfo& flow,
                             Reader * & reader)
 {
     uint32_t ipaddr;
@@ -64,7 +64,7 @@ int NtDissector::DumpIPv4(FlowInfo& flow
 
     /*  Lvl 3   */
 
-    ip_size = pl3->ip_hl;
+    ip_size = pl3->ip_len;
 
     if (ip_size < sizeof(*ip)) {
         tracer->traceEvent(0, "[%8llu] Packet smaller than IP4 header length: %u < %zu\n", 
@@ -97,7 +97,7 @@ int NtDissector::DumpIPv4(FlowInfo& flow
 
 /* ********************************** */
 
-int NtDissector::DumpIPv6(FlowInfo& flow
+int NtDissector::DumpIPv6(FlowInfo& flow,
                             Reader * & reader)
 {
     int i;
@@ -119,7 +119,7 @@ int NtDissector::DumpIPv6(FlowInfo& flow
         return -1;
     }
 
-    ip_size = pl3->ip_hl;
+    ip_size = pl3->ip_len;
 
     /*  IPv6    */
     if (ip_size < sizeof(ip6->ip6_hdr)) {
@@ -155,8 +155,8 @@ int NtDissector::DumpIPv6(FlowInfo& flow
 /* ********************************** */
 
 
-int NtDissector::getDyn(NtNetBuf_t& hNetBuffer
-                            FlowInfo& flow
+int NtDissector::getDyn(NtNetBuf_t& hNetBuffer,
+                            FlowInfo& flow,
                             Reader * & reader)
 {
     // descriptor DYN1 is used, which is set up via NTPL.
@@ -361,8 +361,6 @@ void NtDissector::processPacket(void * args,
     this->captured_stats.nt_time_end = (uint64_t) NT_NET_GET_PKT_TIMESTAMP(* hNetBuffer);
     
     reader->newPacket((void *)hNetBuffer);
-
-    tracer->traceEvent(2, "Packet received;\tPacket number: %3llu\n", this->captured_stats.packets_captured);
 
     this->getDyn(* hNetBuffer, flow, reader);
 

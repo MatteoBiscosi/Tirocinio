@@ -34,14 +34,14 @@ class NtDissector : public PacketDissector{
 	    void processPacket(void *, void *, void *);    
 
     private:
-        int DumpL4(FlowInfo& flow
+        int DumpL4(FlowInfo& flow,
                     Reader * & reader);
-        int DumpIPv4(FlowInfo& flow
+        int DumpIPv4(FlowInfo& flow,
                         Reader * & reader);
-        int DumpIPv6(FlowInfo& flow
+        int DumpIPv6(FlowInfo& flow,
                         Reader * & reader);
-        int getDyn(NtNetBuf_t& hNetBuffer
-                    FlowInfo& flow
+        int getDyn(NtNetBuf_t& hNetBuffer,
+                    FlowInfo& flow,
                     Reader * & reader);
         
         int searchVal(Reader * & reader,

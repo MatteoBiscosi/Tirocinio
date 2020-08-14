@@ -4,6 +4,12 @@
 #include "ndpi_light_includes.h"
 
 
+enum flow_l3_type {
+        L3_IP, L3_IP6
+};
+
+
+
 class FlowInfo {
 public:
     uint32_t flow_id;
@@ -11,10 +17,6 @@ public:
     uint64_t first_seen;
     uint64_t last_seen;
     uint64_t hashval;
-
-    enum flow_l3_type {
-        L3_IP, L3_IP6
-    };
 
     flow_l3_type l3_type;
     union {
