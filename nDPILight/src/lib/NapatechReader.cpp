@@ -45,13 +45,40 @@ int NapatechReader::setFilters()
         return 1;
 
     // Set new filters and flow tables settings
-    if(this->ntplCall("KeyType[Name=kt] = {sw_32_32,   sw_16_16}") != 0)
+    if(this->ntplCall("KeyType[Name=kt4] = {sw_32_32,   sw_16_16}") != 0)
         return 1;
-    if(this->ntplCall("KeyDef[Name=kd; KeyType=kt] = (Layer3Header[12]/32/32,  Layer4Header[0]/16/16)") != 0)
-        return 1;
-    if(this->ntplCall("Assign[StreamId=1; Descriptor=DYN1] = Key(kd, KeyID=1)==MISS") != 0)
+    if(this->ntplCall("KeyType[Name=kt6] = {sw_128_128, sw_16_16}") != 0)
         return 1;
 
+    if(this->ntplCall("KeyDef[Name=kd4; KeyType=kt4] = (Layer3Header[12]/32/32,  Layer4Header[0]/16/16)") != 0)
+        return 1;
+    if(this->ntplCall("keydef[Name=kd6; KeyType=kt6] = (Layer3Header[8]/128/128, Layer4Header[0]/16/16)") != 0)
+        return 1;
+
+    if(this->ntplCall("DefineMacro(\"LearnFilterCheck\", \"Layer2Protocol==EtherII and Layer3Protocol==$1\")") != 0)
+        return 1;
+
+    // Create filters for new flow's packages.
+    if(this->ntplCall("Assign[StreamId=" STR(STREAM_ID_MISS) "; Descriptor=DYN1, Offset0=Layer3Header[12]] = LearnFilterCheck(ipv4) and Key(kd4, KeyID=" STR(KEY_ID_IPV4) ")==MISS") != 0)
+        return 1;
+    if(this->ntplCall("Assign[StreamId=" STR(STREAM_ID_MISS) "; Descriptor=DYN1, Offset0=Layer3Header[8]] = LearnFilterCheck(ipv6) and Key(kd6, KeyID=" STR(KEY_ID_IPV6) ")==MISS") != 0)
+        return 1;
+
+    // Create filters for unhandled packages, which will simply be counted by the application.
+    if(this->ntplCall("Assign[StreamId=" STR(STREAM_ID_UNHA) "] = LearnFilterCheck(ipv4) and Key(kd4, KeyID=" STR(KEY_ID_IPV4) ")==UNHANDLED") != 0)
+        return 1;
+    if(this->ntplCall("Assign[StreamId=" STR(STREAM_ID_UNHA) "] = LearnFilterCheck(ipv6) and Key(kd6, KeyID=" STR(KEY_ID_IPV6) ")==UNHANDLED") != 0)
+        return 1;
+
+    if(this->ntplCall("Assign[StreamId=" STR(STREAM_ID_OLD) "] = LearnFilterCheck(ipv4) and Key(kd4, KeyID=" STR(KEY_ID_IPV4) ")==3") != 0)
+        return 1;
+    if(this->ntplCall("Assign[StreamId=" STR(STREAM_ID_OLD) "] = LearnFilterCheck(ipv6) and Key(kd6, KeyID=" STR(KEY_ID_IPV6) ")==3") != 0)
+        return 1;
+    if(this->ntplCall("Assign[StreamId=" STR(STREAM_ID_OLD) "] = LearnFilterCheck(ipv4) and Key(kd4, KeyID=" STR(KEY_ID_IPV4) ")==4") != 0)
+        return 1;
+    if(this->ntplCall("Assign[StreamId=" STR(STREAM_ID_OLD) "] = LearnFilterCheck(ipv6) and Key(kd6, KeyID=" STR(KEY_ID_IPV6) ")==4") != 0)
+        return 1;    
+    
     return 0;
 }
 
@@ -73,7 +100,15 @@ int NapatechReader::setFlow()
 
 int NapatechReader::setStream()
 {
-    this->status = NT_NetRxOpen(&(this->hNetRx), "test stream", NT_NET_INTERFACE_PACKET, 1, -1);
+    this->status = NT_NetRxOpen(&(this->hNetRxMiss), "Miss packets stream", NT_NET_INTERFACE_PACKET, 1, -1);
+    if(handleErrorStatus(this->status, "NT_NetRxOpen() failed") != 0)
+        return 1;
+
+    this->status = NT_NetRxOpen(&(this->hNetRxUnh), "Unhandled packets stream", NT_NET_INTERFACE_PACKET, 1, -1);
+    if(handleErrorStatus(this->status, "NT_NetRxOpen() failed") != 0)
+        return 1;
+
+    this->status = NT_NetRxOpen(&(this->hNetRxOld), "Old packets stream", NT_NET_INTERFACE_PACKET, 1, -1);
     if(handleErrorStatus(this->status, "NT_NetRxOpen() failed") != 0)
         return 1;
     
@@ -233,9 +268,18 @@ void NapatechReader::checkForIdleFlows()
 
 int NapatechReader::startRead()
 {
+    std::thread receiverThread1(taskReceiverMiss, "flowmatch_example_receiver_net_rx_miss", STREAM_ID_MISS);
+    std::thread receiverThread2(taskReceiverCounter, "flowmatch_example_receiver_net_rx_unhandled", STREAM_ID_UNHA);
+    std::thread receiverThread3(taskReceiverOld, "flowmatch_example_receiver_net_rx_total", STREAM_ID_OLD);
+
+    
+}
+
+void taskReceiverMiss(const char* streamName, uint32_t streamId)
+{
     while(this->error_or_eof == 0) {
         // Get package from rx stream.
-        this->status = NT_NetRxGetNextPacket(this->hNetRx, &(this->hNetBuffer), -1);
+        this->status = NT_NetRxGetNextPacket(this->hNetRxMiss, &(this->hNetBufferMiss), -1);
         
         if(this->status == NT_STATUS_TIMEOUT || status == NT_STATUS_TRYAGAIN) 
             continue;
@@ -248,13 +292,61 @@ int NapatechReader::startRead()
             return 1;
         }
 
-        pkt_parser->processPacket(this, &hNetBuffer, nullptr);
+        pkt_parser->processPacket(this, &hNetBufferMiss, streamId);
     }	
 
     this->error_or_eof = 1;
-
     return 0;
 }
+
+void taskReceiverCounter(const char* streamName, uint32_t streamId)
+{
+    while(this->error_or_eof == 0) {
+        // Get package from rx stream.
+        this->status = NT_NetRxGetNextPacket(this->hNetRxUnh, &(this->hNetBufferUnh), -1);
+        
+        if(this->status == NT_STATUS_TIMEOUT || status == NT_STATUS_TRYAGAIN) 
+            continue;
+
+        if(this->status == NT_ERROR_NT_TERMINATING)
+	    break;
+
+        if(handleErrorStatus(this->status, "Error while sniffing next packet") != 0) {
+            this->error_or_eof = 1;
+            return 1;
+        }
+
+        pkt_parser->processPacket(this, &hNetBufferUnh, streamId);
+    }	
+
+    this->error_or_eof = 1;
+    return 0;
+}
+
+void taskReceiverOld(const char* streamName, uint32_t streamId)
+{
+    while(this->error_or_eof == 0) {
+        // Get package from rx stream.
+        this->status = NT_NetRxGetNextPacket(this->hNetRxOld, &(this->hNetBufferOld), -1);
+        
+        if(this->status == NT_STATUS_TIMEOUT || status == NT_STATUS_TRYAGAIN) 
+            continue;
+
+        if(this->status == NT_ERROR_NT_TERMINATING)
+	    break;
+
+        if(handleErrorStatus(this->status, "Error while sniffing next packet") != 0) {
+            this->error_or_eof = 1;
+            return 1;
+        }
+
+        pkt_parser->processPacket(this, &hNetBufferOld, streamId);
+    }	
+
+    this->error_or_eof = 1;
+    return 0;
+}
+
 
 /* ********************************** */
 

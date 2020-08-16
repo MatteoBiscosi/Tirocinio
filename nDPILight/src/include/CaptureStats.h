@@ -7,6 +7,7 @@
 class CaptureStats {
     public:
 
+        unsigned long long int unhandled_packets = 0;
         unsigned long long int packets_captured = 0;
         unsigned long long int discarded_bytes = 0;
         unsigned long long int ip_pkts = 0;

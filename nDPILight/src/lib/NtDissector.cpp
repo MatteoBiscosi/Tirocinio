@@ -6,7 +6,24 @@
 /* ********************************** */
 
 int NtDissector::DumpL4(FlowInfo& flow,
-                            Reader * & reader)
+                            Reader * & reader,
+                            NtDyn1Descr_t* & pDyn1,
+                            uint8_t* & packet,
+                            size_t & hashed_index,
+                            void * & tree_result,
+                            FlowInfo * & flow_to_process,
+                            struct ndpi_id_struct * & ndpi_src,
+                            struct ndpi_id_struct * & ndpi_dst,
+                            const struct ndpi_ethhdr * & ethernet,
+                            const struct ndpi_iphdr * & ip,
+                            struct ndpi_ipv6hdr * & ip6,
+                            uint64_t & time_ms;
+                            const uint16_t & eth_offset;
+                            uint16_t & ip_offset;
+                            uint16_t & ip_size;
+                            uint16_t & type;
+                            const uint8_t * & l4_ptr;
+                            uint16_t & l4_len);
 {
     if (flow.l4_protocol == IPPROTO_TCP) {
         /*  TCP   */
@@ -40,7 +57,25 @@ int NtDissector::DumpL4(FlowInfo& flow,
 /* ********************************** */
 
 int NtDissector::DumpIPv4(FlowInfo& flow,
-                            Reader * & reader)
+                            Reader * & reader,
+                            NtDyn1Descr_t* & pDyn1,
+                            uint8_t* & packet,
+                            size_t & hashed_index,
+                            void * & tree_result,
+                            FlowInfo * & flow_to_process,
+                            struct ndpi_id_struct * & ndpi_src,
+                            struct ndpi_id_struct * & ndpi_dst,
+                            const struct ndpi_ethhdr * & ethernet,
+                            const struct ndpi_iphdr * & ip,
+                            struct ndpi_ipv6hdr * & ip6,
+                            uint64_t & time_ms;
+                            const uint16_t & eth_offset;
+                            uint16_t & ip_offset;
+                            uint16_t & ip_size;
+                            uint16_t & type;
+                            const uint8_t * & l4_ptr;
+                            uint16_t & l4_len);
+{
 {
     uint32_t ipaddr;
     struct IPv4Header_s *pl3 = (struct IPv4Header_s*)((uint8_t*)pDyn1 + pDyn1->descrLength + pDyn1->offset0);
@@ -98,7 +133,25 @@ int NtDissector::DumpIPv4(FlowInfo& flow,
 /* ********************************** */
 
 int NtDissector::DumpIPv6(FlowInfo& flow,
-                            Reader * & reader)
+                            Reader * & reader,
+                            NtDyn1Descr_t* & pDyn1,
+                            uint8_t* & packet,
+                            size_t & hashed_index,
+                            void * & tree_result,
+                            FlowInfo * & flow_to_process,
+                            struct ndpi_id_struct * & ndpi_src,
+                            struct ndpi_id_struct * & ndpi_dst,
+                            const struct ndpi_ethhdr * & ethernet,
+                            const struct ndpi_iphdr * & ip,
+                            struct ndpi_ipv6hdr * & ip6,
+                            uint64_t & time_ms;
+                            const uint16_t & eth_offset;
+                            uint16_t & ip_offset;
+                            uint16_t & ip_size;
+                            uint16_t & type;
+                            const uint8_t * & l4_ptr;
+                            uint16_t & l4_len);
+{
 {
     int i;
     struct IPv6Header_s *pl3 = (struct IPv6Header_s*)((uint8_t*)pDyn1 + pDyn1->descrLength + pDyn1->offset0);
@@ -157,7 +210,25 @@ int NtDissector::DumpIPv6(FlowInfo& flow,
 
 int NtDissector::getDyn(NtNetBuf_t& hNetBuffer,
                             FlowInfo& flow,
-                            Reader * & reader)
+                            Reader * & reader,
+                            NtDyn1Descr_t* & pDyn1,
+                            uint8_t* & packet,
+                            size_t & hashed_index,
+                            void * & tree_result,
+                            FlowInfo * & flow_to_process,
+                            struct ndpi_id_struct * & ndpi_src,
+                            struct ndpi_id_struct * & ndpi_dst,
+                            const struct ndpi_ethhdr * & ethernet,
+                            const struct ndpi_iphdr * & ip,
+                            struct ndpi_ipv6hdr * & ip6,
+                            uint64_t & time_ms;
+                            const uint16_t & eth_offset;
+                            uint16_t & ip_offset;
+                            uint16_t & ip_size;
+                            uint16_t & type;
+                            const uint8_t * & l4_ptr;
+                            uint16_t & l4_len);
+{
 {
     // descriptor DYN1 is used, which is set up via NTPL.
     this->pDyn1 = NT_NET_DESCR_PTR_DYN1(hNetBuffer);
@@ -343,38 +414,29 @@ void NtDissector::printFlowInfos(Reader * & reader,
 }
 
 /* ********************************** */
-
-void NtDissector::processPacket(void * args,
-                                    void * header_tmp,
-                                    void * packet)
+void NtDissector::createNewFlow(FlowInfo& flow,
+                                Reader * & reader,
+                                size_t & hashed_index,
+                                FlowInfo * & flow_to_process,
+                                struct ndpi_id_struct * & ndpi_src,
+                                struct ndpi_id_struct * & ndpi_dst) 
 {
-    FlowInfo flow = FlowInfo();
-    Reader * reader = (Reader *) args;
-    
-    NtNetBuf_t * hNetBuffer = ((NtNetBuf_t *) header_tmp);
+    if(this->addVal(reader, flow, flow_to_process, hashed_index, ndpi_src, ndpi_dst) != 0) {
+        this->captured_stats.discarded_bytes += NT_NET_GET_PKT_CAP_LENGTH(* hNetBuffer);
+        return -1;
+    }
+}
 
-    this->captured_stats.packets_captured++;
+/* ********************************** */
 
-    if(!this->captured_stats.nt_time_start)
-    	this->captured_stats.nt_time_start = (uint64_t) NT_NET_GET_PKT_TIMESTAMP(* hNetBuffer);
-
-    this->captured_stats.nt_time_end = (uint64_t) NT_NET_GET_PKT_TIMESTAMP(* hNetBuffer);
-    
-    reader->newPacket((void *)hNetBuffer);
-
-    this->getDyn(* hNetBuffer, flow, reader);
-
-    pkt_parser->captured_stats.packets_processed++;
-    pkt_parser->captured_stats.total_l4_data_len += l4_len;
-
-    
+void NtDissector::updateOldFlow(FlowInfo& flow,
+                                Reader * & reader,
+                                size_t & hashed_index,
+                                void * & tree_result,
+                                struct ndpi_ipv6hdr * & ip6) 
+{
     if(this->searchVal(reader, flow, tree_result, ip6, hashed_index) != 0) {
-        if(this->addVal(reader, flow, flow_to_process, hashed_index, ndpi_src, ndpi_dst) != 0) {
-            this->captured_stats.discarded_bytes += NT_NET_GET_PKT_CAP_LENGTH(* hNetBuffer);
-            return;
-        }
-        else
-            this->captured_stats.total_flows_captured++;
+        return -1;
     } else {
         flow_to_process = *(FlowInfo **)tree_result;
 
@@ -386,6 +448,91 @@ void NtDissector::processPacket(void * args,
             ndpi_dst = flow_to_process->ndpi_dst;
         }
     }
+}
+
+/* ********************************** */
+
+void NtDissector::processPacket(void * args,
+                                    void * header_tmp,
+                                    void * packet)
+{
+    FlowInfo flow = FlowInfo();
+    Reader * reader = (Reader *) args;
+    uint32_t streamId = (uint32_t) packet;
+    
+    if(streamId == STREAM_ID_UNHA) {
+        this->captured_stats.packets_captured++;
+        this->captured_stats.unhandled_packets++;
+        return;
+    }
+
+    NtNetBuf_t * hNetBuffer = ((NtNetBuf_t *) header_tmp);
+
+    NtDyn1Descr_t* pDyn1;
+    uint8_t* packet;
+
+    size_t hashed_index = 0;
+    void * tree_result = nullptr;
+    FlowInfo * flow_to_process = nullptr;
+
+    struct ndpi_id_struct * ndpi_src = nullptr;
+    struct ndpi_id_struct * ndpi_dst = nullptr;
+
+    const struct ndpi_ethhdr * ethernet = nullptr;
+    const struct ndpi_iphdr * ip = nullptr;
+    struct ndpi_ipv6hdr * ip6 = nullptr;
+
+    uint64_t time_ms = 0;
+    const uint16_t eth_offset = 0;
+    uint16_t ip_offset = 0;
+    uint16_t ip_size = 0;
+    uint16_t type = 0;
+
+    const uint8_t * l4_ptr = nullptr;
+    uint16_t l4_len = 0;
+
+    this->captured_stats.packets_captured++;
+
+    if(!this->captured_stats.nt_time_start)
+    	this->captured_stats.nt_time_start = (uint64_t) NT_NET_GET_PKT_TIMESTAMP(* hNetBuffer);
+
+    this->captured_stats.nt_time_end = (uint64_t) NT_NET_GET_PKT_TIMESTAMP(* hNetBuffer);
+    
+    if(streamId == STREAM_ID_MISS) {
+        this->last_time = (uint64_t) NT_NET_GET_PKT_TIMESTAMP(* hNetBuffer);
+        /*  Scan done every 15000 ms more or less   */    
+        pkt_parser->captured_stats.total_wire_bytes += NT_NET_GET_PKT_CAP_LENGTH(* hNetBuffer);
+        return;
+    }
+    else
+    {
+        reader->newPacket((void *)hNetBuffer);
+    }
+
+    this->getDyn(* hNetBuffer, flow, reader, pDyn1, packet, hashed_index, 
+                    tree_result, flow_to_process, ndpi_src, ndpi_dst, ethernet, ip, 
+                    ip6, time_ms, eth_offset, ip_offset, ip_size, type, l4_ptr, l4_len);
+
+    pkt_parser->captured_stats.packets_processed++;
+    pkt_parser->captured_stats.total_l4_data_len += l4_len;
+
+    switch (streamId)
+    {
+    case STREAM_ID_MISS:
+        if(createNewFlow(reader, flow, flow_to_process, hashed_index, ndpi_src, ndpi_dst) != 0)
+            return;
+        else
+            this->captured_stats.total_flows_captured++;
+        break;
+    case STREAM_ID_OLD:
+        if(updatedOldFlow(reader, flow, tree_result, ip6, hashed_index) != 0)
+            return;       
+        break;
+    default:
+        tracer->traceEvent(0, "Unknown Stream, skipping packet\n");
+        break;
+    }
+    
 
     flow_to_process->packets_processed++;
     flow_to_process->total_l4_data_len += l4_len;

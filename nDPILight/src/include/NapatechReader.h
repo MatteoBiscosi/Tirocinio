@@ -5,6 +5,10 @@
 #include "ndpi_light_includes.h"
 
 
+#define STR_INNER(A)  #A
+#define STR(A)        STR_INNER(A)
+
+
 extern PacketDissector * pkt_parser;
 
 class NapatechReader : public Reader {
@@ -22,8 +26,15 @@ private:
    
 
     NtConfigStream_t hCfgStream;
-    NtNetStreamRx_t hNetRx;
-    NtNetBuf_t hNetBuffer;
+    
+    NtNetStreamRx_t hNetRxMiss;
+    NtNetBuf_t hNetBufferMiss;
+
+    NtNetStreamRx_t hNetRxUnh;
+    NtNetBuf_t hNetBufferUnh;
+
+    NtNetStreamRx_t hNetRxOld;
+    NtNetBuf_t hNetBufferOld;
 
     unsigned long long int pktCounter = 0;
 
