@@ -17,13 +17,13 @@ int NtDissector::DumpL4(FlowInfo& flow,
                             const struct ndpi_ethhdr * & ethernet,
                             const struct ndpi_iphdr * & ip,
                             struct ndpi_ipv6hdr * & ip6,
-                            uint64_t & time_ms;
-                            const uint16_t & eth_offset;
-                            uint16_t & ip_offset;
-                            uint16_t & ip_size;
-                            uint16_t & type;
-                            const uint8_t * & l4_ptr;
-                            uint16_t & l4_len);
+                            uint64_t & time_ms,
+                            const uint16_t & eth_offset,
+                            uint16_t & ip_offset,
+                            uint16_t & ip_size,
+                            uint16_t & type,
+                            const uint8_t * & l4_ptr,
+                            uint16_t & l4_len)
 {
     if (flow.l4_protocol == IPPROTO_TCP) {
         /*  TCP   */
@@ -68,14 +68,13 @@ int NtDissector::DumpIPv4(FlowInfo& flow,
                             const struct ndpi_ethhdr * & ethernet,
                             const struct ndpi_iphdr * & ip,
                             struct ndpi_ipv6hdr * & ip6,
-                            uint64_t & time_ms;
-                            const uint16_t & eth_offset;
-                            uint16_t & ip_offset;
-                            uint16_t & ip_size;
-                            uint16_t & type;
-                            const uint8_t * & l4_ptr;
-                            uint16_t & l4_len);
-{
+                            uint64_t & time_ms,
+                            const uint16_t & eth_offset,
+                            uint16_t & ip_offset,
+                            uint16_t & ip_size,
+                            uint16_t & type,
+                            const uint8_t * & l4_ptr,
+                            uint16_t & l4_len)
 {
     uint32_t ipaddr;
     struct IPv4Header_s *pl3 = (struct IPv4Header_s*)((uint8_t*)pDyn1 + pDyn1->descrLength + pDyn1->offset0);
@@ -124,7 +123,9 @@ int NtDissector::DumpIPv4(FlowInfo& flow,
     this->captured_stats.ip_pkts++;
     this->captured_stats.ip_bytes += (pl3->ip_len - 14);
 
-    if(DumpL4(flow, reader) != 0)
+    if(DumpL4(flow, reader, pDyn1, packet, hashed_index,
+                    tree_result, flow_to_process, ndpi_src, ndpi_dst, ethernet, ip,
+                    ip6, time_ms, eth_offset, ip_offset, ip_size, type, l4_ptr, l4_len) != 0)
         return -1;
     
     return 0;
@@ -144,14 +145,13 @@ int NtDissector::DumpIPv6(FlowInfo& flow,
                             const struct ndpi_ethhdr * & ethernet,
                             const struct ndpi_iphdr * & ip,
                             struct ndpi_ipv6hdr * & ip6,
-                            uint64_t & time_ms;
-                            const uint16_t & eth_offset;
-                            uint16_t & ip_offset;
-                            uint16_t & ip_size;
-                            uint16_t & type;
-                            const uint8_t * & l4_ptr;
-                            uint16_t & l4_len);
-{
+                            uint64_t & time_ms,
+                            const uint16_t & eth_offset,
+                            uint16_t & ip_offset,
+                            uint16_t & ip_size,
+                            uint16_t & type,
+                            const uint8_t * & l4_ptr,
+                            uint16_t & l4_len)
 {
     int i;
     struct IPv6Header_s *pl3 = (struct IPv6Header_s*)((uint8_t*)pDyn1 + pDyn1->descrLength + pDyn1->offset0);
@@ -199,7 +199,9 @@ int NtDissector::DumpIPv6(FlowInfo& flow,
     this->captured_stats.ip_pkts++;
     this->captured_stats.ip_bytes += pl3->ip_len;
 
-    if(DumpL4(flow, reader) != 0)
+    if(DumpL4(flow, reader, pDyn1, packet, hashed_index,
+              tree_result, flow_to_process, ndpi_src, ndpi_dst, ethernet, ip,
+              ip6, time_ms, eth_offset, ip_offset, ip_size, type, l4_ptr, l4_len) != 0)
         return -1;
 
     return 0;
@@ -221,18 +223,17 @@ int NtDissector::getDyn(NtNetBuf_t& hNetBuffer,
                             const struct ndpi_ethhdr * & ethernet,
                             const struct ndpi_iphdr * & ip,
                             struct ndpi_ipv6hdr * & ip6,
-                            uint64_t & time_ms;
-                            const uint16_t & eth_offset;
-                            uint16_t & ip_offset;
-                            uint16_t & ip_size;
-                            uint16_t & type;
-                            const uint8_t * & l4_ptr;
-                            uint16_t & l4_len);
-{
+                            uint64_t & time_ms,
+                            const uint16_t & eth_offset,
+                            uint16_t & ip_offset,
+                            uint16_t & ip_size,
+                            uint16_t & type,
+                            const uint8_t * & l4_ptr,
+                            uint16_t & l4_len)
 {
     // descriptor DYN1 is used, which is set up via NTPL.
-    this->pDyn1 = NT_NET_DESCR_PTR_DYN1(hNetBuffer);
-    this->packet = reinterpret_cast<uint8_t*>(pDyn1) + pDyn1->descrLength;
+    pDyn1 = NT_NET_DESCR_PTR_DYN1(hNetBuffer);
+    packet = reinterpret_cast<uint8_t*>(pDyn1) + pDyn1->descrLength;
 
     if (pDyn1->color & (1 << 6)) {
         tracer->traceEvent(1, "Packet contain an error and decoding cannot be trusted\n");
@@ -244,19 +245,27 @@ int NtDissector::getDyn(NtNetBuf_t& hNetBuffer,
         } else {
             switch (pDyn1->color >> 2) {
             case 0:  // IPv4
-                    if(DumpIPv4(flow, reader) != 0)
+                    if(DumpIPv4(flow, reader, pDyn1, packet, hashed_index,
+                    		tree_result, flow_to_process, ndpi_src, ndpi_dst, ethernet, ip,
+                    		ip6, time_ms, eth_offset, ip_offset, ip_size, type, l4_ptr, l4_len) != 0)
                         return -1;
                     break;
             case 1:  // IPv6
-                    if(DumpIPv6(flow, reader) != 0)
+                    if(DumpIPv6(flow, reader, pDyn1, packet, hashed_index,
+                    		tree_result, flow_to_process, ndpi_src, ndpi_dst, ethernet, ip,
+                    		ip6, time_ms, eth_offset, ip_offset, ip_size, type, l4_ptr, l4_len) != 0)
                         return -1;
                     break;
             case 2:  // Tunneled IPv4
-                    if(DumpIPv4(flow, reader) != 0)
+                    if(DumpIPv4(flow, reader, pDyn1, packet, hashed_index,
+                    		tree_result, flow_to_process, ndpi_src, ndpi_dst, ethernet, ip,
+                   		ip6, time_ms, eth_offset, ip_offset, ip_size, type, l4_ptr, l4_len) != 0)
                         return -1;
                     break;
             case 3:  // Tunneled IPv6
-                    if(DumpIPv6(flow, reader) != 0)
+                    if(DumpIPv6(flow, reader, pDyn1, packet, hashed_index,
+                    		tree_result, flow_to_process, ndpi_src, ndpi_dst, ethernet, ip,
+                    		ip6, time_ms, eth_offset, ip_offset, ip_size, type, l4_ptr, l4_len) != 0)
                         return -1;
                     break;
             }
@@ -414,7 +423,8 @@ void NtDissector::printFlowInfos(Reader * & reader,
 }
 
 /* ********************************** */
-void NtDissector::createNewFlow(FlowInfo& flow,
+int NtDissector::createNewFlow(NtNetBuf_t& hNetBuffer,
+				FlowInfo& flow,
                                 Reader * & reader,
                                 size_t & hashed_index,
                                 FlowInfo * & flow_to_process,
@@ -422,18 +432,23 @@ void NtDissector::createNewFlow(FlowInfo& flow,
                                 struct ndpi_id_struct * & ndpi_dst) 
 {
     if(this->addVal(reader, flow, flow_to_process, hashed_index, ndpi_src, ndpi_dst) != 0) {
-        this->captured_stats.discarded_bytes += NT_NET_GET_PKT_CAP_LENGTH(* hNetBuffer);
+        this->captured_stats.discarded_bytes += NT_NET_GET_PKT_CAP_LENGTH(hNetBuffer);
         return -1;
     }
+ 
+    return 0;
 }
 
 /* ********************************** */
 
-void NtDissector::updateOldFlow(FlowInfo& flow,
+int NtDissector::updateOldFlow(FlowInfo& flow,
                                 Reader * & reader,
                                 size_t & hashed_index,
                                 void * & tree_result,
-                                struct ndpi_ipv6hdr * & ip6) 
+                                struct ndpi_ipv6hdr * & ip6,
+				FlowInfo * & flow_to_process,
+                                struct ndpi_id_struct * & ndpi_src,
+                                struct ndpi_id_struct * & ndpi_dst) 
 {
     if(this->searchVal(reader, flow, tree_result, ip6, hashed_index) != 0) {
         return -1;
@@ -448,17 +463,19 @@ void NtDissector::updateOldFlow(FlowInfo& flow,
             ndpi_dst = flow_to_process->ndpi_dst;
         }
     }
+
+    return 0;
 }
 
 /* ********************************** */
 
 void NtDissector::processPacket(void * args,
                                     void * header_tmp,
-                                    void * packet)
+                                    void * stream_id_tmp)
 {
     FlowInfo flow = FlowInfo();
     Reader * reader = (Reader *) args;
-    uint32_t streamId = (uint32_t) packet;
+    uint32_t streamId = *((uint32_t *) stream_id_tmp);
     
     if(streamId == STREAM_ID_UNHA) {
         this->captured_stats.packets_captured++;
@@ -499,10 +516,8 @@ void NtDissector::processPacket(void * args,
     this->captured_stats.nt_time_end = (uint64_t) NT_NET_GET_PKT_TIMESTAMP(* hNetBuffer);
     
     if(streamId == STREAM_ID_MISS) {
-        this->last_time = (uint64_t) NT_NET_GET_PKT_TIMESTAMP(* hNetBuffer);
         /*  Scan done every 15000 ms more or less   */    
         pkt_parser->captured_stats.total_wire_bytes += NT_NET_GET_PKT_CAP_LENGTH(* hNetBuffer);
-        return;
     }
     else
     {
@@ -519,13 +534,13 @@ void NtDissector::processPacket(void * args,
     switch (streamId)
     {
     case STREAM_ID_MISS:
-        if(createNewFlow(reader, flow, flow_to_process, hashed_index, ndpi_src, ndpi_dst) != 0)
+        if(this->createNewFlow(* hNetBuffer, flow, reader, hashed_index, flow_to_process, ndpi_src, ndpi_dst) != 0)
             return;
         else
             this->captured_stats.total_flows_captured++;
         break;
     case STREAM_ID_OLD:
-        if(updatedOldFlow(reader, flow, tree_result, ip6, hashed_index) != 0)
+        if(this->updateOldFlow(flow, reader, hashed_index, tree_result, ip6, flow_to_process, ndpi_src, ndpi_dst) != 0)
             return;       
         break;
     default:

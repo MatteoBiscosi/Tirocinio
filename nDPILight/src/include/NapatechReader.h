@@ -16,6 +16,15 @@ public:
 
     const char *file_or_device = nullptr;
 
+    NtNetStreamRx_t hNetRxMiss;
+    NtNetBuf_t hNetBufferMiss;
+
+    NtNetStreamRx_t hNetRxUnh;
+    NtNetBuf_t hNetBufferUnh;
+
+    NtNetStreamRx_t hNetRxOld;
+    NtNetBuf_t hNetBufferOld;
+
 private:
     int status = 0;
     uint8_t adapterNo = 0;
@@ -26,15 +35,6 @@ private:
    
 
     NtConfigStream_t hCfgStream;
-    
-    NtNetStreamRx_t hNetRxMiss;
-    NtNetBuf_t hNetBufferMiss;
-
-    NtNetStreamRx_t hNetRxUnh;
-    NtNetBuf_t hNetBufferUnh;
-
-    NtNetStreamRx_t hNetRxOld;
-    NtNetBuf_t hNetBufferOld;
 
     unsigned long long int pktCounter = 0;
 
@@ -64,8 +64,8 @@ public:
     void newPacket(void * header) override;
     int newFlow(FlowInfo * & flow_to_process) override;
 
-private:
     int handleErrorStatus(int status, const char* message);
+private:
     int ntplCall(const char* str);
 
     void checkForIdleFlows();

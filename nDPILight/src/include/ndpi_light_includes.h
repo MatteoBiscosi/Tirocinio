@@ -10,6 +10,7 @@
 #include <fstream>
 #include <algorithm>
 #include <memory>
+#include <thread>
 #include <pcap/pcap.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
