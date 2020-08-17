@@ -125,6 +125,7 @@ class NtDissector : public PacketDissector{
                             FlowInfo * & flow_to_process,
                             struct ndpi_id_struct * & ndpi_src,
                             struct ndpi_id_struct * & ndpi_dst);
+        int newFlow(int proto); 
 };
 
 
