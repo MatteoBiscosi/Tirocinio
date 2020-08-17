@@ -7,10 +7,10 @@
 
 class NtDissector : public PacketDissector{
     private:
-
+	unsigned long long int idCounter = 0;
     public:
 	    void processPacket(void *, void *, void *);    
-
+	
     private:
         int DumpL4(FlowInfo& flow,
                     Reader * & reader,
@@ -95,12 +95,13 @@ class NtDissector : public PacketDissector{
                             void * & tree_result,
                             struct ndpi_ipv6hdr * & ip6,
                             size_t& hashed_index);
-        int addVal(Reader * & reader,
-                                FlowInfo& flow,
-                                FlowInfo * & flow_to_process,
-                                size_t& hashed_index,
-                                struct ndpi_id_struct * & ndpi_src,
-                                struct ndpi_id_struct * & ndpi_dst);
+        int addVal(NtNetBuf_t& hNetBuffer,
+			Reader * & reader,
+                        FlowInfo& flow,
+                        FlowInfo * & flow_to_process,
+                        size_t& hashed_index,
+                        struct ndpi_id_struct * & ndpi_src,
+                        struct ndpi_id_struct * & ndpi_dst);
         void printFlowInfos(Reader * & reader,
                                         FlowInfo * & flow_to_process,
                                         const struct ndpi_iphdr * & ip,
@@ -125,7 +126,7 @@ class NtDissector : public PacketDissector{
                             FlowInfo * & flow_to_process,
                             struct ndpi_id_struct * & ndpi_src,
                             struct ndpi_id_struct * & ndpi_dst);
-        int newFlow(int proto); 
+        int newFlow(int proto, int keySetId, NtNetBuf_t& hNetBuffer, Reader * reader); 
 };
 
 

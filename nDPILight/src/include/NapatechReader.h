@@ -16,6 +16,8 @@ class NapatechReader : public Reader {
 public:
 
     const char *file_or_device = nullptr;
+    
+    unsigned long long int idCounter = 0;
 
     NtNetStreamRx_t hNetRxMiss;
     NtNetBuf_t hNetBufferMiss;
@@ -25,13 +27,13 @@ public:
 
     NtNetStreamRx_t hNetRxOld;
     NtNetBuf_t hNetBufferOld;
-
+    
+    NtFlowStream_t flowStream;
+    std::vector<std::unique_ptr<NtFlow_t>> learnedFlowList;
 private:
     int status = 0;
     uint8_t adapterNo = 0;
     NtFlowAttr_t flowAttr;
-    NtFlowStream_t flowStream;
-    unsigned long long int idCounter = 0;
     unsigned long long int streamId = 1;
    
 

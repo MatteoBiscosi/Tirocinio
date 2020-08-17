@@ -95,10 +95,10 @@ ntplCall(hCfgStream, "keydef[Name=kd6; KeyType=kt6; IpProtocolField=Outer] = (La
 	// Shorthand for the checks used in these filters.
 	   ntplCall(hCfgStream, "DefineMacro(\"LearnFilterCheck\", \"Port==$1 and Layer2Protocol==EtherII and Layer3Protocol==$2\")");
 	//
-	ntplCall(hCfgStream, "Assign[StreamId=" STR(STREAM_ID_MISS) "; Descriptor=DYN4, ColorBits=FlowID, Offset0=Layer3Header[12]; ColorMask=" STR(COLOR_IPV4) "] = LearnFilterCheck(0,ipv4) and Key(kd4, KeyID=" STR(KEY_ID_IPV4) ")==MISS");
-ntplCall(hCfgStream, "Assign[StreamId=" STR(STREAM_ID_MISS) "; Descriptor=DYN4, ColorBits=FlowID, Offset0=Layer3Header[8];  ColorMask=" STR(COLOR_IPV6) "] = LearnFilterCheck(0,ipv6) and Key(kd6, KeyID=" STR(KEY_ID_IPV6) ")==MISS");
-ntplCall(hCfgStream, "Assign[StreamId=" STR(STREAM_ID_MISS) "; Descriptor=DYN4, ColorBits=FlowID, Offset0=Layer3Header[12]; ColorMask=" STR(COLOR_IPV4) "] = LearnFilterCheck(1,ipv4) and Key(kd4, KeyID=" STR(KEY_ID_IPV4) ", FieldAction=Swap)==MISS");
-ntplCall(hCfgStream, "Assign[StreamId=" STR(STREAM_ID_MISS) "; Descriptor=DYN4, ColorBits=FlowID, Offset0=Layer3Header[8];  ColorMask=" STR(COLOR_IPV6) "] = LearnFilterCheck(1,ipv6) and Key(kd6, KeyID=" STR(KEY_ID_IPV6) ", FieldAction=Swap)==MISS");
+	ntplCall(hCfgStream, "Assign[StreamId=" STR(STREAM_ID_MISS) "; Descriptor=DYN1, ColorBits=FlowID, Offset0=Layer3Header[12]; ColorMask=" STR(COLOR_IPV4) "] = LearnFilterCheck(0,ipv4) and Key(kd4, KeyID=" STR(KEY_ID_IPV4) ")==MISS");
+ntplCall(hCfgStream, "Assign[StreamId=" STR(STREAM_ID_MISS) "; Descriptor=DYN1, ColorBits=FlowID, Offset0=Layer3Header[8];  ColorMask=" STR(COLOR_IPV6) "] = LearnFilterCheck(0,ipv6) and Key(kd6, KeyID=" STR(KEY_ID_IPV6) ")==MISS");
+ntplCall(hCfgStream, "Assign[StreamId=" STR(STREAM_ID_MISS) "; Descriptor=DYN1, ColorBits=FlowID, Offset0=Layer3Header[12]; ColorMask=" STR(COLOR_IPV4) "] = LearnFilterCheck(1,ipv4) and Key(kd4, KeyID=" STR(KEY_ID_IPV4) ", FieldAction=Swap)==MISS");
+ntplCall(hCfgStream, "Assign[StreamId=" STR(STREAM_ID_MISS) "; Descriptor=DYN1, ColorBits=FlowID, Offset0=Layer3Header[8];  ColorMask=" STR(COLOR_IPV6) "] = LearnFilterCheck(1,ipv6) and Key(kd6, KeyID=" STR(KEY_ID_IPV6) ", FieldAction=Swap)==MISS");
 
 ntplCall(hCfgStream, "Assign[StreamId=" STR(STREAM_ID_UNHA) "] = LearnFilterCheck(0,ipv4) and Key(kd4, KeyID=" STR(KEY_ID_IPV4) ")==UNHANDLED");
 ntplCall(hCfgStream, "Assign[StreamId=" STR(STREAM_ID_UNHA) "] = LearnFilterCheck(0,ipv6) and Key(kd6, KeyID=" STR(KEY_ID_IPV6) ")==UNHANDLED");
@@ -146,21 +146,58 @@ ntplCall(hCfgStream, "Assign[StreamId=Drop] = LearnFilterCheck(1,ipv6) and Key(k
         flow->color           = 0;            // Flow color
         flow->overwrite       = 0;            // Overwrite filter action (1: enable, 0: disable)
         flow->streamId        = 0;            // Marks the stream id if overwrite filter action is enabled
-        flow->ipProtocolField = 6;            // IP protocol number of next header (6: TCP)
-        flow->keySetId        = KEY_SET_ID;   // Key Set ID as used in the NTPL filter
+        flow->ipProtocolField = 17;            // IP protocol number of next header (6: TCP)
+//flow->keyId = 1;        
+flow->keySetId        = KEY_SET_ID;   // Key Set ID as used in the NTPL filter
         flow->op              = 1;            // Flow programming operation (1: learn, 0: un-learn)
         flow->gfi             = 1;            // Generate flow info record (1: generate, 0: do not generate)
         flow->tau             = 0;            // TCP auto unlearn (1: auto unlearn enable, 0: auto unlearn disable)
 
         // For this example the descriptor DYN3 is used, which is set up by NTPL.
-        NtDyn4Descr_t* dyn4 = _NT_NET_GET_PKT_DESCR_PTR_DYN4(hNetBuffer);
-        uint8_t* packet = reinterpret_cast<uint8_t*>(dyn4) + dyn4->descrLength;
+//        NtDyn1Descr_t* dyn4 = _NT_NET_GET_PKT_DESCR_PTR_DYN1(hNetBuffer);
+  //      uint8_t* packet = reinterpret_cast<uint8_t*>(dyn4) + dyn4->descrLength;
 
         // Because colormask was used in the filters, it is very easy to check for
         // the IP type.
         // The filters also set up an alternative offset0, such that it points
         // directly to the IP source address.
-        switch(dyn4->color0 & (COLOR_IPV4 | COLOR_IPV6)) {
+	NtDyn1Descr_t* pDyn1 = _NT_NET_GET_PKT_DESCR_PTR_DYN1(hNetBuffer);
+    uint8_t* packet = reinterpret_cast<uint8_t*>(pDyn1) + pDyn1->descrLength;
+
+    switch (pDyn1->color >> 2) {
+        case 0:  // IPv4
+                std::memcpy(flow->keyData,      packet + pDyn1->offset0,     4);  // IPv4 src
+                std::memcpy(flow->keyData + 4,  packet + pDyn1->offset0 + 4, 4);  // IPv4 dst
+                std::memcpy(flow->keyData + 8,  packet + pDyn1->offset1,     2);  // TCP port src
+                std::memcpy(flow->keyData + 10, packet + pDyn1->offset1 + 2, 2);  // TCP port dst
+                flow->keyId = KEY_ID_IPV4;  // Key ID as used in the NTPL Key Test
+                break;
+        case 1:  // IPv6
+                std::memcpy(flow->keyData,      packet + pDyn1->offset0,      16);  // IPv6 src
+                std::memcpy(flow->keyData + 16, packet + pDyn1->offset0 + 16, 16);  // IPv6 dst
+                std::memcpy(flow->keyData + 32, packet + pDyn1->offset1,      2);   // TCP port src
+                std::memcpy(flow->keyData + 34, packet + pDyn1->offset1 + 2,  2);   // TCP port dst
+                flow->keyId = KEY_ID_IPV6;  // Key ID as used in the NTPL Key Test
+                break;
+        case 2:  // Tunneled IPv4
+                std::memcpy(flow->keyData,      packet + pDyn1->offset0,     4);  // IPv4 src
+                std::memcpy(flow->keyData + 4,  packet + pDyn1->offset0 + 4, 4);  // IPv4 dst
+                std::memcpy(flow->keyData + 8,  packet + pDyn1->offset1,     2);  // TCP port src
+                std::memcpy(flow->keyData + 10, packet + pDyn1->offset1 + 2, 2);  // TCP port dst
+                flow->keyId = KEY_ID_IPV4;  // Key ID as used in the NTPL Key Test
+                break;
+        case 3:  // Tunneled IPv6
+                std::memcpy(flow->keyData,      packet + pDyn1->offset0,      16);  // IPv6 src
+                std::memcpy(flow->keyData + 16, packet + pDyn1->offset0 + 16, 16);  // IPv6 dst
+                std::memcpy(flow->keyData + 32, packet + pDyn1->offset1,      2);   // TCP port src
+                std::memcpy(flow->keyData + 34, packet + pDyn1->offset1 + 2,  2);   // TCP port dst
+                flow->keyId = KEY_ID_IPV6;  // Key ID as used in the NTPL Key Test
+                break;
+        }
+
+//                break;
+
+  /*      switch(dyn4->color & (COLOR_IPV4 | COLOR_IPV6)) {
             case COLOR_IPV4: {
                 counter++;
                 std::memcpy(flow->keyData,      packet + dyn4->offset0,     4);  // IPv4 src
@@ -180,12 +217,48 @@ ntplCall(hCfgStream, "Assign[StreamId=Drop] = LearnFilterCheck(1,ipv6) and Key(k
                 break;
             }	
         }
-
+*/
         // Program the flow into the adapter.
         status = NT_FlowWrite(flowStream, flow.get(), -1);
         handleErrorStatus(status, "NT_FlowWrite() failed");
 
         learnedFlowList.push_back(std::move(flow));
+NtFlowInfo_t flowInfo;
+    const char* ip;
+    printf("Before while loop\n");
+    while(NT_FlowRead(flowStream, &flowInfo, 2) == NT_SUCCESS) {
+    printf("Inside while loop\n");
+    if(learnedFlowList[flowInfo.id]->keyId == KEY_ID_IPV4) {
+      ip = " (IPv4):";
+     
+    } 
+    else { 
+      ip = " (IPv6):";
+     
+    }
+
+    std::cout << "NT_FlowRead of flow ID " << flowInfo.id << ip << std::endl
+      << "CSA: Packages: " << flowInfo.packetsA
+      << ", Octets: "      << flowInfo.octetsA << std::endl
+      << "CSB: Packages: " << flowInfo.packetsB
+      << ", Octets: "      << flowInfo.octetsB << std::endl
+      << "Time stamp: "    << flowInfo.ts << std::endl
+      << "TCP flags A: "   << flowInfo.flagsA 
+      << ", TCP flags B: " << flowInfo.flagsB << std::endl;
+
+    switch(flowInfo.cause) {
+      case 0:  std::cout << "Unlearn cause: Software" << std::endl; break;
+      case 1:  std::cout << "Unlearn cause: Timeout" << std::endl; break;
+      case 2:  std::cout << "Unlearn cause: TCP flow termination" << std::endl; break;
+      default: std::cout << "Unlearn cause: Not supported" << std::endl; break;
+    }
+    std::cout << std::endl;
+  }
+
+ 	for(auto&& flow :learnedFlowList) {
+    printf("Id: %d, ipProto: %d, keySetId: %d\n", flow->id, flow->ipProtocolField, flow->keySetId);
+  }
+
     }
 
     return 0;
