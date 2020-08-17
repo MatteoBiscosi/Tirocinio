@@ -2,6 +2,19 @@
 #include "ndpi_light_includes.h"
 
 
+
+int handleErrorStatus(int status, const char* message)
+{
+  if(status != NT_SUCCESS) {
+    char errorBuffer[NT_ERRBUF_SIZE];
+    NT_ExplainError(status, errorBuffer, sizeof(errorBuffer));
+    tracer->traceEvent(0, "%s: %s\n", message, errorBuffer);
+    return 1;
+  }
+
+  return 0;
+}
+
 /* ********************************** */
 
 /*  Costructors and Destructors  */
@@ -13,18 +26,6 @@ NapatechReader::NapatechReader() : file_or_device(nullptr)
 NapatechReader::NapatechReader(const char *dst) : file_or_device(nullptr)
 {
     file_or_device = dst;
-}
-
-/* ********************************** */
-
-int NapatechReader::handleErrorStatus(int status, const char* message)
-{
-  if(this->status != NT_SUCCESS) {
-    char errorBuffer[NT_ERRBUF_SIZE];
-    NT_ExplainError(this->status, errorBuffer, sizeof(errorBuffer));
-    tracer->traceEvent(0, "%s: %s\n", message, errorBuffer);
-    return 1;
-  }
 }
 
 /* ********************************** */
@@ -65,18 +66,18 @@ int NapatechReader::setFilters()
         return 1;
 
     // Create filters for unhandled packages, which will simply be counted by the application.
-    if(this->ntplCall("Assign[StreamId=" STR(STREAM_ID_UNHA) "] = LearnFilterCheck(ipv4) and Key(kd4, KeyID=" STR(KEY_ID_IPV4) ")==UNHANDLED") != 0)
-        return 1;
-    if(this->ntplCall("Assign[StreamId=" STR(STREAM_ID_UNHA) "] = LearnFilterCheck(ipv6) and Key(kd6, KeyID=" STR(KEY_ID_IPV6) ")==UNHANDLED") != 0)
-        return 1;
+    //if(this->ntplCall("Assign[StreamId=" STR(STREAM_ID_UNHA) "] = LearnFilterCheck(ipv4) and Key(kd4, KeyID=" STR(KEY_ID_IPV4) ")==UNHANDLED") != 0)
+    //    return 1;
+    //if(this->ntplCall("Assign[StreamId=" STR(STREAM_ID_UNHA) "] = LearnFilterCheck(ipv6) and Key(kd6, KeyID=" STR(KEY_ID_IPV6) ")==UNHANDLED") != 0)
+    //    return 1;
 
-    if(this->ntplCall("Assign[StreamId=" STR(STREAM_ID_OLD) "] = LearnFilterCheck(ipv4) and Key(kd4, KeyID=" STR(KEY_ID_IPV4) ")==3") != 0)
+    if(this->ntplCall("Assign[StreamId=" STR(STREAM_ID_OLD) "; Descriptor=DYN1, Offset0=Layer3Header[12]] = LearnFilterCheck(ipv4) and Key(kd4, KeyID=" STR(KEY_ID_IPV4) ")==3") != 0)
         return 1;
-    if(this->ntplCall("Assign[StreamId=" STR(STREAM_ID_OLD) "] = LearnFilterCheck(ipv6) and Key(kd6, KeyID=" STR(KEY_ID_IPV6) ")==3") != 0)
+    if(this->ntplCall("Assign[StreamId=" STR(STREAM_ID_OLD) "; Descriptor=DYN1, Offset0=Layer3Header[8]] = LearnFilterCheck(ipv6) and Key(kd6, KeyID=" STR(KEY_ID_IPV6) ")==3") != 0)
         return 1;
-    if(this->ntplCall("Assign[StreamId=" STR(STREAM_ID_OLD) "] = LearnFilterCheck(ipv4) and Key(kd4, KeyID=" STR(KEY_ID_IPV4) ")==4") != 0)
+    if(this->ntplCall("Assign[StreamId=" STR(STREAM_ID_OLD) "; Descriptor=DYN1, Offset0=Layer3Header[12]] = LearnFilterCheck(ipv4) and Key(kd4, KeyID=" STR(KEY_ID_IPV4) ")==4") != 0)
         return 1;
-    if(this->ntplCall("Assign[StreamId=" STR(STREAM_ID_OLD) "] = LearnFilterCheck(ipv6) and Key(kd6, KeyID=" STR(KEY_ID_IPV6) ")==4") != 0)
+    if(this->ntplCall("Assign[StreamId=" STR(STREAM_ID_OLD) "; Descriptor=DYN1, Offset0=Layer3Header[8]] = LearnFilterCheck(ipv6) and Key(kd6, KeyID=" STR(KEY_ID_IPV6) ")==4") != 0)
         return 1;    
     
     return 0;
@@ -171,7 +172,7 @@ int NapatechReader::initFileOrDevice()
 
     // Open a configuration stream to assign a filter to a stream ID.
     this->status = NT_ConfigOpen(&hCfgStream, "Learn_example_config");
-    if(this->handleErrorStatus(status, "NT_ConfigOpen() failed") != 0)
+    if(handleErrorStatus(status, "NT_ConfigOpen() failed") != 0)
         return 1;
     
     if(this->setFilters() != 0){
@@ -280,7 +281,7 @@ void taskReceiverMiss(const char* streamName, uint32_t streamId, NapatechReader*
         if(status == NT_ERROR_NT_TERMINATING)
 	    break;
 
-        if(reader->handleErrorStatus(status, "Error while sniffing next packet") != 0) {
+        if(handleErrorStatus(status, "Error while sniffing next packet") != 0) {
             reader->error_or_eof = 1;
             return;
         }
@@ -303,7 +304,7 @@ void taskReceiverUnh(const char* streamName, uint32_t streamId, NapatechReader* 
         if(status == NT_ERROR_NT_TERMINATING)
 	    break;
 
-        if(reader->handleErrorStatus(status, "Error while sniffing next packet") != 0) {
+        if(handleErrorStatus(status, "Error while sniffing next packet") != 0) {
             reader->error_or_eof = 1;
             return;
         }
@@ -314,7 +315,7 @@ void taskReceiverUnh(const char* streamName, uint32_t streamId, NapatechReader* 
 
 void taskReceiverOld(const char* streamName, uint32_t streamId, NapatechReader* reader)
 {
-    int status = 0;
+    int status;
 
     while(reader->error_or_eof == 0) {
         // Get package from rx stream.
@@ -325,8 +326,8 @@ void taskReceiverOld(const char* streamName, uint32_t streamId, NapatechReader* 
 
         if(status == NT_ERROR_NT_TERMINATING)
 	    break;
-
-        if(reader->handleErrorStatus(status, "Error while sniffing next packet") != 0) {
+printf("prova old\n");
+        if(handleErrorStatus(status, "Error while sniffing next packet") != 0) {
             reader->error_or_eof = 1;
             return;
         }

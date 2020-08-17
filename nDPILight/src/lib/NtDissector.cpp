@@ -355,8 +355,40 @@ int NtDissector::addVal(Reader * & reader,
 
     ndpi_src = flow_to_process->ndpi_src;
     ndpi_dst = flow_to_process->ndpi_dst;
+    
+    /* Adding new flow to flow_table */
+
+    if (flow.l4_protocol == IPPROTO_TCP) {
+        /*  TCP   */ 
+        const struct ndpi_tcphdr * tcp;
+
+        tcp = (struct ndpi_tcphdr *)l4_ptr;
+
+        /*  Checks the state of the flow */
+        flow.is_midstream_flow = (tcp->syn == 0 ? 1 : 0);
+        flow.flow_fin_ack_seen = (tcp->fin == 1 && tcp->ack == 1 ? 1 : 0);
+        flow.flow_ack_seen = tcp->ack;
+        flow.src_port = ntohs(tcp->source);
+        flow.dst_port = ntohs(tcp->dest);
+
+        this->captured_stats.tcp_pkts++;
+
+    } else if (flow.l4_protocol == IPPROTO_UDP) {
+        /*  UDP   */ 
+        const struct ndpi_udphdr * udp;
+
+        udp = (struct ndpi_udphdr *)l4_ptr;
+        flow.src_port = ntohs(udp->source);
+        flow.dst_port = ntohs(udp->dest);
+
+        this->captured_stats.udp_pkts++;
+    }
 
     return 0;
+}
+
+int newFlow() 
+{
 }
 
 /* ********************************** */
@@ -476,7 +508,7 @@ void NtDissector::processPacket(void * args,
     FlowInfo flow = FlowInfo();
     Reader * reader = (Reader *) args;
     uint32_t streamId = *((uint32_t *) stream_id_tmp);
-    
+   printf("%d\n", streamId); 
     if(streamId == STREAM_ID_UNHA) {
         this->captured_stats.packets_captured++;
         this->captured_stats.unhandled_packets++;

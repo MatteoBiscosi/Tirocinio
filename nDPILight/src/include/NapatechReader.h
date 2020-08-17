@@ -10,6 +10,7 @@
 
 
 extern PacketDissector * pkt_parser;
+extern Trace * tracer;
 
 class NapatechReader : public Reader {
 public:
@@ -63,8 +64,7 @@ public:
     void printStats() override;
     void newPacket(void * header) override;
     int newFlow(FlowInfo * & flow_to_process) override;
-
-    int handleErrorStatus(int status, const char* message);
+    
 private:
     int ntplCall(const char* str);
 
@@ -139,6 +139,8 @@ struct TCPHeader_s {
     uint32_t tcp_crc:16;
     uint32_t tcp_urgp:16;
 }; // 20 bytes
+
+/* ********************************** */
 
 
 #endif //NDPILIGHT_NAPATECH_READER_H
