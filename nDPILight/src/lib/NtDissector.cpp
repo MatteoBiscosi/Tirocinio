@@ -314,13 +314,12 @@ int NtDissector::addVal(NtNetBuf_t& hNetBuffer,
                             struct ndpi_id_struct * & ndpi_src,
                             struct ndpi_id_struct * & ndpi_dst)
 {
-    /* flow still not found, must be new */
     if(reader->newFlow(flow_to_process) != 0) 
         return -1;
     
 
     memcpy(flow_to_process, &flow, sizeof(*flow_to_process));
-//    flow_to_process->flow_id = flow_id++;
+    flow_to_process->flow_id = flow_id++;
 
     flow_to_process->ndpi_flow = (struct ndpi_flow_struct *)ndpi_flow_malloc(SIZEOF_FLOW_STRUCT);
     if (flow_to_process->ndpi_flow == nullptr) {
