@@ -61,45 +61,45 @@ int NapatechReader::setFilters()
     if(this->ntplCall("keydef[Name=kd6; KeyType=kt6] = (Layer3Header[8]/128/128, Layer4Header[0]/16/16)") != 0)
         return 1;
 
-    if(this->ntplCall("DefineMacro(\"LearnFilterCheck\", \"Layer2Protocol==EtherII and Layer3Protocol==$1\")") != 0)
+    if(this->ntplCall("DefineMacro(\"LearnFilterCheck\", \"Port==$1 and Layer2Protocol==EtherII and Layer3Protocol==$1\")") != 0)
         return 1;
 
     // Create filters for new flow's packages.
-    if(this->ntplCall("Assign[StreamId=" STR(STREAM_ID_MISS) "; Descriptor=DYN1, ColorBits=FlowID, Offset0=Layer3Header[12]; ColorMask=" STR(COLOR_IPV4) "] = LearnFilterCheck(ipv4) and Key(kd4, KeyID=" STR(KEY_ID_IPV4) ")==MISS") != 0)
+    if(this->ntplCall("Assign[StreamId=" STR(STREAM_ID_MISS) "; Descriptor=DYN1, ColorBits=FlowID, Offset0=Layer3Header[12]; ColorMask=" STR(COLOR_IPV4) "] = LearnFilterCheck(0,ipv4) and Key(kd4, KeyID=" STR(KEY_ID_IPV4) ")==MISS") != 0)
         return 1;
-    if(this->ntplCall("Assign[StreamId=" STR(STREAM_ID_MISS) "; Descriptor=DYN1, ColorBits=FlowID, Offset0=Layer3Header[8]; ColorMask=" STR(COLOR_IPV6) "] = LearnFilterCheck(ipv6) and Key(kd6, KeyID=" STR(KEY_ID_IPV6) ")==MISS") != 0)
+    if(this->ntplCall("Assign[StreamId=" STR(STREAM_ID_MISS) "; Descriptor=DYN1, ColorBits=FlowID, Offset0=Layer3Header[8]; ColorMask=" STR(COLOR_IPV6) "] = LearnFilterCheck(0,ipv6) and Key(kd6, KeyID=" STR(KEY_ID_IPV6) ")==MISS") != 0)
         return 1;
-    if(this->ntplCall("Assign[StreamId=" STR(STREAM_ID_MISS) "; Descriptor=DYN1, ColorBits=FlowID, Offset0=Layer3Header[12]; ColorMask=" STR(COLOR_IPV4) "] = LearnFilterCheck(ipv4) and Key(kd4, KeyID=" STR(KEY_ID_IPV4) ", FieldAction=Swap)==MISS") != 0)
+    if(this->ntplCall("Assign[StreamId=" STR(STREAM_ID_MISS) "; Descriptor=DYN1, ColorBits=FlowID, Offset0=Layer3Header[12]; ColorMask=" STR(COLOR_IPV4) "] = LearnFilterCheck(1,ipv4) and Key(kd4, KeyID=" STR(KEY_ID_IPV4) ", FieldAction=Swap)==MISS") != 0)
         return 1;
-    if(this->ntplCall("Assign[StreamId=" STR(STREAM_ID_MISS) "; Descriptor=DYN1, ColorBits=FlowID, Offset0=Layer3Header[8]; ColorMask=" STR(COLOR_IPV6) "] = LearnFilterCheck(ipv6) and Key(kd6, KeyID=" STR(KEY_ID_IPV6) ", FieldAction=Swap)==MISS") != 0)
+    if(this->ntplCall("Assign[StreamId=" STR(STREAM_ID_MISS) "; Descriptor=DYN1, ColorBits=FlowID, Offset0=Layer3Header[8]; ColorMask=" STR(COLOR_IPV6) "] = LearnFilterCheck(1,ipv6) and Key(kd6, KeyID=" STR(KEY_ID_IPV6) ", FieldAction=Swap)==MISS") != 0)
         return 1;
 
     // Create filters for unhandled packages, which will simply be counted by the application.
-    if(this->ntplCall("Assign[StreamId=" STR(STREAM_ID_UNHA) "] = LearnFilterCheck(ipv4) and Key(kd4, KeyID=" STR(KEY_ID_IPV4) ")==UNHANDLED") != 0)
+    if(this->ntplCall("Assign[StreamId=" STR(STREAM_ID_UNHA) "] = LearnFilterCheck(0,ipv4) and Key(kd4, KeyID=" STR(KEY_ID_IPV4) ")==UNHANDLED") != 0)
         return 1;
-    if(this->ntplCall("Assign[StreamId=" STR(STREAM_ID_UNHA) "] = LearnFilterCheck(ipv6) and Key(kd6, KeyID=" STR(KEY_ID_IPV6) ")==UNHANDLED") != 0)
+    if(this->ntplCall("Assign[StreamId=" STR(STREAM_ID_UNHA) "] = LearnFilterCheck(1,ipv6) and Key(kd6, KeyID=" STR(KEY_ID_IPV6) ")==UNHANDLED") != 0)
         return 1;
-    if(this->ntplCall("Assign[StreamId=" STR(STREAM_ID_UNHA) "] = LearnFilterCheck(ipv4) and Key(kd4, KeyID=" STR(KEY_ID_IPV4) ", FieldAction=Swap)==UNHANDLED") != 0)
+    if(this->ntplCall("Assign[StreamId=" STR(STREAM_ID_UNHA) "] = LearnFilterCheck(0,ipv4) and Key(kd4, KeyID=" STR(KEY_ID_IPV4) ", FieldAction=Swap)==UNHANDLED") != 0)
         return 1;
-    if(this->ntplCall("Assign[StreamId=" STR(STREAM_ID_UNHA) "] = LearnFilterCheck(ipv6) and Key(kd6, KeyID=" STR(KEY_ID_IPV6) ", FieldAction=Swap)==UNHANDLED") != 0)
+    if(this->ntplCall("Assign[StreamId=" STR(STREAM_ID_UNHA) "] = LearnFilterCheck(1,ipv6) and Key(kd6, KeyID=" STR(KEY_ID_IPV6) ", FieldAction=Swap)==UNHANDLED") != 0)
         return 1;
 
 
-    if(this->ntplCall("Assign[StreamId=" STR(STREAM_ID_OLD) "; Descriptor=DYN1, Offset0=Layer3Header[12]] = LearnFilterCheck(ipv4) and Key(kd4, KeyID=" STR(KEY_ID_IPV4) ")==3") != 0)
+    if(this->ntplCall("Assign[StreamId=" STR(STREAM_ID_OLD) "; Descriptor=DYN1, Offset0=Layer3Header[12]] = LearnFilterCheck(0,ipv4) and Key(kd4, KeyID=" STR(KEY_ID_IPV4) ")==3") != 0)
         return 1;
-    if(this->ntplCall("Assign[StreamId=" STR(STREAM_ID_OLD) "; Descriptor=DYN1, Offset0=Layer3Header[8]] = LearnFilterCheck(ipv6) and Key(kd6, KeyID=" STR(KEY_ID_IPV6) ")==3") != 0)
+    if(this->ntplCall("Assign[StreamId=" STR(STREAM_ID_OLD) "; Descriptor=DYN1, Offset0=Layer3Header[8]] = LearnFilterCheck(0,ipv6) and Key(kd6, KeyID=" STR(KEY_ID_IPV6) ")==3") != 0)
         return 1;
-    if(this->ntplCall("Assign[StreamId=" STR(STREAM_ID_OLD) "; Descriptor=DYN1, Offset0=Layer3Header[12]] = LearnFilterCheck(ipv4) and Key(kd4, KeyID=" STR(KEY_ID_IPV4) ", FieldAction=Swap)==3") != 0)
+    if(this->ntplCall("Assign[StreamId=" STR(STREAM_ID_OLD) "; Descriptor=DYN1, Offset0=Layer3Header[12]] = LearnFilterCheck(1,ipv4) and Key(kd4, KeyID=" STR(KEY_ID_IPV4) ", FieldAction=Swap)==3") != 0)
         return 1;
-    if(this->ntplCall("Assign[StreamId=" STR(STREAM_ID_OLD) "; Descriptor=DYN1, Offset0=Layer3Header[8]] = LearnFilterCheck(ipv6) and Key(kd6, KeyID=" STR(KEY_ID_IPV6) ", FieldAction=Swap)==3") != 0)
+    if(this->ntplCall("Assign[StreamId=" STR(STREAM_ID_OLD) "; Descriptor=DYN1, Offset0=Layer3Header[8]] = LearnFilterCheck(1,ipv6) and Key(kd6, KeyID=" STR(KEY_ID_IPV6) ", FieldAction=Swap)==3") != 0)
         return 1;
-    if(this->ntplCall("Assign[StreamId=" STR(STREAM_ID_OLD) "; Descriptor=DYN1, Offset0=Layer3Header[12]] = LearnFilterCheck(ipv4) and Key(kd4, KeyID=" STR(KEY_ID_IPV4) ")==4") != 0)
+    if(this->ntplCall("Assign[StreamId=" STR(STREAM_ID_OLD) "; Descriptor=DYN1, Offset0=Layer3Header[12]] = LearnFilterCheck(0,ipv4) and Key(kd4, KeyID=" STR(KEY_ID_IPV4) ")==4") != 0)
         return 1;
-    if(this->ntplCall("Assign[StreamId=" STR(STREAM_ID_OLD) "; Descriptor=DYN1, Offset0=Layer3Header[8]] = LearnFilterCheck(ipv6) and Key(kd6, KeyID=" STR(KEY_ID_IPV6) ")==4") != 0)
+    if(this->ntplCall("Assign[StreamId=" STR(STREAM_ID_OLD) "; Descriptor=DYN1, Offset0=Layer3Header[8]] = LearnFilterCheck(0,ipv6) and Key(kd6, KeyID=" STR(KEY_ID_IPV6) ")==4") != 0)
         return 1;    
-    if(this->ntplCall("Assign[StreamId=" STR(STREAM_ID_OLD) "; Descriptor=DYN1, Offset0=Layer3Header[12]] = LearnFilterCheck(ipv4) and Key(kd4, KeyID=" STR(KEY_ID_IPV4) ", FieldAction=Swap)==4") != 0)
+    if(this->ntplCall("Assign[StreamId=" STR(STREAM_ID_OLD) "; Descriptor=DYN1, Offset0=Layer3Header[12]] = LearnFilterCheck(1,ipv4) and Key(kd4, KeyID=" STR(KEY_ID_IPV4) ", FieldAction=Swap)==4") != 0)
         return 1;
-    if(this->ntplCall("Assign[StreamId=" STR(STREAM_ID_OLD) "; Descriptor=DYN1, Offset0=Layer3Header[8]] = LearnFilterCheck(ipv6) and Key(kd6, KeyID=" STR(KEY_ID_IPV6) ", FieldAction=Swap)==4") != 0)
+    if(this->ntplCall("Assign[StreamId=" STR(STREAM_ID_OLD) "; Descriptor=DYN1, Offset0=Layer3Header[8]] = LearnFilterCheck(1,ipv6) and Key(kd6, KeyID=" STR(KEY_ID_IPV6) ", FieldAction=Swap)==4") != 0)
         return 1;
 
  
@@ -121,6 +121,8 @@ int NapatechReader::setFlow()
 
     return 0;
 }
+
+/* ********************************** */
 
 int NapatechReader::setStream()
 {
@@ -285,177 +287,8 @@ void NapatechReader::checkForIdleFlows()
 
 /* ********************************** */
 
-void ntplCall(NtConfigStream_t& hCfgStream, const char* str)
-{
-  std::cout << str << std::endl;
-
-  NtNtplInfo_t ntplInfo;
-  int status = NT_NTPL(hCfgStream, str, &ntplInfo, NT_NTPL_PARSER_VALIDATE_NORMAL);
-  handleErrorStatus(status, "NT_NTPL() failed");
-}
-
 void taskReceiverMiss(const char* streamName, uint32_t streamId, NapatechReader* reader)
 {
-    uint64_t counter = 0;
-    int status;
-    uint64_t idCounter = 0U;
-    std::vector<std::unique_ptr<NtFlow_t>> learnedFlowList;
-
-    NtFlowAttr_t    flowAttr;
-    NtFlowStream_t  flowStream;
-
-    NtNetStreamRx_t hNetRx;
-    NtNetBuf_t      hNetBuffer;
-    NtConfigStream_t hCfgStream;
-
-    status = NT_Init(NTAPI_VERSION);
-
-    // Open a configuration stream to assign a filter to a stream ID.
-    status = NT_ConfigOpen(&hCfgStream, "Learn_example_config");
-
-    ntplCall(hCfgStream, "Delete = All");
-        
-
-    // Set new filters and flow tables settings
-    ntplCall(hCfgStream, "KeyType[Name=kt4] = {sw_32_32,   sw_16_16}");
-	ntplCall(hCfgStream, "KeyType[Name=kt6] = {sw_128_128, sw_16_16}");
-ntplCall(hCfgStream, "KeyDef[Name=kd4; KeyType=kt4; IpProtocolField=Outer] = (Layer3Header[12]/32/32,  Layer4Header[0]/16/16)");
-ntplCall(hCfgStream, "keydef[Name=kd6; KeyType=kt6; IpProtocolField=Outer] = (Layer3Header[8]/128/128, Layer4Header[0]/16/16)");
-   
-    
-	// Shorthand for the checks used in these filters.
-	   ntplCall(hCfgStream, "DefineMacro(\"LearnFilterCheck\", \"Layer2Protocol==EtherII and Layer3Protocol==$1\")");
-	//
-	ntplCall(hCfgStream, "Assign[StreamId=" STR(STREAM_ID_MISS) "; Descriptor=DYN1, ColorBits=FlowID, Offset0=Layer3Header[12]; ColorMask=" STR(COLOR_IPV4) "] = LearnFilterCheck(ipv4) and Key(kd4, KeyID=" STR(KEY_ID_IPV4) ")==MISS");
-ntplCall(hCfgStream, "Assign[StreamId=" STR(STREAM_ID_MISS) "; Descriptor=DYN1, ColorBits=FlowID, Offset0=Layer3Header[8];  ColorMask=" STR(COLOR_IPV6) "] = LearnFilterCheck(ipv6) and Key(kd6, KeyID=" STR(KEY_ID_IPV6) ")==MISS");
-ntplCall(hCfgStream, "Assign[StreamId=" STR(STREAM_ID_MISS) "; Descriptor=DYN1, ColorBits=FlowID, Offset0=Layer3Header[12]; ColorMask=" STR(COLOR_IPV4) "] = LearnFilterCheck(ipv4) and Key(kd4, KeyID=" STR(KEY_ID_IPV4) ", FieldAction=Swap)==MISS");
-ntplCall(hCfgStream, "Assign[StreamId=" STR(STREAM_ID_MISS) "; Descriptor=DYN1, ColorBits=FlowID, Offset0=Layer3Header[8];  ColorMask=" STR(COLOR_IPV6) "] = LearnFilterCheck(ipv6) and Key(kd6, KeyID=" STR(KEY_ID_IPV6) ", FieldAction=Swap)==MISS");
-
-ntplCall(hCfgStream, "Assign[StreamId=" STR(STREAM_ID_UNHA) "] = LearnFilterCheck(ipv4) and Key(kd4, KeyID=" STR(KEY_ID_IPV4) ")==UNHANDLED");
-ntplCall(hCfgStream, "Assign[StreamId=" STR(STREAM_ID_UNHA) "] = LearnFilterCheck(ipv6) and Key(kd6, KeyID=" STR(KEY_ID_IPV6) ")==UNHANDLED");
-ntplCall(hCfgStream, "Assign[StreamId=" STR(STREAM_ID_UNHA) "] = LearnFilterCheck(ipv4) and Key(kd4, KeyID=" STR(KEY_ID_IPV4) ", FieldAction=Swap)==UNHANDLED");
-ntplCall(hCfgStream, "Assign[StreamId=" STR(STREAM_ID_UNHA) "] = LearnFilterCheck(ipv6) and Key(kd6, KeyID=" STR(KEY_ID_IPV6) ", FieldAction=Swap)==UNHANDLED");
-ntplCall(hCfgStream, "Assign[StreamId=Drop] = LearnFilterCheck(ipv4) and Key(kd4, KeyID=" STR(KEY_ID_IPV4) ", CounterSet=CSA)==" STR(KEY_SET_ID));
-ntplCall(hCfgStream, "Assign[StreamId=Drop] = LearnFilterCheck(ipv6) and Key(kd6, KeyID=" STR(KEY_ID_IPV6) ", CounterSet=CSA)==" STR(KEY_SET_ID));
-ntplCall(hCfgStream, "Assign[StreamId=Drop] = LearnFilterCheck(ipv4) and Key(kd4, KeyID=" STR(KEY_ID_IPV4) ", CounterSet=CSB, FieldAction=Swap)==" STR(KEY_SET_ID));
-ntplCall(hCfgStream, "Assign[StreamId=Drop] = LearnFilterCheck(ipv6) and Key(kd6, KeyID=" STR(KEY_ID_IPV6) ", CounterSet=CSB, FieldAction=Swap)==" STR(KEY_SET_ID));
-
-    // Initialize flow stream attributes and set adapter number attribute.
-    NT_FlowOpenAttrInit(&(flowAttr));
-    NT_FlowOpenAttrSetAdapterNo(&(flowAttr), 0);
-
-    // Opens a flow programming stream and returns a stream handle (flowStream).
-    status = NT_FlowOpen_Attr(&(flowStream), "open_flow_stream_example", &(flowAttr));
-    handleErrorStatus(status, "Error while opening the flow stream");
-    
-
-    status = NT_NetRxOpen(&(hNetRx), "test stream", NT_NET_INTERFACE_PACKET, 1, -1);
-    handleErrorStatus(status, "NT_NetRxOpen() failed");
-    
-    while(reader->error_or_eof == 0) {
-    // Get package from rx stream.
-        status = NT_NetRxGetNextPacket(hNetRx, &(hNetBuffer), -1);
-        
-        if(status == NT_STATUS_TIMEOUT || status == NT_STATUS_TRYAGAIN) 
-            continue;
-
-        if(status == NT_ERROR_NT_TERMINATING)
-	    break;
-
-        handleErrorStatus(status, "Error while sniffing next packet");
-	std::cout << "New flow\n";
-        // Here a package has successfully been received, and the parameters for the
-        // next flow to be learned will be set up.
-        auto flow = std::unique_ptr<NtFlow_t>(new NtFlow_t);
-        std::memset(flow.get(), 0x0, sizeof(NtFlow_t));
-
-        // In this example, the ID is a simple incremental value that can be used
-        // for lookup in the std::vector learnedFlowList. However, any value can be used,
-        // including the raw value of pointers.
-        flow->id              = idCounter++;  // User defined ID
-        flow->color           = 0;            // Flow color
-        flow->overwrite       = 0;            // Overwrite filter action (1: enable, 0: disable)
-        flow->streamId        = 0;            // Marks the stream id if overwrite filter action is enabled
-        flow->ipProtocolField = 17;            // IP protocol number of next header (6: TCP)
-//flow->keyId = 1;        
-        flow->keySetId        = 4;   // Key Set ID as used in the NTPL filter
-        flow->op              = 1;            // Flow programming operation (1: learn, 0: un-learn)
-        flow->gfi             = 1;            // Generate flow info record (1: generate, 0: do not generate)
-        flow->tau             = 0;            // TCP auto unlearn (1: auto unlearn enable, 0: auto unlearn disable)
-
-        // For this example the descriptor DYN3 is used, which is set up by NTPL.
-//        NtDyn1Descr_t* dyn4 = _NT_NET_GET_PKT_DESCR_PTR_DYN1(hNetBuffer);
-  //      uint8_t* packet = reinterpret_cast<uint8_t*>(dyn4) + dyn4->descrLength;
-
-        // Because colormask was used in the filters, it is very easy to check for
-        // the IP type.
-        // The filters also set up an alternative offset0, such that it points
-        // directly to the IP source address.
-	NtDyn1Descr_t* pDyn1 = _NT_NET_GET_PKT_DESCR_PTR_DYN1(hNetBuffer);
-    uint8_t* packet = reinterpret_cast<uint8_t*>(pDyn1) + pDyn1->descrLength;
-
-    switch (pDyn1->color >> 2) {
-        case 0:  // IPv4
-                std::memcpy(flow->keyData,      packet + pDyn1->offset0,     4);  // IPv4 src
-                std::memcpy(flow->keyData + 4,  packet + pDyn1->offset0 + 4, 4);  // IPv4 dst
-                std::memcpy(flow->keyData + 8,  packet + pDyn1->offset1,     2);  // TCP port src
-                std::memcpy(flow->keyData + 10, packet + pDyn1->offset1 + 2, 2);  // TCP port dst
-                flow->keyId = KEY_ID_IPV4;  // Key ID as used in the NTPL Key Test
-                break;
-        case 1:  // IPv6
-                std::memcpy(flow->keyData,      packet + pDyn1->offset0,      16);  // IPv6 src
-                std::memcpy(flow->keyData + 16, packet + pDyn1->offset0 + 16, 16);  // IPv6 dst
-                std::memcpy(flow->keyData + 32, packet + pDyn1->offset1,      2);   // TCP port src
-                std::memcpy(flow->keyData + 34, packet + pDyn1->offset1 + 2,  2);   // TCP port dst
-                flow->keyId = KEY_ID_IPV6;  // Key ID as used in the NTPL Key Test
-                break;
-        case 2:  // Tunneled IPv4
-                std::memcpy(flow->keyData,      packet + pDyn1->offset0,     4);  // IPv4 src
-                std::memcpy(flow->keyData + 4,  packet + pDyn1->offset0 + 4, 4);  // IPv4 dst
-                std::memcpy(flow->keyData + 8,  packet + pDyn1->offset1,     2);  // TCP port src
-                std::memcpy(flow->keyData + 10, packet + pDyn1->offset1 + 2, 2);  // TCP port dst
-                flow->keyId = KEY_ID_IPV4;  // Key ID as used in the NTPL Key Test
-                break;
-        case 3:  // Tunneled IPv6
-                std::memcpy(flow->keyData,      packet + pDyn1->offset0,      16);  // IPv6 src
-                std::memcpy(flow->keyData + 16, packet + pDyn1->offset0 + 16, 16);  // IPv6 dst
-                std::memcpy(flow->keyData + 32, packet + pDyn1->offset1,      2);   // TCP port src
-                std::memcpy(flow->keyData + 34, packet + pDyn1->offset1 + 2,  2);   // TCP port dst
-                flow->keyId = KEY_ID_IPV6;  // Key ID as used in the NTPL Key Test
-                break;
-        }
-
-//                break;
-
-  /*      switch(dyn4->color & (COLOR_IPV4 | COLOR_IPV6)) {
-            case COLOR_IPV4: {
-                counter++;
-                std::memcpy(flow->keyData,      packet + dyn4->offset0,     4);  // IPv4 src
-                std::memcpy(flow->keyData + 4,  packet + dyn4->offset0 + 4, 4);  // IPv4 dst
-                std::memcpy(flow->keyData + 8,  packet + dyn4->offset1,     2);  // TCP port src
-                std::memcpy(flow->keyData + 10, packet + dyn4->offset1 + 2, 2);  // TCP port dst
-                flow->keyId = KEY_ID_IPV4;  // Key ID as used in the NTPL Key Test
-                break;
-            }
-            case COLOR_IPV6: {
-                counter++;
-                std::memcpy(flow->keyData,      packet + dyn4->offset0,      16);  // IPv6 src
-                std::memcpy(flow->keyData + 16, packet + dyn4->offset0 + 16, 16);  // IPv6 dst
-                std::memcpy(flow->keyData + 32, packet + dyn4->offset1,      2);   // TCP port src
-                std::memcpy(flow->keyData + 34, packet + dyn4->offset1 + 2,  2);   // TCP port dst
-                flow->keyId = KEY_ID_IPV6;  // Key ID as used in the NTPL Key Test
-                break;
-            }	
-        }
-*/
-        // Program the flow into the adapter.
-        status = NT_FlowWrite(flowStream, flow.get(), -1);
-        handleErrorStatus(status, "NT_FlowWrite() failed");
-
-        learnedFlowList.push_back(std::move(flow));
-    }
-}
-/*
     while(reader->error_or_eof == 0) {
         // Get package from rx stream.
         status = NT_NetRxGetNextPacket(reader->hNetRxMiss, &(reader->hNetBufferMiss), -1);
@@ -473,7 +306,9 @@ ntplCall(hCfgStream, "Assign[StreamId=Drop] = LearnFilterCheck(ipv6) and Key(kd6
 
         pkt_parser->processPacket(reader, &reader->hNetBufferMiss, &streamId);
     }
-}*/
+}
+
+/* ********************************** */
 
 void taskReceiverUnh(const char* streamName, uint32_t streamId, NapatechReader* reader)
 {
@@ -498,6 +333,8 @@ void taskReceiverUnh(const char* streamName, uint32_t streamId, NapatechReader* 
     }	
 }
 
+/* ********************************** */
+
 void taskReceiverOld(const char* streamName, uint32_t streamId, NapatechReader* reader)
 {
     int status;
@@ -521,63 +358,17 @@ void taskReceiverOld(const char* streamName, uint32_t streamId, NapatechReader* 
     }	
 }
 
+/* ********************************** */
+
 int NapatechReader::startRead()
 {
     std::thread receiverThread1(taskReceiverMiss, "flowmatch_example_receiver_net_rx_miss", STREAM_ID_MISS, this);
-    //std::thread receiverThread2(taskReceiverUnh, "flowmatch_example_receiver_net_rx_unhandled", STREAM_ID_UNHA, this);
-    //std::thread receiverThread3(taskReceiverOld, "flowmatch_example_receiver_net_rx_total", STREAM_ID_OLD, this);
+    std::thread receiverThread2(taskReceiverUnh, "flowmatch_example_receiver_net_rx_unhandled", STREAM_ID_UNHA, this);
+    std::thread receiverThread3(taskReceiverOld, "flowmatch_example_receiver_net_rx_total", STREAM_ID_OLD, this);
     
     receiverThread1.join();
-    //receiverThread2.join();
-    //receiverThread3.join();
-
-if(this->flowStream == nullptr)
-	printf("null\n");
-for(auto&& flow : this->learnedFlowList) {
-    printf("Id: %d, ipProto: %d, keySetId: %d\n", flow->id, flow->ipProtocolField, flow->keySetId);
-  }
-    
-// Unlearn all stored flows
-    for(auto&& flow : this->learnedFlowList) {
-       flow->op = 0;
-	if(flow.get() == nullptr)
-		printf("Null 2\n");
-       status = NT_FlowWrite(this->flowStream, flow.get(), -1);
-     handleErrorStatus(status, "NT_FlowWrite() failed");
-    }
-                     
-    NtFlowInfo_t flowInfo;
-    const char* ip;
-    printf("Before while loop\n");
-    while(NT_FlowRead(this->flowStream, &flowInfo, 2) == NT_SUCCESS) {
-    printf("Inside while loop\n");
-    if(this->learnedFlowList[flowInfo.id]->keyId == KEY_ID_IPV4) { 
-      ip = " (IPv4):";
-      
-    } 
-    else {
-      ip = " (IPv6):";
-      
-    } 
-    
-    std::cout << "NT_FlowRead of flow ID " << flowInfo.id << ip << std::endl
-      << "CSA: Packages: " << flowInfo.packetsA
-      << ", Octets: "      << flowInfo.octetsA << std::endl
-      << "CSB: Packages: " << flowInfo.packetsB
-      << ", Octets: "      << flowInfo.octetsB << std::endl
-      << "Time stamp: "    << flowInfo.ts << std::endl
-      << "TCP flags A: "   << flowInfo.flagsA
-      << ", TCP flags B: " << flowInfo.flagsB << std::endl;
-
-    switch(flowInfo.cause) {
-      case 0:  std::cout << "Unlearn cause: Software" << std::endl; break;
-      case 1:  std::cout << "Unlearn cause: Timeout" << std::endl; break;
-      case 2:  std::cout << "Unlearn cause: TCP flow termination" << std::endl; break;
-      default: std::cout << "Unlearn cause: Not supported" << std::endl; break; 
-    }
-    std::cout << std::endl;
-  } 
-
+    receiverThread2.join();
+    receiverThread3.join();
 }
 
 /* ********************************** */
@@ -695,68 +486,3 @@ int NapatechReader::newFlow(FlowInfo * & flow_to_process) {
 }
 
 /* ********************************** */
-
-
-
-
-/*
-   // Open a configuration stream to assign a filter to a stream ID.
-    this->status = NT_ConfigOpen(&(this->hCfgStream), "Filter_config");
-    if(handleErrorStatus(status, "NT_ConfigOpen() failed") != 0)
-        return ;
-    
-    // Deletion of filters and macros, and clear FPGA flow tables.
-    if(this->ntplCall("Delete = All") != 0)
-        return ;
-
-    // Set new filters and flow tables settings
-    if(this->ntplCall("KeyType[Name=kt4] = {sw_32_32,   sw_16_16}") != 0)
-        return ;
-    if(this->ntplCall("KeyType[Name=kt6] = {sw_128_128, sw_16_16}") != 0)
-        return ;
-
-    if(this->ntplCall("KeyDef[Name=kd4; KeyType=kt4] = (Layer3Header[12]/32/32,  Layer4Header[0]/16/16)") != 0)
-        return ;
-    if(this->ntplCall("keydef[Name=kd6; KeyType=kt6] = (Layer3Header[8]/128/128, Layer4Header[0]/16/16)") != 0)
-        return ;
-
-    if(this->ntplCall("DefineMacro(\"LearnFilterCheck\", \"Layer2Protocol==EtherII and Layer3Protocol==$1\")") != 0)
-        return ;
-
-    // Create filters for new flow's packages.
-    if(this->ntplCall("Assign[StreamId=" STR(STREAM_ID_MISS) "; Descriptor=DYN1, ColorBits=FlowID, Offset0=Layer3Header[12]; ColorMask=" STR(COLOR_IPV4) "] = LearnFilterCheck(ipv4) and Key(kd4, KeyID=" STR(KEY_ID_IPV4) ")==MISS") != 0)
-        return ;
-    if(this->ntplCall("Assign[StreamId=" STR(STREAM_ID_MISS) "; Descriptor=DYN1, ColorBits=FlowID, Offset0=Layer3Header[8]; ColorMask=" STR(COLOR_IPV6) "] = LearnFilterCheck(ipv6) and Key(kd6, KeyID=" STR(KEY_ID_IPV6) ")==MISS") != 0)
-        return ;
-    if(this->ntplCall("Assign[StreamId=" STR(STREAM_ID_MISS) "; Descriptor=DYN1, ColorBits=FlowID, Offset0=Layer3Header[12]; ColorMask=" STR(COLOR_IPV4) "] = LearnFilterCheck(ipv4) and Key(kd4, KeyID=" STR(KEY_ID_IPV4) ", FieldAction=Swap)==MISS") != 0)
-        return ;
-    if(this->ntplCall("Assign[StreamId=" STR(STREAM_ID_MISS) "; Descriptor=DYN1, ColorBits=FlowID, Offset0=Layer3Header[8]; ColorMask=" STR(COLOR_IPV6) "] = LearnFilterCheck(ipv6) and Key(kd6, KeyID=" STR(KEY_ID_IPV6) ", FieldAction=Swap)==MISS") != 0)
-        return ;
-
-    // Create filters for unhandled packages, which will simply be counted by the application.
-    if(this->ntplCall("Assign[StreamId=" STR(STREAM_ID_UNHA) "] = LearnFilterCheck(ipv4) and Key(kd4, KeyID=" STR(KEY_ID_IPV4) ")==UNHANDLED") != 0)
-        return ;
-    if(this->ntplCall("Assign[StreamId=" STR(STREAM_ID_UNHA) "] = LearnFilterCheck(ipv6) and Key(kd6, KeyID=" STR(KEY_ID_IPV6) ")==UNHANDLED") != 0)
-        return ;
-    if(this->ntplCall("Assign[StreamId=" STR(STREAM_ID_UNHA) "] = LearnFilterCheck(ipv4) and Key(kd4, KeyID=" STR(KEY_ID_IPV4) ", FieldAction=Swap)==UNHANDLED") != 0)
-        return ;
-    if(this->ntplCall("Assign[StreamId=" STR(STREAM_ID_UNHA) "] = LearnFilterCheck(ipv6) and Key(kd6, KeyID=" STR(KEY_ID_IPV6) ", FieldAction=Swap)==UNHANDLED") != 0)
-        return ;
-
-
-    if(this->ntplCall("Assign[StreamId=" STR(STREAM_ID_OLD) "; Descriptor=DYN1, Offset0=Layer3Header[12]] = LearnFilterCheck(ipv4) and Key(kd4, KeyID=" STR(KEY_ID_IPV4) ")==3") != 0)
-        return ;
-    if(this->ntplCall("Assign[StreamId=" STR(STREAM_ID_OLD) "; Descriptor=DYN1, Offset0=Layer3Header[8]] = LearnFilterCheck(ipv6) and Key(kd6, KeyID=" STR(KEY_ID_IPV6) ")==3") != 0)
-        return ;
-    if(this->ntplCall("Assign[StreamId=" STR(STREAM_ID_OLD) "; Descriptor=DYN1, Offset0=Layer3Header[12]] = LearnFilterCheck(ipv4) and Key(kd4, KeyID=" STR(KEY_ID_IPV4) ", FieldAction=Swap)==3") != 0)
-        return ;
-    if(this->ntplCall("Assign[StreamId=" STR(STREAM_ID_OLD) "; Descriptor=DYN1, Offset0=Layer3Header[8]] = LearnFilterCheck(ipv6) and Key(kd6, KeyID=" STR(KEY_ID_IPV6) ", FieldAction=Swap)==3") != 0)
-        return ;
-    if(this->ntplCall("Assign[StreamId=" STR(STREAM_ID_OLD) "; Descriptor=DYN1, Offset0=Layer3Header[12]] = LearnFilterCheck(ipv4) and Key(kd4, KeyID=" STR(KEY_ID_IPV4) ")==4") != 0)
-        return ;
-    if(this->ntplCall("Assign[StreamId=" STR(STREAM_ID_OLD) "; Descriptor=DYN1, Offset0=Layer3Header[8]] = LearnFilterCheck(ipv6) and Key(kd6, KeyID=" STR(KEY_ID_IPV6) ")==4") != 0)
-        return ;    
-    if(this->ntplCall("Assign[StreamId=" STR(STREAM_ID_OLD) "; Descriptor=DYN1, Offset0=Layer3Header[12]] = LearnFilterCheck(ipv4) and Key(kd4, KeyID=" STR(KEY_ID_IPV4) ", FieldAction=Swap)==4") != 0)
-        return ;
-    if(this->ntplCall("Assign[StreamId=" STR(STREAM_ID_OLD) "; Descriptor=DYN1, Offset0=Layer3Header[8]] = LearnFilterCheck(ipv6) and Key(kd6, KeyID=" STR(KEY_ID_IPV6) ", FieldAction=Swap)==4") != 0)
-        return ;*/
