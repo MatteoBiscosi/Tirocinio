@@ -122,22 +122,6 @@ int NapatechReader::setFilters()
 
 /* ********************************** */
 
-int NapatechReader::setFlow()
-{
-    // Initialize flow stream attributes and set adapter number attribute.
-    NT_FlowOpenAttrInit(&(this->flowAttr));
-    NT_FlowOpenAttrSetAdapterNo(&(this->flowAttr), 0);
-
-    // Opens a flow programming stream and returns a stream handle (flowStream).
-    this->status = NT_FlowOpen_Attr(&(this->flowStream), "open_flow_stream_example", &(this->flowAttr));
-    if(handleErrorStatus(this->status, "Error while opening the flow stream") != 0)
-        return 1;
-
-    return 0;
-}
-
-/* ********************************** */
-
 int NapatechReader::initModule()
 {
     ndpi_init_prefs init_prefs = ndpi_no_prefs;
@@ -227,7 +211,8 @@ int NapatechReader::initFileOrDevice()
 
 void NapatechReader::newPacket(void * header) {    
     NtNetBuf_t * hNetBuffer = (NtNetBuf_t *) header;   
- 
+
+printf("Prova new\n"); 
     this->last_time = (uint64_t) NT_NET_GET_PKT_TIMESTAMP(* hNetBuffer);
     /*  Scan done every 15000 ms more or less   */    
     pkt_parser->captured_stats.total_wire_bytes += NT_NET_GET_PKT_CAP_LENGTH(* hNetBuffer);
@@ -238,6 +223,7 @@ void NapatechReader::newPacket(void * header) {
 
 void NapatechReader::checkForIdleFlows()
 {
+printf("Prova idle\n");
     /*  Check if at least IDLE_SCAN_PERIOD passed since last scan   */
     if (this->last_idle_scan_time + IDLE_SCAN_PERIOD * 10000 < this->last_time || 
         pkt_parser->captured_stats.packets_captured - this->last_packets_scan > PACKET_SCAN_PERIOD) {
@@ -278,6 +264,7 @@ void NapatechReader::checkForIdleFlows()
         /* Updating next max_idle_scan_index */
         this->max_idle_scan_index = ((this->idle_scan_index + this->max_idle_scan_index) % this->max_active_flows) + 1;
     }
+printf("Prova fine idle\n");
 }
 
 /* ********************************** */
@@ -344,19 +331,15 @@ void taskReceiverMiss(const char* streamName, uint32_t streamId, NapatechReader*
 {
     NtFlowAttr_t    flowAttr;
     NtFlowStream_t  flowStream;
-
-//    NtNetStreamRx_t hNetRx;
-//    NtNetBuf_t      hNetBuffer;
     NtConfigStream_t hCfgStream;
 
     int status;
     unsigned long long int idCounter = 0;
-    std::vector<std::unique_ptr<NtFlow_t>> learnedFlowList;
 
     status = NT_Init(NTAPI_VERSION);
 
     // Open a configuration stream to assign a filter to a stream ID.
-    status = NT_ConfigOpen(&hCfgStream, "Learn_example_config");
+    status = NT_ConfigOpen(&hCfgStream, "Learn_config");
 
     ntplCall(hCfgStream, "Delete = All");
         
@@ -380,10 +363,10 @@ void taskReceiverMiss(const char* streamName, uint32_t streamId, NapatechReader*
     ntplCall(hCfgStream, "Assign[StreamId=" STR(STREAM_ID_UNHA) "] = LearnFilterCheck(0,ipv6) and Key(kd6, KeyID=" STR(KEY_ID_IPV6) ")==UNHANDLED");
     ntplCall(hCfgStream, "Assign[StreamId=" STR(STREAM_ID_UNHA) "] = LearnFilterCheck(1,ipv4) and Key(kd4, KeyID=" STR(KEY_ID_IPV4) ", FieldAction=Swap)==UNHANDLED");
     ntplCall(hCfgStream, "Assign[StreamId=" STR(STREAM_ID_UNHA) "] = LearnFilterCheck(1,ipv6) and Key(kd6, KeyID=" STR(KEY_ID_IPV6) ", FieldAction=Swap)==UNHANDLED");
-    ntplCall(hCfgStream, "Assign[StreamId=3] = LearnFilterCheck(0,ipv4) and Key(kd4, KeyID=" STR(KEY_ID_IPV4) ")==4");
-    ntplCall(hCfgStream, "Assign[StreamId=3] = LearnFilterCheck(0,ipv6) and Key(kd6, KeyID=" STR(KEY_ID_IPV6) ")==4");
-    ntplCall(hCfgStream, "Assign[StreamId=3] = LearnFilterCheck(1,ipv4) and Key(kd4, KeyID=" STR(KEY_ID_IPV4) ", FieldAction=Swap)==4");
-    ntplCall(hCfgStream, "Assign[StreamId=3] = LearnFilterCheck(1,ipv6) and Key(kd6, KeyID=" STR(KEY_ID_IPV6) ", FieldAction=Swap)==4");
+    ntplCall(hCfgStream, "Assign[StreamId=" STR(STREAM_ID_OLD) "; Descriptor=DYN1] = LearnFilterCheck(0,ipv4) and Key(kd4, KeyID=" STR(KEY_ID_IPV4) ")==4");
+    ntplCall(hCfgStream, "Assign[StreamId=" STR(STREAM_ID_OLD) "; Descriptor=DYN1] = LearnFilterCheck(0,ipv6) and Key(kd6, KeyID=" STR(KEY_ID_IPV6) ")==4");
+    ntplCall(hCfgStream, "Assign[StreamId=" STR(STREAM_ID_OLD) "; Descriptor=DYN1] = LearnFilterCheck(1,ipv4) and Key(kd4, KeyID=" STR(KEY_ID_IPV4) ", FieldAction=Swap)==4");
+    ntplCall(hCfgStream, "Assign[StreamId=" STR(STREAM_ID_OLD) "; Descriptor=DYN1] = LearnFilterCheck(1,ipv6) and Key(kd6, KeyID=" STR(KEY_ID_IPV6) ", FieldAction=Swap)==4");
 
     // Initialize flow stream attributes and set adapter number attribute.
     NT_FlowOpenAttrInit(&(flowAttr));
@@ -392,7 +375,7 @@ void taskReceiverMiss(const char* streamName, uint32_t streamId, NapatechReader*
     // Opens a flow programming stream and returns a stream handle (flowStream).
     status = NT_FlowOpen_Attr(&(flowStream), "open_flow_stream_example", &(flowAttr));
     handleErrorStatus(status, "Error while opening the flow stream");
-
+    reader->flowStream = &flowStream;
     std::thread receiverThread2(taskReceiverUnh, "flowmatch_example_receiver_net_rx_unhandled", STREAM_ID_UNHA, reader);
     std::thread receiverThread3(taskReceiverOld, "flowmatch_example_receiver_net_rx_total", STREAM_ID_OLD, reader);
 
@@ -415,7 +398,7 @@ void taskReceiverMiss(const char* streamName, uint32_t streamId, NapatechReader*
             return;
         }
 
-        //pkt_parser->processPacket(reader, &hNetBuffer, &streamId);
+        pkt_parser->processPacket(reader, &(reader->hNetBufferMiss), &streamId);
 
         std::cout << "New flow\n";
         // Here a package has successfully been received, and the parameters for the
@@ -474,7 +457,7 @@ void taskReceiverMiss(const char* streamName, uint32_t streamId, NapatechReader*
         status = NT_FlowWrite(flowStream, flow.get(), -1);
         handleErrorStatus(status, "NT_FlowWrite() failed");
 
-        learnedFlowList.push_back(std::move(flow));
+        reader->learnedFlowList.push_back(std::move(flow));
     }
 
     receiverThread2.join();

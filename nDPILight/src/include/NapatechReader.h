@@ -28,7 +28,7 @@ public:
     NtNetStreamRx_t hNetRxOld;
     NtNetBuf_t hNetBufferOld;
     
-    NtFlowStream_t flowStream;
+    NtFlowStream_t * flowStream;
     std::vector<std::unique_ptr<NtFlow_t>> learnedFlowList;
 private:
     int status = 0;
@@ -73,7 +73,7 @@ private:
     void checkForIdleFlows();
 
     int setFilters();
-    int setFlow();
+    //int setFlow();
     int setStream();
     int initInfos();
     int initModule();

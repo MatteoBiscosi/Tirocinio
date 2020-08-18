@@ -357,84 +357,7 @@ int NtDissector::addVal(NtNetBuf_t& hNetBuffer,
     ndpi_src = flow_to_process->ndpi_src;
     ndpi_dst = flow_to_process->ndpi_dst;
     
-    /* Adding new flow to flow_table */
-
-    if (flow.l4_protocol == IPPROTO_TCP) {
-        /*  TCP   */ 
-        this->newFlow(6, 3, hNetBuffer, reader);
-
-    } else if (flow.l4_protocol == IPPROTO_UDP) {
-        /*  UDP   */ 
-        this->newFlow(17, 4, hNetBuffer, reader);
-    }
-
     return 0;
-}
-
-int NtDissector::newFlow(int proto, int keySetId, NtNetBuf_t& hNetBuffer, Reader * reader_tmp) 
-{
-    NapatechReader *reader = (NapatechReader *) reader_tmp;
-    std::cout << "New flow\n";
-    // Here a package has successfully been received, and the parameters for the
-    // next flow to be learned will be set up.
-    auto flow = std::unique_ptr<NtFlow_t>(new NtFlow_t);
-    std::memset(flow.get(), 0x0, sizeof(NtFlow_t));
-
-    // In this example, the ID is a simple incremental value that can be used
-    // for lookup in the std::vector learnedFlowList. However, any value can be used,
-    // including the raw value of pointers.
-    flow->id              = idCounter++;  // User defined ID
-    flow->color           = 0;            // Flow color
-    flow->overwrite       = 0;            // Overwrite filter action (1: enable, 0: disable)
-    flow->streamId        = 1;            // Marks the stream id if overwrite filter action is enabled
-    flow->ipProtocolField = proto;            // IP protocol number of next header (6: TCP)
-    flow->keySetId        = keySetId;     // Key Set ID as used in the NTPL filter
-    flow->op              = 1;            // Flow programming operation (1: learn, 0: un-learn)
-    flow->gfi             = 1;            // Generate flow info record (1: generate, 0: do not generate)
-    flow->tau             = 0;            // TCP auto unlearn (1: auto unlearn enable, 0: auto unlearn disable)
-
-    // descriptor DYN1 is used, which is set up by NTPL.
-    NtDyn1Descr_t* pDyn1 = _NT_NET_GET_PKT_DESCR_PTR_DYN1(hNetBuffer);
-    uint8_t* packet = reinterpret_cast<uint8_t*>(pDyn1) + pDyn1->descrLength;
-
-    switch (pDyn1->color >> 2) {
-        case 0:  // IPv4
-                std::memcpy(flow->keyData,      packet + pDyn1->offset0,     4);  // IPv4 src
-                std::memcpy(flow->keyData + 4,  packet + pDyn1->offset0 + 4, 4);  // IPv4 dst
-                std::memcpy(flow->keyData + 8,  packet + pDyn1->offset1,     2);  // TCP port src
-                std::memcpy(flow->keyData + 10, packet + pDyn1->offset1 + 2, 2);  // TCP port dst
-                flow->keyId = KEY_ID_IPV4;  // Key ID as used in the NTPL Key Test
-                break;
-        case 1:  // IPv6
-                std::memcpy(flow->keyData,      packet + pDyn1->offset0,      16);  // IPv6 src
-                std::memcpy(flow->keyData + 16, packet + pDyn1->offset0 + 16, 16);  // IPv6 dst
-                std::memcpy(flow->keyData + 32, packet + pDyn1->offset1,      2);   // TCP port src
-                std::memcpy(flow->keyData + 34, packet + pDyn1->offset1 + 2,  2);   // TCP port dst
-                flow->keyId = KEY_ID_IPV6;  // Key ID as used in the NTPL Key Test
-                break;
-        case 2:  // Tunneled IPv4
-                std::memcpy(flow->keyData,      packet + pDyn1->offset0,     4);  // IPv4 src
-                std::memcpy(flow->keyData + 4,  packet + pDyn1->offset0 + 4, 4);  // IPv4 dst
-                std::memcpy(flow->keyData + 8,  packet + pDyn1->offset1,     2);  // TCP port src
-                std::memcpy(flow->keyData + 10, packet + pDyn1->offset1 + 2, 2);  // TCP port dst
-                flow->keyId = KEY_ID_IPV4;  // Key ID as used in the NTPL Key Test
-                break;
-        case 3:  // Tunneled IPv6
-                std::memcpy(flow->keyData,      packet + pDyn1->offset0,      16);  // IPv6 src
-                std::memcpy(flow->keyData + 16, packet + pDyn1->offset0 + 16, 16);  // IPv6 dst
-                std::memcpy(flow->keyData + 32, packet + pDyn1->offset1,      2);   // TCP port src
-                std::memcpy(flow->keyData + 34, packet + pDyn1->offset1 + 2,  2);   // TCP port dst
-                flow->keyId = KEY_ID_IPV6;  // Key ID as used in the NTPL Key Test
-                break;
-        }
-    // Program the flow into the adapter.
-    NT_FlowWrite(reader->flowStream, flow.get(), -1);
-    reader->learnedFlowList.push_back(std::move(flow));
-
-    for(auto&& flow :reader->learnedFlowList) {
-    printf("Id: %d, ipProto: %d, keySetId: %d\n", flow->id, flow->ipProtocolField, flow->keySetId);
-  }
-
 }
 
 /* ********************************** */
@@ -589,22 +512,21 @@ void NtDissector::processPacket(void * args,
 
     if(!this->captured_stats.nt_time_start)
     	this->captured_stats.nt_time_start = (uint64_t) NT_NET_GET_PKT_TIMESTAMP(* hNetBuffer);
-
+    printf("Prova 1\n");
     this->captured_stats.nt_time_end = (uint64_t) NT_NET_GET_PKT_TIMESTAMP(* hNetBuffer);
     
-    if(streamId == STREAM_ID_MISS) {
-        /*  Scan done every 15000 ms more or less   */    
+    if(streamId == STREAM_ID_MISS) {    
         pkt_parser->captured_stats.total_wire_bytes += NT_NET_GET_PKT_CAP_LENGTH(* hNetBuffer);
     }
     else
     {
         reader->newPacket((void *)hNetBuffer);
     }
-
+    printf("Prova 2\n");
     this->getDyn(* hNetBuffer, flow, reader, pDyn1, packet, hashed_index, 
                     tree_result, flow_to_process, ndpi_src, ndpi_dst, ethernet, ip, 
                     ip6, time_ms, eth_offset, ip_offset, ip_size, type, l4_ptr, l4_len);
-
+    printf("Prova 3\n");
     pkt_parser->captured_stats.packets_processed++;
     pkt_parser->captured_stats.total_l4_data_len += l4_len;
 
@@ -624,7 +546,7 @@ void NtDissector::processPacket(void * args,
         tracer->traceEvent(0, "Unknown Stream, skipping packet\n");
         break;
     }
-    
+    printf("Prova 4\n");
 
     flow_to_process->packets_processed++;
     flow_to_process->total_l4_data_len += l4_len;
@@ -644,7 +566,7 @@ void NtDissector::processPacket(void * args,
         this->captured_stats.discarded_bytes += NT_NET_GET_PKT_CAP_LENGTH(* hNetBuffer);
         return;
     }
-
+    printf("Prova 5\n");
     this->printFlowInfos(reader, flow_to_process, ip, ip6, ip_size, ndpi_src, ndpi_dst, time_ms);
 }
 
