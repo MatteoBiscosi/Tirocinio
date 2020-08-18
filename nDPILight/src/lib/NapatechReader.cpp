@@ -2,6 +2,7 @@
 #include "ndpi_light_includes.h"
 
 
+/* ********************************** */
 
 int handleErrorStatus(int status, const char* message)
 {
@@ -14,6 +15,19 @@ int handleErrorStatus(int status, const char* message)
 
   return 0;
 }
+
+/* ********************************** */
+
+void ntplCall(NtConfigStream_t& hCfgStream, const char* str)
+{
+  std::cout << str << std::endl;
+
+  NtNtplInfo_t ntplInfo;
+  int status = NT_NTPL(hCfgStream, str, &ntplInfo, NT_NTPL_PARSER_VALIDATE_NORMAL);
+  if(handleErrorStatus(status, "NT_NTPL() failed") != 0)
+    std::exit(EXIT_FAILURE);
+}
+
 
 /* ********************************** */
 
@@ -124,25 +138,6 @@ int NapatechReader::setFlow()
 
 /* ********************************** */
 
-int NapatechReader::setStream()
-{
-    this->status = NT_NetRxOpen(&(this->hNetRxMiss), "Miss packets stream", NT_NET_INTERFACE_PACKET, STREAM_ID_MISS, -1);
-    if(handleErrorStatus(this->status, "NT_NetRxOpen() failed") != 0)
-        return 1;
-
-    this->status = NT_NetRxOpen(&(this->hNetRxUnh), "Unhandled packets stream", NT_NET_INTERFACE_PACKET, STREAM_ID_UNHA, -1);
-    if(handleErrorStatus(this->status, "NT_NetRxOpen() failed") != 0)
-        return 1;
-
-    this->status = NT_NetRxOpen(&(this->hNetRxOld), "Old packets stream", NT_NET_INTERFACE_PACKET, STREAM_ID_OLD, -1);
-    if(handleErrorStatus(this->status, "NT_NetRxOpen() failed") != 0)
-        return 1;
-    
-    return 0;
-}
-
-/* ********************************** */
-
 int NapatechReader::initModule()
 {
     ndpi_init_prefs init_prefs = ndpi_no_prefs;
@@ -192,7 +187,7 @@ int NapatechReader::initInfos()
 
 int NapatechReader::initFileOrDevice()
 {
-    // Initialize napatech
+    /*// Initialize napatech
     this->status = NT_Init(NTAPI_VERSION);
     
     if(this->setFilters() != 0){
@@ -211,7 +206,7 @@ int NapatechReader::initFileOrDevice()
         tracer->traceEvent(0, "Error initializing capture stream\n");
         delete(this);
         return 1;
-    }
+    }*/
 
     if(this->initModule() != 0) {
         tracer->traceEvent(0, "Error initializing detection module\n");
@@ -289,9 +284,63 @@ void NapatechReader::checkForIdleFlows()
 
 void taskReceiverMiss(const char* streamName, uint32_t streamId, NapatechReader* reader)
 {
+    NtFlowAttr_t    flowAttr;
+    NtFlowStream_t  flowStream;
+
+    NtNetStreamRx_t hNetRx;
+    NtNetBuf_t      hNetBuffer;
+    NtConfigStream_t hCfgStream;
+
+    status = NT_Init(NTAPI_VERSION);
+
+    // Open a configuration stream to assign a filter to a stream ID.
+    status = NT_ConfigOpen(&hCfgStream, "Learn_example_config");
+
+    ntplCall(hCfgStream, "Delete = All");
+        
+
+    // Set new filters and flow tables settings
+    ntplCall(hCfgStream, "KeyType[Name=kt4] = {sw_32_32,   sw_16_16}");
+	ntplCall(hCfgStream, "KeyType[Name=kt6] = {sw_128_128, sw_16_16}");
+    ntplCall(hCfgStream, "KeyDef[Name=kd4; KeyType=kt4; IpProtocolField=Outer] = (Layer3Header[12]/32/32,  Layer4Header[0]/16/16)");
+    ntplCall(hCfgStream, "keydef[Name=kd6; KeyType=kt6; IpProtocolField=Outer] = (Layer3Header[8]/128/128, Layer4Header[0]/16/16)");
+    
+    
+	// Shorthand for the checks used in these filters.
+    ntplCall(hCfgStream, "DefineMacro(\"LearnFilterCheck\", \"Port==$1 and Layer2Protocol==EtherII and Layer3Protocol==$2\")");
+	//
+	ntplCall(hCfgStream, "Assign[StreamId=" STR(STREAM_ID_MISS) "; Descriptor=DYN1, ColorBits=FlowID, Offset0=Layer3Header[12]; ColorMask=" STR(COLOR_IPV4) "] = LearnFilterCheck(0,ipv4) and Key(kd4, KeyID=" STR(KEY_ID_IPV4) ")==MISS");
+    ntplCall(hCfgStream, "Assign[StreamId=" STR(STREAM_ID_MISS) "; Descriptor=DYN1, ColorBits=FlowID, Offset0=Layer3Header[8];  ColorMask=" STR(COLOR_IPV6) "] = LearnFilterCheck(0,ipv6) and Key(kd6, KeyID=" STR(KEY_ID_IPV6) ")==MISS");
+    ntplCall(hCfgStream, "Assign[StreamId=" STR(STREAM_ID_MISS) "; Descriptor=DYN1, ColorBits=FlowID, Offset0=Layer3Header[12]; ColorMask=" STR(COLOR_IPV4) "] = LearnFilterCheck(1,ipv4) and Key(kd4, KeyID=" STR(KEY_ID_IPV4) ", FieldAction=Swap)==MISS");
+    ntplCall(hCfgStream, "Assign[StreamId=" STR(STREAM_ID_MISS) "; Descriptor=DYN1, ColorBits=FlowID, Offset0=Layer3Header[8];  ColorMask=" STR(COLOR_IPV6) "] = LearnFilterCheck(1,ipv6) and Key(kd6, KeyID=" STR(KEY_ID_IPV6) ", FieldAction=Swap)==MISS");
+
+    ntplCall(hCfgStream, "Assign[StreamId=" STR(STREAM_ID_UNHA) "] = LearnFilterCheck(0,ipv4) and Key(kd4, KeyID=" STR(KEY_ID_IPV4) ")==UNHANDLED");
+    ntplCall(hCfgStream, "Assign[StreamId=" STR(STREAM_ID_UNHA) "] = LearnFilterCheck(0,ipv6) and Key(kd6, KeyID=" STR(KEY_ID_IPV6) ")==UNHANDLED");
+    ntplCall(hCfgStream, "Assign[StreamId=" STR(STREAM_ID_UNHA) "] = LearnFilterCheck(1,ipv4) and Key(kd4, KeyID=" STR(KEY_ID_IPV4) ", FieldAction=Swap)==UNHANDLED");
+    ntplCall(hCfgStream, "Assign[StreamId=" STR(STREAM_ID_UNHA) "] = LearnFilterCheck(1,ipv6) and Key(kd6, KeyID=" STR(KEY_ID_IPV6) ", FieldAction=Swap)==UNHANDLED");
+    ntplCall(hCfgStream, "Assign[StreamId=Drop] = LearnFilterCheck(0,ipv4) and Key(kd4, KeyID=" STR(KEY_ID_IPV4) ", CounterSet=CSA)==" STR(KEY_SET_ID));
+    ntplCall(hCfgStream, "Assign[StreamId=Drop] = LearnFilterCheck(0,ipv6) and Key(kd6, KeyID=" STR(KEY_ID_IPV6) ", CounterSet=CSA)==" STR(KEY_SET_ID));
+    ntplCall(hCfgStream, "Assign[StreamId=Drop] = LearnFilterCheck(1,ipv4) and Key(kd4, KeyID=" STR(KEY_ID_IPV4) ", CounterSet=CSB, FieldAction=Swap)==" STR(KEY_SET_ID));
+    ntplCall(hCfgStream, "Assign[StreamId=Drop] = LearnFilterCheck(1,ipv6) and Key(kd6, KeyID=" STR(KEY_ID_IPV6) ", CounterSet=CSB, FieldAction=Swap)==" STR(KEY_SET_ID));
+
+    // Initialize flow stream attributes and set adapter number attribute.
+    NT_FlowOpenAttrInit(&(flowAttr));
+    NT_FlowOpenAttrSetAdapterNo(&(flowAttr), 0);
+
+    // Opens a flow programming stream and returns a stream handle (flowStream).
+    status = NT_FlowOpen_Attr(&(flowStream), "open_flow_stream_example", &(flowAttr));
+    handleErrorStatus(status, "Error while opening the flow stream");
+
+    std::thread receiverThread2(taskReceiverUnh, "flowmatch_example_receiver_net_rx_unhandled", STREAM_ID_UNHA, this);
+    std::thread receiverThread3(taskReceiverOld, "flowmatch_example_receiver_net_rx_total", STREAM_ID_OLD, this);
+
+    status = NT_NetRxOpen(&(hNetRx), "Miss packets stream", NT_NET_INTERFACE_PACKET, STREAM_ID_MISS, -1);
+    if(handleErrorStatus(this->status, "NT_NetRxOpen() failed") != 0)
+        return 1;
+
     while(reader->error_or_eof == 0) {
         // Get package from rx stream.
-        status = NT_NetRxGetNextPacket(reader->hNetRxMiss, &(reader->hNetBufferMiss), -1);
+        status = NT_NetRxGetNextPacket(hNetRx, &(hNetBuffer), -1);
         
         if(status == NT_STATUS_TIMEOUT || status == NT_STATUS_TRYAGAIN) 
             continue;
@@ -304,7 +353,66 @@ void taskReceiverMiss(const char* streamName, uint32_t streamId, NapatechReader*
             return;
         }
 
-        pkt_parser->processPacket(reader, &reader->hNetBufferMiss, &streamId);
+        //pkt_parser->processPacket(reader, &hNetBuffer, &streamId);
+
+        std::cout << "New flow\n";
+        // Here a package has successfully been received, and the parameters for the
+        // next flow to be learned will be set up.
+        auto flow = std::unique_ptr<NtFlow_t>(new NtFlow_t);
+        std::memset(flow.get(), 0x0, sizeof(NtFlow_t));
+
+        // In this example, the ID is a simple incremental value that can be used
+        // for lookup in the std::vector learnedFlowList. However, any value can be used,
+        // including the raw value of pointers.
+        flow->id              = idCounter++;  // User defined ID
+        flow->color           = 0;            // Flow color
+        flow->overwrite       = 0;            // Overwrite filter action (1: enable, 0: disable)
+        flow->streamId        = 0;            // Marks the stream id if overwrite filter action is enabled
+        flow->ipProtocolField = 17;            // IP protocol number of next header (6: TCP)
+        flow->keySetId        = KEY_SET_ID;   // Key Set ID as used in the NTPL filter
+        flow->op              = 1;            // Flow programming operation (1: learn, 0: un-learn)
+        flow->gfi             = 1;            // Generate flow info record (1: generate, 0: do not generate)
+        flow->tau             = 0;            // TCP auto unlearn (1: auto unlearn enable, 0: auto unlearn disable)
+
+        NtDyn1Descr_t* pDyn1 = _NT_NET_GET_PKT_DESCR_PTR_DYN1(hNetBuffer);
+        uint8_t* packet = reinterpret_cast<uint8_t*>(pDyn1) + pDyn1->descrLength;
+
+        switch (pDyn1->color >> 2) {
+            case 0:  // IPv4
+                    std::memcpy(flow->keyData,      packet + pDyn1->offset0,     4);  // IPv4 src
+                    std::memcpy(flow->keyData + 4,  packet + pDyn1->offset0 + 4, 4);  // IPv4 dst
+                    std::memcpy(flow->keyData + 8,  packet + pDyn1->offset1,     2);  // TCP port src
+                    std::memcpy(flow->keyData + 10, packet + pDyn1->offset1 + 2, 2);  // TCP port dst
+                    flow->keyId = KEY_ID_IPV4;  // Key ID as used in the NTPL Key Test
+                    break;
+            case 1:  // IPv6
+                    std::memcpy(flow->keyData,      packet + pDyn1->offset0,      16);  // IPv6 src
+                    std::memcpy(flow->keyData + 16, packet + pDyn1->offset0 + 16, 16);  // IPv6 dst
+                    std::memcpy(flow->keyData + 32, packet + pDyn1->offset1,      2);   // TCP port src
+                    std::memcpy(flow->keyData + 34, packet + pDyn1->offset1 + 2,  2);   // TCP port dst
+                    flow->keyId = KEY_ID_IPV6;  // Key ID as used in the NTPL Key Test
+                    break;
+            case 2:  // Tunneled IPv4
+                    std::memcpy(flow->keyData,      packet + pDyn1->offset0,     4);  // IPv4 src
+                    std::memcpy(flow->keyData + 4,  packet + pDyn1->offset0 + 4, 4);  // IPv4 dst
+                    std::memcpy(flow->keyData + 8,  packet + pDyn1->offset1,     2);  // TCP port src
+                    std::memcpy(flow->keyData + 10, packet + pDyn1->offset1 + 2, 2);  // TCP port dst
+                    flow->keyId = KEY_ID_IPV4;  // Key ID as used in the NTPL Key Test
+                    break;
+            case 3:  // Tunneled IPv6
+                    std::memcpy(flow->keyData,      packet + pDyn1->offset0,      16);  // IPv6 src
+                    std::memcpy(flow->keyData + 16, packet + pDyn1->offset0 + 16, 16);  // IPv6 dst
+                    std::memcpy(flow->keyData + 32, packet + pDyn1->offset1,      2);   // TCP port src
+                    std::memcpy(flow->keyData + 34, packet + pDyn1->offset1 + 2,  2);   // TCP port dst
+                    flow->keyId = KEY_ID_IPV6;  // Key ID as used in the NTPL Key Test
+                    break;
+        }
+
+        // Program the flow into the adapter.
+        status = NT_FlowWrite(flowStream, flow.get(), -1);
+        handleErrorStatus(status, "NT_FlowWrite() failed");
+
+        learnedFlowList.push_back(std::move(flow));
     }
 }
 
@@ -313,6 +421,10 @@ void taskReceiverMiss(const char* streamName, uint32_t streamId, NapatechReader*
 void taskReceiverUnh(const char* streamName, uint32_t streamId, NapatechReader* reader)
 {
     int status;
+
+    status = NT_NetRxOpen(&(this->hNetRxUnh), "Unhandled packets stream", NT_NET_INTERFACE_PACKET, STREAM_ID_UNHA, -1);
+    if(handleErrorStatus(this->status, "NT_NetRxOpen() failed") != 0)
+        return 1;
 
     while(reader->error_or_eof == 0) {
         // Get package from rx stream.
@@ -339,6 +451,10 @@ void taskReceiverOld(const char* streamName, uint32_t streamId, NapatechReader* 
 {
     int status;
 
+    status = NT_NetRxOpen(&(this->hNetRxOld), "Old packets stream", NT_NET_INTERFACE_PACKET, STREAM_ID_OLD, -1);
+    if(handleErrorStatus(this->status, "NT_NetRxOpen() failed") != 0)
+        return 1;
+
     while(reader->error_or_eof == 0) {
         // Get package from rx stream.
         status = NT_NetRxGetNextPacket(reader->hNetRxOld, &(reader->hNetBufferOld), -1);
@@ -362,9 +478,8 @@ void taskReceiverOld(const char* streamName, uint32_t streamId, NapatechReader* 
 
 int NapatechReader::startRead()
 {
-    std::thread receiverThread1(taskReceiverMiss, "flowmatch_example_receiver_net_rx_miss", STREAM_ID_MISS, this);
-    std::thread receiverThread2(taskReceiverUnh, "flowmatch_example_receiver_net_rx_unhandled", STREAM_ID_UNHA, this);
-    std::thread receiverThread3(taskReceiverOld, "flowmatch_example_receiver_net_rx_total", STREAM_ID_OLD, this);
+    taskReceiverMiss("flowmatch_example_receiver_net_rx_miss", STREAM_ID_MISS, this);
+    
     
     receiverThread1.join();
     receiverThread2.join();
