@@ -282,6 +282,64 @@ void NapatechReader::checkForIdleFlows()
 
 /* ********************************** */
 
+void taskReceiverUnh(const char* streamName, uint32_t streamId, NapatechReader* reader)
+{
+    int status;
+
+    status = NT_NetRxOpen(&(reader->hNetRxUnh), "Unhandled packets stream", NT_NET_INTERFACE_PACKET, STREAM_ID_UNHA, -1);
+    if(handleErrorStatus(status, "NT_NetRxOpen() failed") != 0)
+        return 1;
+
+    while(reader->error_or_eof == 0) {
+        // Get package from rx stream.
+        status = NT_NetRxGetNextPacket(reader->hNetRxUnh, &(reader->hNetBufferUnh), -1);
+        
+        if(status == NT_STATUS_TIMEOUT || status == NT_STATUS_TRYAGAIN) 
+            continue;
+
+        if(status == NT_ERROR_NT_TERMINATING)
+	    break;
+
+        if(handleErrorStatus(status, "Error while sniffing next packet") != 0) {
+            reader->error_or_eof = 1;
+            return;
+        }
+
+        pkt_parser->processPacket(reader, &reader->hNetBufferUnh, &streamId);
+    }	
+}
+
+/* ********************************** */
+
+void taskReceiverOld(const char* streamName, uint32_t streamId, NapatechReader* reader)
+{
+    int status;
+
+    status = NT_NetRxOpen(&(reader->hNetRxOld), "Old packets stream", NT_NET_INTERFACE_PACKET, STREAM_ID_OLD, -1);
+    if(handleErrorStatus(status, "NT_NetRxOpen() failed") != 0)
+        return 1;
+
+    while(reader->error_or_eof == 0) {
+        // Get package from rx stream.
+        status = NT_NetRxGetNextPacket(reader->hNetRxOld, &(reader->hNetBufferOld), -1);
+        
+        if(status == NT_STATUS_TIMEOUT || status == NT_STATUS_TRYAGAIN) 
+            continue;
+
+        if(status == NT_ERROR_NT_TERMINATING)
+	    break;
+
+        if(handleErrorStatus(status, "Error while sniffing next packet") != 0) {
+            reader->error_or_eof = 1;
+            return;
+        }
+
+        pkt_parser->processPacket(reader, &reader->hNetBufferOld, &streamId);
+    }	
+}
+
+/* ********************************** */
+
 void taskReceiverMiss(const char* streamName, uint32_t streamId, NapatechReader* reader)
 {
     NtFlowAttr_t    flowAttr;
@@ -371,7 +429,7 @@ void taskReceiverMiss(const char* streamName, uint32_t streamId, NapatechReader*
         flow->overwrite       = 0;            // Overwrite filter action (1: enable, 0: disable)
         flow->streamId        = 0;            // Marks the stream id if overwrite filter action is enabled
         flow->ipProtocolField = 17;            // IP protocol number of next header (6: TCP)
-        flow->keySetId        = KEY_SET_ID;   // Key Set ID as used in the NTPL filter
+        flow->keySetId        = 4;   // Key Set ID as used in the NTPL filter
         flow->op              = 1;            // Flow programming operation (1: learn, 0: un-learn)
         flow->gfi             = 1;            // Generate flow info record (1: generate, 0: do not generate)
         flow->tau             = 0;            // TCP auto unlearn (1: auto unlearn enable, 0: auto unlearn disable)
@@ -419,64 +477,6 @@ void taskReceiverMiss(const char* streamName, uint32_t streamId, NapatechReader*
 
     receiverThread2.join();
     receiverThread3.join();
-}
-
-/* ********************************** */
-
-void taskReceiverUnh(const char* streamName, uint32_t streamId, NapatechReader* reader)
-{
-    int status;
-
-    status = NT_NetRxOpen(&(reader->hNetRxUnh), "Unhandled packets stream", NT_NET_INTERFACE_PACKET, STREAM_ID_UNHA, -1);
-    if(handleErrorStatus(status, "NT_NetRxOpen() failed") != 0)
-        return 1;
-
-    while(reader->error_or_eof == 0) {
-        // Get package from rx stream.
-        status = NT_NetRxGetNextPacket(reader->hNetRxUnh, &(reader->hNetBufferUnh), -1);
-        
-        if(status == NT_STATUS_TIMEOUT || status == NT_STATUS_TRYAGAIN) 
-            continue;
-
-        if(status == NT_ERROR_NT_TERMINATING)
-	    break;
-
-        if(handleErrorStatus(status, "Error while sniffing next packet") != 0) {
-            reader->error_or_eof = 1;
-            return;
-        }
-
-        pkt_parser->processPacket(reader, &reader->hNetBufferUnh, &streamId);
-    }	
-}
-
-/* ********************************** */
-
-void taskReceiverOld(const char* streamName, uint32_t streamId, NapatechReader* reader)
-{
-    int status;
-
-    status = NT_NetRxOpen(&(reader->hNetRxOld), "Old packets stream", NT_NET_INTERFACE_PACKET, STREAM_ID_OLD, -1);
-    if(handleErrorStatus(status, "NT_NetRxOpen() failed") != 0)
-        return 1;
-
-    while(reader->error_or_eof == 0) {
-        // Get package from rx stream.
-        status = NT_NetRxGetNextPacket(reader->hNetRxOld, &(reader->hNetBufferOld), -1);
-        
-        if(status == NT_STATUS_TIMEOUT || status == NT_STATUS_TRYAGAIN) 
-            continue;
-
-        if(status == NT_ERROR_NT_TERMINATING)
-	    break;
-
-        if(handleErrorStatus(status, "Error while sniffing next packet") != 0) {
-            reader->error_or_eof = 1;
-            return;
-        }
-
-        pkt_parser->processPacket(reader, &reader->hNetBufferOld, &streamId);
-    }	
 }
 
 /* ********************************** */
