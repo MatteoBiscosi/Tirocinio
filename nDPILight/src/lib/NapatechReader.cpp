@@ -291,6 +291,8 @@ void taskReceiverMiss(const char* streamName, uint32_t streamId, NapatechReader*
     NtNetBuf_t      hNetBuffer;
     NtConfigStream_t hCfgStream;
 
+    int status;
+
     status = NT_Init(NTAPI_VERSION);
 
     // Open a configuration stream to assign a filter to a stream ID.
@@ -301,7 +303,7 @@ void taskReceiverMiss(const char* streamName, uint32_t streamId, NapatechReader*
 
     // Set new filters and flow tables settings
     ntplCall(hCfgStream, "KeyType[Name=kt4] = {sw_32_32,   sw_16_16}");
-	ntplCall(hCfgStream, "KeyType[Name=kt6] = {sw_128_128, sw_16_16}");
+    ntplCall(hCfgStream, "KeyType[Name=kt6] = {sw_128_128, sw_16_16}");
     ntplCall(hCfgStream, "KeyDef[Name=kd4; KeyType=kt4; IpProtocolField=Outer] = (Layer3Header[12]/32/32,  Layer4Header[0]/16/16)");
     ntplCall(hCfgStream, "keydef[Name=kd6; KeyType=kt6; IpProtocolField=Outer] = (Layer3Header[8]/128/128, Layer4Header[0]/16/16)");
     
@@ -331,11 +333,11 @@ void taskReceiverMiss(const char* streamName, uint32_t streamId, NapatechReader*
     status = NT_FlowOpen_Attr(&(flowStream), "open_flow_stream_example", &(flowAttr));
     handleErrorStatus(status, "Error while opening the flow stream");
 
-    std::thread receiverThread2(taskReceiverUnh, "flowmatch_example_receiver_net_rx_unhandled", STREAM_ID_UNHA, this);
-    std::thread receiverThread3(taskReceiverOld, "flowmatch_example_receiver_net_rx_total", STREAM_ID_OLD, this);
+    std::thread receiverThread2(taskReceiverUnh, "flowmatch_example_receiver_net_rx_unhandled", STREAM_ID_UNHA, reader);
+    std::thread receiverThread3(taskReceiverOld, "flowmatch_example_receiver_net_rx_total", STREAM_ID_OLD, reader);
 
     status = NT_NetRxOpen(&(hNetRx), "Miss packets stream", NT_NET_INTERFACE_PACKET, STREAM_ID_MISS, -1);
-    if(handleErrorStatus(this->status, "NT_NetRxOpen() failed") != 0)
+    if(handleErrorStatus(status, "NT_NetRxOpen() failed") != 0)
         return 1;
 
     while(reader->error_or_eof == 0) {
@@ -414,6 +416,9 @@ void taskReceiverMiss(const char* streamName, uint32_t streamId, NapatechReader*
 
         learnedFlowList.push_back(std::move(flow));
     }
+
+    receiverThread2.join();
+    receiverThread3.join();
 }
 
 /* ********************************** */
@@ -422,8 +427,8 @@ void taskReceiverUnh(const char* streamName, uint32_t streamId, NapatechReader* 
 {
     int status;
 
-    status = NT_NetRxOpen(&(this->hNetRxUnh), "Unhandled packets stream", NT_NET_INTERFACE_PACKET, STREAM_ID_UNHA, -1);
-    if(handleErrorStatus(this->status, "NT_NetRxOpen() failed") != 0)
+    status = NT_NetRxOpen(&(reader->hNetRxUnh), "Unhandled packets stream", NT_NET_INTERFACE_PACKET, STREAM_ID_UNHA, -1);
+    if(handleErrorStatus(status, "NT_NetRxOpen() failed") != 0)
         return 1;
 
     while(reader->error_or_eof == 0) {
@@ -451,8 +456,8 @@ void taskReceiverOld(const char* streamName, uint32_t streamId, NapatechReader* 
 {
     int status;
 
-    status = NT_NetRxOpen(&(this->hNetRxOld), "Old packets stream", NT_NET_INTERFACE_PACKET, STREAM_ID_OLD, -1);
-    if(handleErrorStatus(this->status, "NT_NetRxOpen() failed") != 0)
+    status = NT_NetRxOpen(&(reader->hNetRxOld), "Old packets stream", NT_NET_INTERFACE_PACKET, STREAM_ID_OLD, -1);
+    if(handleErrorStatus(status, "NT_NetRxOpen() failed") != 0)
         return 1;
 
     while(reader->error_or_eof == 0) {
@@ -479,11 +484,6 @@ void taskReceiverOld(const char* streamName, uint32_t streamId, NapatechReader* 
 int NapatechReader::startRead()
 {
     taskReceiverMiss("flowmatch_example_receiver_net_rx_miss", STREAM_ID_MISS, this);
-    
-    
-    receiverThread1.join();
-    receiverThread2.join();
-    receiverThread3.join();
 }
 
 /* ********************************** */
