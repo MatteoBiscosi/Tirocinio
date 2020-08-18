@@ -125,7 +125,9 @@ class NtDissector : public PacketDissector{
                             size_t & hashed_index,
                             FlowInfo * & flow_to_process,
                             struct ndpi_id_struct * & ndpi_src,
-                            struct ndpi_id_struct * & ndpi_dst);
+                            struct ndpi_id_struct * & ndpi_dst,
+			    void * & tree_result,
+                            struct ndpi_ipv6hdr * & ip6);
         int newFlow(int proto, int keySetId, NtNetBuf_t& hNetBuffer, Reader * reader); 
 };
 

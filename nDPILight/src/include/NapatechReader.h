@@ -67,6 +67,13 @@ public:
     void newPacket(void * header) override;
     int newFlow(FlowInfo * & flow_to_process) override;
     
+    /*      Getters and setters       */
+    void incrTotalIdleFlows();
+    void incrCurIdleFlows();
+    uint64_t getLastTime();
+    void **getNdpiFlowsIdle();    
+    unsigned long long int getCurIdleFlows();
+    unsigned long long int getTotalIdleFlows();
 private:
     int ntplCall(const char* str);
 

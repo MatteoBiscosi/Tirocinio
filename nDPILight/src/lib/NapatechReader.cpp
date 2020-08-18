@@ -20,12 +20,38 @@ int handleErrorStatus(int status, const char* message)
 
 void ntplCall(NtConfigStream_t& hCfgStream, const char* str)
 {
-  std::cout << str << std::endl;
-
   NtNtplInfo_t ntplInfo;
   int status = NT_NTPL(hCfgStream, str, &ntplInfo, NT_NTPL_PARSER_VALIDATE_NORMAL);
   if(handleErrorStatus(status, "NT_NTPL() failed") != 0)
     std::exit(EXIT_FAILURE);
+}
+
+/* ********************************** */
+
+void nt_idle_scan_walker(void const * const A, ndpi_VISIT which, int depth, void * const user_data)
+{   
+    NapatechReader * const workflow = (NapatechReader *)user_data;
+    FlowInfo * const flow = *(FlowInfo **)A;
+
+    (void)depth;
+
+    if (workflow == nullptr || flow == nullptr) {
+        return;
+    }
+
+    if (which == ndpi_preorder || which == ndpi_leaf) {
+        if ((flow->flow_fin_ack_seen == 1 && flow->flow_ack_seen == 1) ||
+            flow->last_seen + MAX_IDLE_TIME < workflow->getLastTime())
+            /*  New flow that need to be added to idle flows    */
+        {
+            char src_addr_str[INET6_ADDRSTRLEN+1];
+            char dst_addr_str[INET6_ADDRSTRLEN+1];
+            flow->ipTupleToString(src_addr_str, sizeof(src_addr_str), dst_addr_str, sizeof(dst_addr_str));
+            workflow->incrCurIdleFlows();
+            workflow->getNdpiFlowsIdle()[workflow->getCurIdleFlows()] = flow;
+            workflow->incrTotalIdleFlows();
+        }
+    }
 }
 
 
@@ -112,9 +138,9 @@ int NapatechReader::initFileOrDevice()
 
 void NapatechReader::newPacket(void * header) {    
     NtNetBuf_t * hNetBuffer = (NtNetBuf_t *) header;   
-
-printf("Prova new\n"); 
+ 
     this->last_time = (uint64_t) NT_NET_GET_PKT_TIMESTAMP(* hNetBuffer);
+
     /*  Scan done every 15000 ms more or less   */    
     pkt_parser->captured_stats.total_wire_bytes += NT_NET_GET_PKT_CAP_LENGTH(* hNetBuffer);
     this->checkForIdleFlows();
@@ -124,48 +150,47 @@ printf("Prova new\n");
 
 void NapatechReader::checkForIdleFlows()
 {
-printf("Prova idle\n");
-    /*  Check if at least IDLE_SCAN_PERIOD passed since last scan   */
-    if (this->last_idle_scan_time + IDLE_SCAN_PERIOD * 10000 < this->last_time || 
-        pkt_parser->captured_stats.packets_captured - this->last_packets_scan > PACKET_SCAN_PERIOD) {
-        for (this->idle_scan_index; this->idle_scan_index < this->max_idle_scan_index; ++this->idle_scan_index) {
-            if(this->ndpi_flows_active[this->idle_scan_index] == nullptr)
-                continue;
-            ndpi_twalk(this->ndpi_flows_active[this->idle_scan_index], ndpi_idle_scan_walker, this);
+	/*  Check if at least IDLE_SCAN_PERIOD passed since last scan   */
+	if (this->last_idle_scan_time + IDLE_SCAN_PERIOD * 10000 < this->last_time || 
+			pkt_parser->captured_stats.packets_captured - this->last_packets_scan > PACKET_SCAN_PERIOD) {
+		for (this->idle_scan_index; this->idle_scan_index < this->max_idle_scan_index; ++this->idle_scan_index) {
+			if(this->ndpi_flows_active[this->idle_scan_index] == nullptr)
+				continue;
 
-            /*  Removes all idle flows that were copied into ndpi_flows_idle from the ndpi_twalk    */
-            while (this->cur_idle_flows > 0) {
-                /*  Get the flow    */
-                FlowInfo * const tmp_f =
-                        (FlowInfo *)this->ndpi_flows_idle[--this->cur_idle_flows];
+			ndpi_twalk(this->ndpi_flows_active[this->idle_scan_index], nt_idle_scan_walker, this);
 
-                if(tmp_f == nullptr)
-                    continue;
+			/*  Removes all idle flows that were copied into ndpi_flows_idle from the ndpi_twalk    */
+			while (this->cur_idle_flows > 0) {
+				/*  Get the flow    */
+				FlowInfo * const tmp_f =
+					(FlowInfo *)this->ndpi_flows_idle[--this->cur_idle_flows];
 
-                if (tmp_f->flow_fin_ack_seen == 1) {
-                    tracer->traceEvent(4, "[%4u] Freeing flow due to fin\n", tmp_f->flow_id);
-                } else {
-                    tracer->traceEvent(4, "[%4u] Freeing idle flow\n", tmp_f->flow_id);
-                }
+				if(tmp_f == nullptr)
+					continue;
 
-                /*  Removes it from the active flows    */
-                ndpi_tdelete(tmp_f, &this->ndpi_flows_active[this->idle_scan_index],
-                             ndpi_workflow_node_cmp);
+				if (tmp_f->flow_fin_ack_seen == 1) {
+					tracer->traceEvent(4, "[%4u] Freeing flow due to fin\n", tmp_f->flow_id);
+				} else {
+					tracer->traceEvent(4, "[%4u] Freeing idle flow\n", tmp_f->flow_id);
+				}
 
-                if(tmp_f != nullptr)
-                    flowFreer(tmp_f);
+				/*  Removes it from the active flows    */
+				ndpi_tdelete(tmp_f, &this->ndpi_flows_active[this->idle_scan_index],
+						ndpi_workflow_node_cmp);
 
-                this->cur_active_flows--;
-            }
-        }
+				if(tmp_f != nullptr)
+					flowFreer(tmp_f);
 
-        this->last_idle_scan_time = this->last_time;
-        this->last_packets_scan = pkt_parser->captured_stats.packets_captured;
+				this->cur_active_flows--;
+			}
+		}
 
-        /* Updating next max_idle_scan_index */
-        this->max_idle_scan_index = ((this->idle_scan_index + this->max_idle_scan_index) % this->max_active_flows) + 1;
-    }
-printf("Prova fine idle\n");
+		this->last_idle_scan_time = this->last_time;
+		this->last_packets_scan = pkt_parser->captured_stats.packets_captured;
+
+		/* Updating next max_idle_scan_index */
+		this->max_idle_scan_index = ((this->idle_scan_index + this->max_idle_scan_index) % this->max_active_flows) + 1;
+	}
 }
 
 /* ********************************** */
@@ -301,32 +326,31 @@ void taskReceiverMiss(const char* streamName, uint32_t streamId, NapatechReader*
 
         pkt_parser->processPacket(reader, &(reader->hNetBufferMiss), &streamId);
 
-        std::cout << "New flow\n";
+	NtDyn1Descr_t* pDyn1 = _NT_NET_GET_PKT_DESCR_PTR_DYN1(reader->hNetBufferMiss);
+        uint8_t* packet = reinterpret_cast<uint8_t*>(pDyn1) + pDyn1->descrLength;
+        if(pDyn1->ipProtocol == 6 || pDyn1->ipProtocol == 17) {
         // Here a package has successfully been received, and the parameters for the
         // next flow to be learned will be set up.
         auto flow = std::unique_ptr<NtFlow_t>(new NtFlow_t);
         std::memset(flow.get(), 0x0, sizeof(NtFlow_t));
         
-        flow->id              = idCounter++;  // User defined ID
-        flow->color           = 0;            // Flow color
-        flow->overwrite       = 0;            // Overwrite filter action (1: enable, 0: disable)
-        flow->streamId        = 0;            // Marks the stream id if overwrite filter action is enabled
-        flow->ipProtocolField = 17;            // IP protocol number of next header (6: TCP)
-        flow->keySetId        = 4;   // Key Set ID as used in the NTPL filter
-        flow->op              = 1;            // Flow programming operation (1: learn, 0: un-learn)
-        flow->gfi             = 1;            // Generate flow info record (1: generate, 0: do not generate)
-        flow->tau             = 0;            // TCP auto unlearn (1: auto unlearn enable, 0: auto unlearn disable)
-
-        NtDyn1Descr_t* pDyn1 = _NT_NET_GET_PKT_DESCR_PTR_DYN1(reader->hNetBufferMiss);
-        uint8_t* packet = reinterpret_cast<uint8_t*>(pDyn1) + pDyn1->descrLength;
+        flow->id              = idCounter++;  		// User defined ID
+        flow->color           = 0;            		// Flow color
+        flow->overwrite       = 0;            		// Overwrite filter action (1: enable, 0: disable)
+        flow->streamId        = 0;            		// Marks the stream id if overwrite filter action is enabled
+	flow->ipProtocolField = pDyn1->ipProtocol;      // IP protocol number of next header (6: TCP, 17: UDP)
+        flow->keySetId        = 4;   	      		// Key Set ID as used in the NTPL filter
+        flow->op              = 1;            		// Flow programming operation (1: learn, 0: un-learn)
+        flow->gfi             = 1;            		// Generate flow info record (1: generate, 0: do not generate)
+        flow->tau             = 0;            		// TCP auto unlearn (1: auto unlearn enable, 0: auto unlearn disable)
 
         switch (pDyn1->color >> 2) {
-            case 0:  // IPv4
+            case 0:  // IPv4 
                     std::memcpy(flow->keyData,      packet + pDyn1->offset0,     4);  // IPv4 src
                     std::memcpy(flow->keyData + 4,  packet + pDyn1->offset0 + 4, 4);  // IPv4 dst
                     std::memcpy(flow->keyData + 8,  packet + pDyn1->offset1,     2);  // TCP port src
-                    std::memcpy(flow->keyData + 10, packet + pDyn1->offset1 + 2, 2);  // TCP port dst
-                    flow->keyId = KEY_ID_IPV4;  // Key ID as used in the NTPL Key Test
+                    std::memcpy(flow->keyData + 10, packet + pDyn1->offset1 + 2, 2);  // TCP1 port dst
+                    flow->keyId = KEY_ID_IPV4;  // Key ID as used in the NTPL Key Test	    
                     break;
             case 1:  // IPv6
                     std::memcpy(flow->keyData,      packet + pDyn1->offset0,      16);  // IPv6 src
@@ -356,6 +380,7 @@ void taskReceiverMiss(const char* streamName, uint32_t streamId, NapatechReader*
         handleErrorStatus(status, "NT_FlowWrite() failed");
 
         reader->learnedFlowList.push_back(std::move(flow));
+	}
     }
 
     receiverThread2.join();
@@ -481,6 +506,35 @@ int NapatechReader::newFlow(FlowInfo * & flow_to_process) {
     this->total_active_flows++;
 
     return 0;
+}
+
+/* ********************************** */
+
+/* ********************************** */
+/*  GETTERS AND SETTERS */
+void NapatechReader::incrTotalIdleFlows()
+{
+    this->total_idle_flows++;
+}
+
+void NapatechReader::incrCurIdleFlows()
+{
+    this->cur_idle_flows++;
+}
+
+uint64_t NapatechReader::getLastTime()
+{
+    return this->last_time;
+}
+
+void **NapatechReader::getNdpiFlowsIdle()
+{
+    return this->ndpi_flows_idle;
+}
+
+unsigned long long int NapatechReader::getCurIdleFlows()
+{
+    return this->cur_idle_flows;
 }
 
 /* ********************************** */

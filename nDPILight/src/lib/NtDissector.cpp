@@ -319,7 +319,7 @@ int NtDissector::addVal(NtNetBuf_t& hNetBuffer,
     
 
     memcpy(flow_to_process, &flow, sizeof(*flow_to_process));
-    flow_to_process->flow_id = flow_id++;
+   // flow_to_process->flow_id = flow_id++;
 
     flow_to_process->ndpi_flow = (struct ndpi_flow_struct *)ndpi_flow_malloc(SIZEOF_FLOW_STRUCT);
     if (flow_to_process->ndpi_flow == nullptr) {
@@ -429,11 +429,15 @@ int NtDissector::createNewFlow(NtNetBuf_t& hNetBuffer,
                                 size_t & hashed_index,
                                 FlowInfo * & flow_to_process,
                                 struct ndpi_id_struct * & ndpi_src,
-                                struct ndpi_id_struct * & ndpi_dst) 
+                                struct ndpi_id_struct * & ndpi_dst,
+				void * & tree_result,
+                                struct ndpi_ipv6hdr * & ip6) 
 {
-    if(this->addVal(hNetBuffer, reader, flow, flow_to_process, hashed_index, ndpi_src, ndpi_dst) != 0) {
-        this->captured_stats.discarded_bytes += NT_NET_GET_PKT_CAP_LENGTH(hNetBuffer);
-        return -1;
+    if(this->searchVal(reader, flow, tree_result, ip6, hashed_index) != 0) {
+        if(this->addVal(hNetBuffer, reader, flow, flow_to_process, hashed_index, ndpi_src, ndpi_dst) != 0) {
+            this->captured_stats.discarded_bytes += NT_NET_GET_PKT_CAP_LENGTH(hNetBuffer);
+            return -1;
+    	}
     }
  
     return 0;
@@ -476,7 +480,8 @@ void NtDissector::processPacket(void * args,
     FlowInfo flow = FlowInfo();
     Reader * reader = (Reader *) args;
     uint32_t streamId = *((uint32_t *) stream_id_tmp); 
-    if(streamId == STREAM_ID_UNHA) {
+ 
+   if(streamId == STREAM_ID_UNHA) {
         this->captured_stats.packets_captured++;
         this->captured_stats.unhandled_packets++;
         return;
@@ -511,7 +516,7 @@ void NtDissector::processPacket(void * args,
 
     if(!this->captured_stats.nt_time_start)
     	this->captured_stats.nt_time_start = (uint64_t) NT_NET_GET_PKT_TIMESTAMP(* hNetBuffer);
-    printf("Prova 1\n");
+    
     this->captured_stats.nt_time_end = (uint64_t) NT_NET_GET_PKT_TIMESTAMP(* hNetBuffer);
     
     if(streamId == STREAM_ID_MISS) {    
@@ -521,18 +526,18 @@ void NtDissector::processPacket(void * args,
     {
         reader->newPacket((void *)hNetBuffer);
     }
-    printf("Prova 2\n");
+    
     this->getDyn(* hNetBuffer, flow, reader, pDyn1, packet, hashed_index, 
                     tree_result, flow_to_process, ndpi_src, ndpi_dst, ethernet, ip, 
                     ip6, time_ms, eth_offset, ip_offset, ip_size, type, l4_ptr, l4_len);
-    printf("Prova 3\n");
+    
     pkt_parser->captured_stats.packets_processed++;
     pkt_parser->captured_stats.total_l4_data_len += l4_len;
 
     switch (streamId)
     {
     case STREAM_ID_MISS:
-        if(this->createNewFlow(* hNetBuffer, flow, reader, hashed_index, flow_to_process, ndpi_src, ndpi_dst) != 0)
+        if(this->createNewFlow(* hNetBuffer, flow, reader, hashed_index, flow_to_process, ndpi_src, ndpi_dst, tree_result, ip6) != 0)
             return;
         else
             this->captured_stats.total_flows_captured++;
@@ -545,8 +550,7 @@ void NtDissector::processPacket(void * args,
         tracer->traceEvent(0, "Unknown Stream, skipping packet\n");
         break;
     }
-    printf("Prova 4\n");
-
+    
     flow_to_process->packets_processed++;
     flow_to_process->total_l4_data_len += l4_len;
     /* update timestamps, important for timeout handling */
@@ -565,7 +569,7 @@ void NtDissector::processPacket(void * args,
         this->captured_stats.discarded_bytes += NT_NET_GET_PKT_CAP_LENGTH(* hNetBuffer);
         return;
     }
-    printf("Prova 5\n");
+    
     this->printFlowInfos(reader, flow_to_process, ip, ip6, ip_size, ndpi_src, ndpi_dst, time_ms);
 }
 
