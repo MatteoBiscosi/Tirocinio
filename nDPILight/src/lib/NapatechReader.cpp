@@ -311,11 +311,41 @@ void taskReceiverMiss(const char* streamName, uint32_t streamId, NapatechReader*
     status = NT_Init(NTAPI_VERSION);
 
     // Open a configuration stream to assign a filter to a stream ID.
-    //status = NT_ConfigOpen(&hCfgStream, "Learn_example_config");
+    status = NT_ConfigOpen(&hCfgStream, "Learn_example_config");
 
     //ntplCall(hCfgStream, "Delete = All");
+    ntplCall(hCfgStream, "Delete = All");
         
 
+    // Set new filters and flow tables settings
+    ntplCall(hCfgStream, "KeyType[Name=kt4] = {sw_32_32,   sw_16_16}");
+	ntplCall(hCfgStream, "KeyType[Name=kt6] = {sw_128_128, sw_16_16}");
+ntplCall(hCfgStream, "KeyDef[Name=kd4; KeyType=kt4; IpProtocolField=Outer] = (Layer3Header[12]/32/32,  Layer4Header[0]/16/16)");
+ntplCall(hCfgStream, "keydef[Name=kd6; KeyType=kt6; IpProtocolField=Outer] = (Layer3Header[8]/128/128, Layer4Header[0]/16/16)");
+   
+    
+	// Shorthand for the checks used in these filters.
+	   ntplCall(hCfgStream, DefineMacro(\"LearnFilterCheck\", \"Layer2Protocol==EtherII and Layer3Protocol==$1\")");
+	//
+	ntplCall(hCfgStream, "Assign[StreamId=" STR(STREAM_ID_MISS) "; Descriptor=DYN1, ColorBits=FlowID, Offset0=Layer3Header[12]; ColorMask=" STR(COLOR_IPV4) "] = LearnFilterCheck(ipv4) and Key(kd4, KeyID=" STR(KEY_ID_IPV4) ")==MISS");
+ntplCall(hCfgStream, "Assign[StreamId=" STR(STREAM_ID_MISS) "; Descriptor=DYN1, ColorBits=FlowID, Offset0=Layer3Header[8];  ColorMask=" STR(COLOR_IPV6) "] = LearnFilterCheck(ipv6) and Key(kd6, KeyID=" STR(KEY_ID_IPV6) ")==MISS");
+ntplCall(hCfgStream, "Assign[StreamId=" STR(STREAM_ID_MISS) "; Descriptor=DYN1, ColorBits=FlowID, Offset0=Layer3Header[12]; ColorMask=" STR(COLOR_IPV4) "] = LearnFilterCheck(ipv4) and Key(kd4, KeyID=" STR(KEY_ID_IPV4) ", FieldAction=Swap)==MISS");
+ntplCall(hCfgStream, "Assign[StreamId=" STR(STREAM_ID_MISS) "; Descriptor=DYN1, ColorBits=FlowID, Offset0=Layer3Header[8];  ColorMask=" STR(COLOR_IPV6) "] = LearnFilterCheck(ipv6) and Key(kd6, KeyID=" STR(KEY_ID_IPV6) ", FieldAction=Swap)==MISS");
+
+ntplCall(hCfgStream, "Assign[StreamId=" STR(STREAM_ID_UNHA) "] = LearnFilterCheck(ipv4) and Key(kd4, KeyID=" STR(KEY_ID_IPV4) ")==UNHANDLED");
+ntplCall(hCfgStream, "Assign[StreamId=" STR(STREAM_ID_UNHA) "] = LearnFilterCheck(ipv6) and Key(kd6, KeyID=" STR(KEY_ID_IPV6) ")==UNHANDLED");
+ntplCall(hCfgStream, "Assign[StreamId=" STR(STREAM_ID_UNHA) "] = LearnFilterCheck(ipv4) and Key(kd4, KeyID=" STR(KEY_ID_IPV4) ", FieldAction=Swap)==UNHANDLED");
+ntplCall(hCfgStream, "Assign[StreamId=" STR(STREAM_ID_UNHA) "] = LearnFilterCheck(ipv6) and Key(kd6, KeyID=" STR(KEY_ID_IPV6) ", FieldAction=Swap)==UNHANDLED");
+ntplCall(hCfgStream, "Assign[StreamId=" STR(STREAM_ID_OLD) "; Descriptor=DYN1, Offset0=Layer3Header[12]] = LearnFilterCheck(ipv4) and Key(kd4, KeyID=" STR(KEY_ID_IPV4) ")==3");
+ntplCall(hCfgStream, "Assign[StreamId=" STR(STREAM_ID_OLD) "; Descriptor=DYN1, Offset0=Layer3Header[8]] = LearnFilterCheck(ipv6) and Key(kd6, KeyID=" STR(KEY_ID_IPV6) ")==3");
+ntplCall(hCfgStream, "Assign[StreamId=" STR(STREAM_ID_OLD) "; Descriptor=DYN1, Offset0=Layer3Header[12]] = LearnFilterCheck(ipv4) and Key(kd4, KeyID=" STR(KEY_ID_IPV4) ", FieldAction=Swap)==3");
+ntplCall(hCfgStream, "Assign[StreamId=" STR(STREAM_ID_OLD) "; Descriptor=DYN1, Offset0=Layer3Header[8]] = LearnFilterCheck(ipv6) and Key(kd6, KeyID=" STR(KEY_ID_IPV6) ", FieldAction=Swap)==3");
+ntplCall(hCfgStream, "Assign[StreamId=" STR(STREAM_ID_OLD) "; Descriptor=DYN1, Offset0=Layer3Header[12]] = LearnFilterCheck(ipv4) and Key(kd4, KeyID=" STR(KEY_ID_IPV4) ")==4");
+ntplCall(hCfgStream, "Assign[StreamId=" STR(STREAM_ID_OLD) "; Descriptor=DYN1, Offset0=Layer3Header[8]] = LearnFilterCheck(ipv6) and Key(kd6, KeyID=" STR(KEY_ID_IPV6) ")==4");
+ntplCall(hCfgStream, "Assign[StreamId=" STR(STREAM_ID_OLD) "; Descriptor=DYN1, Offset0=Layer3Header[12]] = LearnFilterCheck(ipv4) and Key(kd4, KeyID=" STR(KEY_ID_IPV4) ", FieldAction=Swap)==4");
+ntplCall(hCfgStream, "Assign[StreamId=" STR(STREAM_ID_OLD) "; Descriptor=DYN1, Offset0=Layer3Header[8]] = LearnFilterCheck(ipv6) and Key(kd6, KeyID=" STR(KEY_ID_IPV6) ", FieldAction=Swap)==4");
+    
+/*
    // Open a configuration stream to assign a filter to a stream ID.
     this->status = NT_ConfigOpen(&(this->hCfgStream), "Filter_config");
     if(handleErrorStatus(status, "NT_ConfigOpen() failed") != 0)
@@ -375,7 +405,7 @@ void taskReceiverMiss(const char* streamName, uint32_t streamId, NapatechReader*
     if(this->ntplCall("Assign[StreamId=" STR(STREAM_ID_OLD) "; Descriptor=DYN1, Offset0=Layer3Header[12]] = LearnFilterCheck(ipv4) and Key(kd4, KeyID=" STR(KEY_ID_IPV4) ", FieldAction=Swap)==4") != 0)
         return ;
     if(this->ntplCall("Assign[StreamId=" STR(STREAM_ID_OLD) "; Descriptor=DYN1, Offset0=Layer3Header[8]] = LearnFilterCheck(ipv6) and Key(kd6, KeyID=" STR(KEY_ID_IPV6) ", FieldAction=Swap)==4") != 0)
-        return ;
+        return ;*/
     // Initialize flow stream attributes and set adapter number attribute.
     NT_FlowOpenAttrInit(&(flowAttr));
     NT_FlowOpenAttrSetAdapterNo(&(flowAttr), 0);
@@ -414,7 +444,7 @@ void taskReceiverMiss(const char* streamName, uint32_t streamId, NapatechReader*
         flow->streamId        = 0;            // Marks the stream id if overwrite filter action is enabled
         flow->ipProtocolField = 17;            // IP protocol number of next header (6: TCP)
 //flow->keyId = 1;        
-        flow->keySetId        = KEY_SET_ID;   // Key Set ID as used in the NTPL filter
+        flow->keySetId        = 4;   // Key Set ID as used in the NTPL filter
         flow->op              = 1;            // Flow programming operation (1: learn, 0: un-learn)
         flow->gfi             = 1;            // Generate flow info record (1: generate, 0: do not generate)
         flow->tau             = 0;            // TCP auto unlearn (1: auto unlearn enable, 0: auto unlearn disable)
@@ -489,7 +519,7 @@ void taskReceiverMiss(const char* streamName, uint32_t streamId, NapatechReader*
         handleErrorStatus(status, "NT_FlowWrite() failed");
 
         learnedFlowList.push_back(std::move(flow));
-    int status;
+    }
 }
 /*
     while(reader->error_or_eof == 0) {
