@@ -288,7 +288,7 @@ void taskReceiverUnh(const char* streamName, uint32_t streamId, NapatechReader* 
 
     status = NT_NetRxOpen(&(reader->hNetRxUnh), "Unhandled packets stream", NT_NET_INTERFACE_PACKET, STREAM_ID_UNHA, -1);
     if(handleErrorStatus(status, "NT_NetRxOpen() failed") != 0)
-        return 1;
+        return;
 
     while(reader->error_or_eof == 0) {
         // Get package from rx stream.
@@ -317,7 +317,7 @@ void taskReceiverOld(const char* streamName, uint32_t streamId, NapatechReader* 
 
     status = NT_NetRxOpen(&(reader->hNetRxOld), "Old packets stream", NT_NET_INTERFACE_PACKET, STREAM_ID_OLD, -1);
     if(handleErrorStatus(status, "NT_NetRxOpen() failed") != 0)
-        return 1;
+        return;
 
     while(reader->error_or_eof == 0) {
         // Get package from rx stream.
@@ -345,11 +345,13 @@ void taskReceiverMiss(const char* streamName, uint32_t streamId, NapatechReader*
     NtFlowAttr_t    flowAttr;
     NtFlowStream_t  flowStream;
 
-    NtNetStreamRx_t hNetRx;
-    NtNetBuf_t      hNetBuffer;
+//    NtNetStreamRx_t hNetRx;
+//    NtNetBuf_t      hNetBuffer;
     NtConfigStream_t hCfgStream;
 
     int status;
+    unsigned long long int idCounter = 0;
+    std::vector<std::unique_ptr<NtFlow_t>> learnedFlowList;
 
     status = NT_Init(NTAPI_VERSION);
 
@@ -378,10 +380,10 @@ void taskReceiverMiss(const char* streamName, uint32_t streamId, NapatechReader*
     ntplCall(hCfgStream, "Assign[StreamId=" STR(STREAM_ID_UNHA) "] = LearnFilterCheck(0,ipv6) and Key(kd6, KeyID=" STR(KEY_ID_IPV6) ")==UNHANDLED");
     ntplCall(hCfgStream, "Assign[StreamId=" STR(STREAM_ID_UNHA) "] = LearnFilterCheck(1,ipv4) and Key(kd4, KeyID=" STR(KEY_ID_IPV4) ", FieldAction=Swap)==UNHANDLED");
     ntplCall(hCfgStream, "Assign[StreamId=" STR(STREAM_ID_UNHA) "] = LearnFilterCheck(1,ipv6) and Key(kd6, KeyID=" STR(KEY_ID_IPV6) ", FieldAction=Swap)==UNHANDLED");
-    ntplCall(hCfgStream, "Assign[StreamId=Drop] = LearnFilterCheck(0,ipv4) and Key(kd4, KeyID=" STR(KEY_ID_IPV4) ", CounterSet=CSA)==" STR(KEY_SET_ID));
-    ntplCall(hCfgStream, "Assign[StreamId=Drop] = LearnFilterCheck(0,ipv6) and Key(kd6, KeyID=" STR(KEY_ID_IPV6) ", CounterSet=CSA)==" STR(KEY_SET_ID));
-    ntplCall(hCfgStream, "Assign[StreamId=Drop] = LearnFilterCheck(1,ipv4) and Key(kd4, KeyID=" STR(KEY_ID_IPV4) ", CounterSet=CSB, FieldAction=Swap)==" STR(KEY_SET_ID));
-    ntplCall(hCfgStream, "Assign[StreamId=Drop] = LearnFilterCheck(1,ipv6) and Key(kd6, KeyID=" STR(KEY_ID_IPV6) ", CounterSet=CSB, FieldAction=Swap)==" STR(KEY_SET_ID));
+    ntplCall(hCfgStream, "Assign[StreamId=3] = LearnFilterCheck(0,ipv4) and Key(kd4, KeyID=" STR(KEY_ID_IPV4) ")==4");
+    ntplCall(hCfgStream, "Assign[StreamId=3] = LearnFilterCheck(0,ipv6) and Key(kd6, KeyID=" STR(KEY_ID_IPV6) ")==4");
+    ntplCall(hCfgStream, "Assign[StreamId=3] = LearnFilterCheck(1,ipv4) and Key(kd4, KeyID=" STR(KEY_ID_IPV4) ", FieldAction=Swap)==4");
+    ntplCall(hCfgStream, "Assign[StreamId=3] = LearnFilterCheck(1,ipv6) and Key(kd6, KeyID=" STR(KEY_ID_IPV6) ", FieldAction=Swap)==4");
 
     // Initialize flow stream attributes and set adapter number attribute.
     NT_FlowOpenAttrInit(&(flowAttr));
@@ -394,13 +396,13 @@ void taskReceiverMiss(const char* streamName, uint32_t streamId, NapatechReader*
     std::thread receiverThread2(taskReceiverUnh, "flowmatch_example_receiver_net_rx_unhandled", STREAM_ID_UNHA, reader);
     std::thread receiverThread3(taskReceiverOld, "flowmatch_example_receiver_net_rx_total", STREAM_ID_OLD, reader);
 
-    status = NT_NetRxOpen(&(hNetRx), "Miss packets stream", NT_NET_INTERFACE_PACKET, STREAM_ID_MISS, -1);
+    status = NT_NetRxOpen(&(reader->hNetRxMiss), "Miss packets stream", NT_NET_INTERFACE_PACKET, STREAM_ID_MISS, -1);
     if(handleErrorStatus(status, "NT_NetRxOpen() failed") != 0)
-        return 1;
+        return;
 
     while(reader->error_or_eof == 0) {
         // Get package from rx stream.
-        status = NT_NetRxGetNextPacket(hNetRx, &(hNetBuffer), -1);
+        status = NT_NetRxGetNextPacket(reader->hNetRxMiss, &(reader->hNetBufferMiss), -1);
         
         if(status == NT_STATUS_TIMEOUT || status == NT_STATUS_TRYAGAIN) 
             continue;
@@ -434,7 +436,7 @@ void taskReceiverMiss(const char* streamName, uint32_t streamId, NapatechReader*
         flow->gfi             = 1;            // Generate flow info record (1: generate, 0: do not generate)
         flow->tau             = 0;            // TCP auto unlearn (1: auto unlearn enable, 0: auto unlearn disable)
 
-        NtDyn1Descr_t* pDyn1 = _NT_NET_GET_PKT_DESCR_PTR_DYN1(hNetBuffer);
+        NtDyn1Descr_t* pDyn1 = _NT_NET_GET_PKT_DESCR_PTR_DYN1(reader->hNetBufferMiss);
         uint8_t* packet = reinterpret_cast<uint8_t*>(pDyn1) + pDyn1->descrLength;
 
         switch (pDyn1->color >> 2) {
