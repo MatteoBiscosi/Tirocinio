@@ -6,14 +6,12 @@
 
 
 class NtDissector : public PacketDissector{
-    private:
-	    unsigned long long int idCounter = 0;
     public:
 	    void processPacket(void *, void *, void *);    
 	
     private:
         int DumpL4(FlowInfo& flow,
-                    Reader * & reader,
+                    NapatechReader * & reader,
                     NtDyn1Descr_t* & pDyn1,
                     uint8_t* & packet,
                     size_t & hashed_index,
@@ -32,7 +30,7 @@ class NtDissector : public PacketDissector{
                     const uint8_t * & l4_ptr,
                     uint16_t & l4_len);
         int DumpIPv4(FlowInfo& flow,
-                        Reader * & reader,
+                        NapatechReader * & reader,
                         NtDyn1Descr_t* & pDyn1,
                         uint8_t* & packet,
                         size_t & hashed_index,
@@ -51,7 +49,7 @@ class NtDissector : public PacketDissector{
                         const uint8_t * & l4_ptr,
                         uint16_t & l4_len);
         int DumpIPv6(FlowInfo& flow,
-                        Reader * & reader,
+                        NapatechReader * & reader,
                         NtDyn1Descr_t* & pDyn1,
                         uint8_t* & packet,
                         size_t & hashed_index,
@@ -71,7 +69,7 @@ class NtDissector : public PacketDissector{
                         uint16_t & l4_len);
         int getDyn(NtNetBuf_t& hNetBuffer,
                     FlowInfo& flow,
-                    Reader * & reader,
+                    NapatechReader * & reader,
                     NtDyn1Descr_t* & pDyn1,
                     uint8_t* & packet,
                     size_t & hashed_index,
@@ -90,19 +88,18 @@ class NtDissector : public PacketDissector{
                     const uint8_t * & l4_ptr,
                     uint16_t & l4_len);
         
-        int searchVal(Reader * & reader,
+        int searchVal(NapatechReader * & reader,
                             FlowInfo& flow,
                             void * & tree_result,
                             struct ndpi_ipv6hdr * & ip6,
                             size_t& hashed_index);
-        int addVal(NtNetBuf_t& hNetBuffer,
-			Reader * & reader,
+        int addVal(NapatechReader * & reader,
                         FlowInfo& flow,
                         FlowInfo * & flow_to_process,
                         size_t& hashed_index,
                         struct ndpi_id_struct * & ndpi_src,
                         struct ndpi_id_struct * & ndpi_dst);
-        void printFlowInfos(Reader * & reader,
+        void printFlowInfos(NapatechReader * & reader,
                                         FlowInfo * & flow_to_process,
                                         const struct ndpi_iphdr * & ip,
                                         struct ndpi_ipv6hdr * & ip6,
@@ -110,24 +107,6 @@ class NtDissector : public PacketDissector{
                                         struct ndpi_id_struct * & ndpi_src,
                                         struct ndpi_id_struct * & ndpi_dst,
                                         uint64_t& time_ms);
-
-        int updateOldFlow(FlowInfo& flow,
-                            Reader * & reader,
-                            size_t & hashed_index,
-                            void * & tree_result,
-                            struct ndpi_ipv6hdr * & ip6,
-			    FlowInfo * & flow_to_process,
-                            struct ndpi_id_struct * & ndpi_src,
-                            struct ndpi_id_struct * & ndpi_dst);
-        int createNewFlow(NtNetBuf_t& hNetBuffer,
-			    FlowInfo& flow,
-                            Reader * & reader,
-                            size_t & hashed_index,
-                            FlowInfo * & flow_to_process,
-                            struct ndpi_id_struct * & ndpi_src,
-                            struct ndpi_id_struct * & ndpi_dst,
-			    void * & tree_result,
-                            struct ndpi_ipv6hdr * & ip6);
         int newFlow(int proto, int keySetId, NtNetBuf_t& hNetBuffer, Reader * reader); 
 };
 

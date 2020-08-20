@@ -74,6 +74,7 @@ int NapatechReader::initConfig(NtFlowAttr_t& flowAttr,
                                 NtFlowStream_t& flowStream,
                                 NtConfigStream_t& hCfgStream)
 {
+    int status;
     // Open a configuration stream to assign a filter to a stream ID.
     status = NT_ConfigOpen(&hCfgStream, "Learn_config");
 
@@ -177,11 +178,11 @@ int NapatechReader::initFileOrDevice()
 
 void NapatechReader::openStreams()
 {
-    int status = NT_NetRxOpen(&(reader->hNetRxAny), "Miss packets stream", NT_NET_INTERFACE_PACKET, STREAM_ID_ANY, -1);
-    handleErrorStatus(status, "NT_NetRxOpen() failed")
+    int status = NT_NetRxOpen(&(this->hNetRxAny), "Miss packets stream", NT_NET_INTERFACE_PACKET, STREAM_ID_ANY, -1);
+    handleErrorStatus(status, "NT_NetRxOpen() failed");
 
-    status = NT_NetRxOpen(&(reader->hNetRxUnh), "Unhandled packets stream", NT_NET_INTERFACE_PACKET, STREAM_ID_UNHA, -1);
-    handleErrorStatus(status, "NT_NetRxOpen() failed")
+    status = NT_NetRxOpen(&(this->hNetRxUnh), "Unhandled packets stream", NT_NET_INTERFACE_PACKET, STREAM_ID_UNHA, -1);
+    handleErrorStatus(status, "NT_NetRxOpen() failed");
 }
 
 /* ********************************** */
@@ -246,13 +247,13 @@ void NapatechReader::checkForIdleFlows()
 
 /* ********************************** */
 
-void NapatechReader::taskReceiverUnh(const char* streamName)
+void taskReceiverUnh(const char* streamName, NapatechReader *reader)
 {
     int status;
 
     while(reader->error_or_eof == 0) {
         // Get package from rx stream.
-        status = NT_NetRxGetNextPacket(this->hNetRxUnh, &(this->hNetBufferUnh), -1);
+        status = NT_NetRxGetNextPacket(* reader->getUnhStream(), reader->getUnhBuffer(), -1);
         
         if(status == NT_STATUS_TIMEOUT || status == NT_STATUS_TRYAGAIN) 
             continue;
@@ -275,7 +276,7 @@ void NapatechReader::taskReceiverAny(const char* streamName, NtFlowStream_t& flo
 {
     int status;
 
-    while(reader->error_or_eof == 0) {
+    while(this->error_or_eof == 0) {
         // Get package from rx stream.
         status = NT_NetRxGetNextPacket(this->hNetRxAny, &(this->hNetBufferAny), -1);
         
@@ -288,10 +289,10 @@ void NapatechReader::taskReceiverAny(const char* streamName, NtFlowStream_t& flo
         if(handleErrorStatus(status, "Error while sniffing next packet") != 0) {
             continue;
         }
-
-        pkt_parser->processPacket(this, &(this->hNetBufferAny), &STREAM_ID_ANY);
-
-        if(this->newFlow == true) {
+	
+        pkt_parser->processPacket(this, &(this->hNetBufferAny), nullptr);
+	
+        if(this->newFlowCheck == true) {
             status = createNewFlow(flowStream);
             if(status != 0)
                 tracer->traceEvent(0, "\tError while adding new flow\r\n");
@@ -312,18 +313,18 @@ int NapatechReader::startRead()
 
     status = NT_Init(NTAPI_VERSION);
 
-    status = initConfig();
+    status = initConfig(flowAttr, flowStream, hCfgStream);
     if(handleErrorStatus(status, "NT_NetRxOpen() failed") != 0)
-        return;
+        return 1;
 
-    status = openStreams();
-    if(handleErrorStatus(status, "NT_NetRxOpen() failed") != 0)
-        return;
+    openStreams();
 
-    std::thread receiverThread2(this->taskReceiverUnh, "flowmatch_example_receiver_net_rx_unhandled");
+    std::thread receiverThread2(taskReceiverUnh, "flowmatch_example_receiver_net_rx_unhandled", this);
     this->taskReceiverAny("flowmatch_example_receiver_net_rx_miss", flowStream);
 
     receiverThread2.join();
+
+    return 0;
 }
 
 /* ********************************** */
@@ -334,9 +335,8 @@ void NapatechReader::stopRead()
     sleep(5);    
 
     // Closes rx stream.
-    NT_NetRxClose(hNetRxMiss);
-    NT_NetRxClose(hNetRxUnh);
-    NT_NetRxClose(hNetRxOld);    
+    NT_NetRxClose(hNetRxAny);
+    NT_NetRxClose(hNetRxUnh);    
 }
 
 /* ********************************** */
@@ -445,7 +445,7 @@ int NapatechReader::newFlow(FlowInfo * & flow_to_process) {
 int NapatechReader::createNewFlow(NtFlowStream_t& flowStream) 
 {
     int status;
-    NtDyn1Descr_t* pDyn1 = _NT_NET_GET_PKT_DESCR_PTR_DYN1(reader->hNetBufferMiss);
+    NtDyn1Descr_t* pDyn1 = _NT_NET_GET_PKT_DESCR_PTR_DYN1(this->hNetBufferAny);
     uint8_t* packet = reinterpret_cast<uint8_t*>(pDyn1) + pDyn1->descrLength;
 
     if(pDyn1->ipProtocol == 6 || pDyn1->ipProtocol == 17) {

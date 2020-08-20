@@ -6,7 +6,7 @@
 /* ********************************** */
 
 int NtDissector::DumpL4(FlowInfo& flow,
-                            Reader * & reader,
+                            NapatechReader * & reader,
                             NtDyn1Descr_t* & pDyn1,
                             uint8_t* & packet,
                             size_t & hashed_index,
@@ -57,7 +57,7 @@ int NtDissector::DumpL4(FlowInfo& flow,
 /* ********************************** */
 
 int NtDissector::DumpIPv4(FlowInfo& flow,
-                            Reader * & reader,
+                            NapatechReader * & reader,
                             NtDyn1Descr_t* & pDyn1,
                             uint8_t* & packet,
                             size_t & hashed_index,
@@ -134,7 +134,7 @@ int NtDissector::DumpIPv4(FlowInfo& flow,
 /* ********************************** */
 
 int NtDissector::DumpIPv6(FlowInfo& flow,
-                            Reader * & reader,
+                            NapatechReader * & reader,
                             NtDyn1Descr_t* & pDyn1,
                             uint8_t* & packet,
                             size_t & hashed_index,
@@ -212,7 +212,7 @@ int NtDissector::DumpIPv6(FlowInfo& flow,
 
 int NtDissector::getDyn(NtNetBuf_t& hNetBuffer,
                             FlowInfo& flow,
-                            Reader * & reader,
+                            NapatechReader * & reader,
                             NtDyn1Descr_t* & pDyn1,
                             uint8_t* & packet,
                             size_t & hashed_index,
@@ -277,7 +277,7 @@ int NtDissector::getDyn(NtNetBuf_t& hNetBuffer,
 
 /* ********************************** */
 
-int NtDissector::searchVal(Reader * & reader,
+int NtDissector::searchVal(NapatechReader * & reader,
                           FlowInfo& flow,
                           void * & tree_result,
                           struct ndpi_ipv6hdr * & ip6,
@@ -306,8 +306,7 @@ int NtDissector::searchVal(Reader * & reader,
 
 /* ********************************** */
 
-int NtDissector::addVal(NtNetBuf_t& hNetBuffer,
-                            Reader * & reader,
+int NtDissector::addVal(NapatechReader * & reader,
                             FlowInfo& flow,
                             FlowInfo * & flow_to_process,
                             size_t& hashed_index,
@@ -361,7 +360,7 @@ int NtDissector::addVal(NtNetBuf_t& hNetBuffer,
 
 /* ********************************** */
 
-void NtDissector::printFlowInfos(Reader * & reader,
+void NtDissector::printFlowInfos(NapatechReader * & reader,
                                     FlowInfo * & flow_to_process,
                                     const struct ndpi_iphdr * & ip,
                                     struct ndpi_ipv6hdr * & ip6,
@@ -423,55 +422,6 @@ void NtDissector::printFlowInfos(Reader * & reader,
 }
 
 /* ********************************** */
-int NtDissector::createNewFlow(NtNetBuf_t& hNetBuffer,
-				FlowInfo& flow,
-                                Reader * & reader,
-                                size_t & hashed_index,
-                                FlowInfo * & flow_to_process,
-                                struct ndpi_id_struct * & ndpi_src,
-                                struct ndpi_id_struct * & ndpi_dst,
-				void * & tree_result,
-                                struct ndpi_ipv6hdr * & ip6) 
-{
-    if(this->searchVal(reader, flow, tree_result, ip6, hashed_index) != 0) {
-        if(this->addVal(hNetBuffer, reader, flow, flow_to_process, hashed_index, ndpi_src, ndpi_dst) != 0) {
-            this->captured_stats.discarded_bytes += NT_NET_GET_PKT_CAP_LENGTH(hNetBuffer);
-            return -1;
-    	}
-    }
- 
-    return 0;
-}
-
-/* ********************************** */
-
-int NtDissector::updateOldFlow(FlowInfo& flow,
-                                Reader * & reader,
-                                size_t & hashed_index,
-                                void * & tree_result,
-                                struct ndpi_ipv6hdr * & ip6,
-				FlowInfo * & flow_to_process,
-                                struct ndpi_id_struct * & ndpi_src,
-                                struct ndpi_id_struct * & ndpi_dst) 
-{
-    if(this->searchVal(reader, flow, tree_result, ip6, hashed_index) != 0) {
-        return -1;
-    } else {
-        flow_to_process = *(FlowInfo **)tree_result;
-
-        if (ndpi_src != flow_to_process->ndpi_src) {
-            ndpi_src = flow_to_process->ndpi_dst;
-            ndpi_dst = flow_to_process->ndpi_src;
-        } else {
-            ndpi_src = flow_to_process->ndpi_src;
-            ndpi_dst = flow_to_process->ndpi_dst;
-        }
-    }
-
-    return 0;
-}
-
-/* ********************************** */
 
 void NtDissector::processPacket(void * args,
                                     void * header_tmp,
@@ -479,13 +429,6 @@ void NtDissector::processPacket(void * args,
 {
     FlowInfo flow = FlowInfo();
     NapatechReader * reader = (NapatechReader *) args;
-    uint32_t streamId = *((uint32_t *) stream_id_tmp); 
- 
-   if(streamId == STREAM_ID_UNHA) {
-        this->captured_stats.packets_captured++;
-        this->captured_stats.unhandled_packets++;
-        return;
-    }
 
     NtNetBuf_t * hNetBuffer = ((NtNetBuf_t *) header_tmp);
 
@@ -530,7 +473,7 @@ void NtDissector::processPacket(void * args,
     
     if(this->searchVal(reader, flow, tree_result, ip6, hashed_index) != 0) {
         if(this->addVal(reader, flow, flow_to_process, hashed_index, ndpi_src, ndpi_dst) != 0) {
-            this->captured_stats.discarded_bytes += header->len;
+            this->captured_stats.discarded_bytes += NT_NET_GET_PKT_CAP_LENGTH(* hNetBuffer);;
             reader->setNewFlow(false);
         }
         else {
@@ -549,7 +492,7 @@ void NtDissector::processPacket(void * args,
             ndpi_dst = flow_to_process->ndpi_dst;
         }
     }
-
+    
     flow_to_process->packets_processed++;
     flow_to_process->total_l4_data_len += l4_len;
     /* update timestamps, important for timeout handling */

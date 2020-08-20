@@ -17,7 +17,7 @@ public:
     const char *file_or_device = nullptr;
 
 private:
-    bool newFlow;
+    bool newFlowCheck;
     uint8_t adapterNo;
     NtFlowAttr_t flowAttr;
 
@@ -35,6 +35,8 @@ private:
     uint64_t last_time = 0;
     size_t idle_scan_index = 0;
     size_t max_idle_scan_index = 0;
+
+    unsigned long long int idCounter = 0;
 
     unsigned long long int last_packets_scan = 0;    
 
@@ -64,8 +66,10 @@ public:
     void **getNdpiFlowsIdle();    
     unsigned long long int getCurIdleFlows();
     unsigned long long int getTotalIdleFlows();
-    void setNewFlow(bool flow) { newFlow = flow; };
-    bool getNewFlow() { return newFlow; };
+    void setNewFlow(bool flow) { newFlowCheck = flow; };
+    bool getNewFlow() { return newFlowCheck; };
+    NtNetStreamRx_t * getUnhStream() { return &hNetRxUnh; };
+    NtNetBuf_t * getUnhBuffer() { return &hNetBufferUnh; };
 private:
     void checkForIdleFlows();
 
@@ -75,8 +79,11 @@ private:
                     NtFlowStream_t& flowStream,
                     NtConfigStream_t& hCfgStream);
     void openStreams();
+    
+    void taskReceiverAny(const char* streamName, 
+			     NtFlowStream_t& flowStream);
 
-    void taskReceiverMiss(const char* streamName, uint32_t streamId);
+    int createNewFlow(NtFlowStream_t& flowStream);
 };
 
 /* ********************************** */
