@@ -5,51 +5,41 @@
 #include "ndpi_light_includes.h"
 
 
-#define STR_INNER(A)  #A
-#define STR(A)        STR_INNER(A)
 
 
 extern PacketDissector * pkt_parser;
 extern Trace * tracer;
 
+
 class NapatechReader : public Reader {
 public:
 
     const char *file_or_device = nullptr;
-    
-    unsigned long long int idCounter = 0;
 
-    NtNetStreamRx_t hNetRxMiss;
-    NtNetBuf_t hNetBufferMiss;
+private:
+    bool newFlow;
+    uint8_t adapterNo;
+    NtFlowAttr_t flowAttr;
+
+    NtNetStreamRx_t hNetRxAny;
+    NtNetBuf_t hNetBufferAny;
 
     NtNetStreamRx_t hNetRxUnh;
     NtNetBuf_t hNetBufferUnh;
 
-    NtNetStreamRx_t hNetRxOld;
-    NtNetBuf_t hNetBufferOld;
-    
-    NtFlowStream_t * flowStream;
-    std::vector<std::unique_ptr<NtFlow_t>> learnedFlowList;
-private:
-    int status = 0;
-    uint8_t adapterNo = 0;
-    NtFlowAttr_t flowAttr;
-    unsigned long long int streamId = 1;
-   
-
     NtConfigStream_t hCfgStream;
 
-    unsigned long long int pktCounter = 0;
+    NtFlowStream_t * flowStream;
 
     uint64_t last_idle_scan_time = 0;
     uint64_t last_time = 0;
-    unsigned long long int last_packets_scan = 0;
     size_t idle_scan_index = 0;
     size_t max_idle_scan_index = 0;
 
+    unsigned long long int last_packets_scan = 0;    
+
     unsigned long long int cur_active_flows = 0;
     unsigned long long int total_active_flows = 0;
-
     
     unsigned long long int cur_idle_flows = 0;
     unsigned long long int total_idle_flows = 0;
@@ -74,21 +64,19 @@ public:
     void **getNdpiFlowsIdle();    
     unsigned long long int getCurIdleFlows();
     unsigned long long int getTotalIdleFlows();
+    void setNewFlow(bool flow) { newFlow = flow; };
+    bool getNewFlow() { return newFlow; };
 private:
-    int ntplCall(const char* str);
-
     void checkForIdleFlows();
 
-    int setFilters();
-    //int setFlow();
-    int setStream();
     int initInfos();
     int initModule();
-    void getDyn(NtNetBuf_t& hNetBuffer);
+    int initConfig(NtFlowAttr_t& flowAttr,
+                    NtFlowStream_t& flowStream,
+                    NtConfigStream_t& hCfgStream);
+    void openStreams();
 
-    void DumpL4(NtDyn1Descr_t * & pDyn1);
-    void DumpIPv4(NtDyn1Descr_t * & pDyn1);
-    void DumpIPv6(NtDyn1Descr_t * & pDyn1);
+    void taskReceiverMiss(const char* streamName, uint32_t streamId);
 };
 
 /* ********************************** */

@@ -7,7 +7,7 @@
 
 class NtDissector : public PacketDissector{
     private:
-	unsigned long long int idCounter = 0;
+	    unsigned long long int idCounter = 0;
     public:
 	    void processPacket(void *, void *, void *);    
 	

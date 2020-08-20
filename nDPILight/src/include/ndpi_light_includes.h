@@ -60,14 +60,16 @@
 #define ETH_P_ARP  0x0806
 #endif
 
-#define STREAM_ID_MISS  1
+#define STREAM_ID_ANY  1
 #define STREAM_ID_UNHA  2
-#define STREAM_ID_OLD  3
 
 #define KEY_ID_IPV4     1
 #define KEY_ID_IPV6     2
 
 #define COLOR_IPV4      0x1
 #define COLOR_IPV6      0x2
+
+#define STR_INNER(A)  #A
+#define STR(A)        STR_INNER(A)
 
 #endif //NDPILIGHT_NDPI_LIGHT_INCLUDES_H

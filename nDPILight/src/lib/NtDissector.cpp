@@ -478,7 +478,7 @@ void NtDissector::processPacket(void * args,
                                     void * stream_id_tmp)
 {
     FlowInfo flow = FlowInfo();
-    Reader * reader = (Reader *) args;
+    NapatechReader * reader = (NapatechReader *) args;
     uint32_t streamId = *((uint32_t *) stream_id_tmp); 
  
    if(streamId == STREAM_ID_UNHA) {
@@ -519,13 +519,7 @@ void NtDissector::processPacket(void * args,
     
     this->captured_stats.nt_time_end = (uint64_t) NT_NET_GET_PKT_TIMESTAMP(* hNetBuffer);
     
-    if(streamId == STREAM_ID_MISS) {    
-        pkt_parser->captured_stats.total_wire_bytes += NT_NET_GET_PKT_CAP_LENGTH(* hNetBuffer);
-    }
-    else
-    {
-        reader->newPacket((void *)hNetBuffer);
-    }
+    reader->newPacket((void *)hNetBuffer);
     
     this->getDyn(* hNetBuffer, flow, reader, pDyn1, packet, hashed_index, 
                     tree_result, flow_to_process, ndpi_src, ndpi_dst, ethernet, ip, 
@@ -533,24 +527,29 @@ void NtDissector::processPacket(void * args,
     
     pkt_parser->captured_stats.packets_processed++;
     pkt_parser->captured_stats.total_l4_data_len += l4_len;
-
-    switch (streamId)
-    {
-    case STREAM_ID_MISS:
-        if(this->createNewFlow(* hNetBuffer, flow, reader, hashed_index, flow_to_process, ndpi_src, ndpi_dst, tree_result, ip6) != 0)
-            return;
-        else
-            this->captured_stats.total_flows_captured++;
-        break;
-    case STREAM_ID_OLD:
-        if(this->updateOldFlow(flow, reader, hashed_index, tree_result, ip6, flow_to_process, ndpi_src, ndpi_dst) != 0)
-            return;       
-        break;
-    default:
-        tracer->traceEvent(0, "Unknown Stream, skipping packet\n");
-        break;
-    }
     
+    if(this->searchVal(reader, flow, tree_result, ip6, hashed_index) != 0) {
+        if(this->addVal(reader, flow, flow_to_process, hashed_index, ndpi_src, ndpi_dst) != 0) {
+            this->captured_stats.discarded_bytes += header->len;
+            reader->setNewFlow(false);
+        }
+        else {
+            this->captured_stats.total_flows_captured++;
+            reader->setNewFlow(true);
+        }
+    } else {
+        reader->setNewFlow(false);
+        flow_to_process = *(FlowInfo **)tree_result;
+
+        if (ndpi_src != flow_to_process->ndpi_src) {
+            ndpi_src = flow_to_process->ndpi_dst;
+            ndpi_dst = flow_to_process->ndpi_src;
+        } else {
+            ndpi_src = flow_to_process->ndpi_src;
+            ndpi_dst = flow_to_process->ndpi_dst;
+        }
+    }
+
     flow_to_process->packets_processed++;
     flow_to_process->total_l4_data_len += l4_len;
     /* update timestamps, important for timeout handling */
