@@ -19,7 +19,7 @@ class PacketDissector {
                 
                 unsigned long long int total_flows_captured;
 
-                struct timeval pcap_start, pcap_end;
+                struct timeval pcap_start {0, 0}, pcap_end {0, 0};
 
                 unsigned long long int nt_time_start, nt_time_end; 
 
@@ -48,9 +48,11 @@ class PacketDissector {
                                     void * header,
                                     void * packet) = 0;
         void initProtosCnt(uint num);
-        void printStats();
+        void printStats(Reader* reader);
+	unsigned long long int getPktsCaptured() { return captured_stats.packets_captured; };
         void incrPktsCaptured() { captured_stats.packets_captured++; };
         void incrUnhaPkts() { captured_stats.unhandled_packets++; };
+	void incrWireBytes(unsigned long long int bytes) { captured_stats.total_wire_bytes += bytes; };
 };
 
 

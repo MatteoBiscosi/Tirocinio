@@ -1,10 +1,8 @@
-#include ndpi_light_includes.h
+#include "ndpi_light_includes.h"
 
 
 PacketDissector::PacketDissector()
 {
-    this->pcap_start {0, 0};
-    this->pcap_end {0, 0};
     this->captured_stats.protos_cnt = nullptr;
 }
 
@@ -28,7 +26,7 @@ PacketDissector::~PacketDissector()
 
 /* ********************************** */
 
-void initProtosCnt(uint num)
+void PacketDissector::initProtosCnt(uint num)
 {
     this->captured_stats.protos_cnt = new uint16_t[num + 1] ();
 }

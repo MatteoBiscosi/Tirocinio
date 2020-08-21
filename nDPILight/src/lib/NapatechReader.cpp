@@ -79,7 +79,7 @@ void taskReceiverUnh(const char* streamName, NapatechReader *reader)
         pkt_parser->incrPktsCaptured();
         pkt_parser->incrUnhaPkts();
 
-        NT_NetRxRelease(hNetRx, hNetBuf);
+        NT_NetRxRelease(* reader->getUnhStream(), * reader->getUnhBuffer());
     }	
 }
 
@@ -199,7 +199,7 @@ int NapatechReader::initInfos()
     ndpi_set_protocol_detection_bitmask2(this->ndpi_struct, &protos);
     ndpi_finalize_initalization(this->ndpi_struct);
 
-    pkt_parser->captured_stats.protos_cnt = new uint16_t[ndpi_get_num_supported_protocols(this->ndpi_struct) + 1] ();
+    pkt_parser->initProtosCnt(ndpi_get_num_supported_protocols(this->ndpi_struct));
 
     return 0;
 }
@@ -243,7 +243,7 @@ void NapatechReader::newPacket(void * header)
     this->last_time = (uint64_t) NT_NET_GET_PKT_TIMESTAMP(* hNetBuffer);
 
     /*  Scan done every 15000 ms more or less   */    
-    pkt_parser->captured_stats.total_wire_bytes += NT_NET_GET_PKT_CAP_LENGTH(* hNetBuffer);
+    pkt_parser->incrWireBytes(NT_NET_GET_PKT_CAP_LENGTH(* hNetBuffer));
     this->checkForIdleFlows();
 }
 
@@ -253,7 +253,7 @@ void NapatechReader::checkForIdleFlows()
 {
 	/*  Check if at least IDLE_SCAN_PERIOD passed since last scan   */
 	if (this->last_idle_scan_time + IDLE_SCAN_PERIOD * 10000 < this->last_time || 
-			pkt_parser->captured_stats.packets_captured - this->last_packets_scan > PACKET_SCAN_PERIOD) {
+			pkt_parser->getPktsCaptured() - this->last_packets_scan > PACKET_SCAN_PERIOD) {
 		for (this->idle_scan_index; this->idle_scan_index < this->max_idle_scan_index; ++this->idle_scan_index) {
 			if(this->ndpi_flows_active[this->idle_scan_index] == nullptr)
 				continue;
@@ -287,7 +287,7 @@ void NapatechReader::checkForIdleFlows()
 		}
 
 		this->last_idle_scan_time = this->last_time;
-		this->last_packets_scan = pkt_parser->captured_stats.packets_captured;
+		this->last_packets_scan = pkt_parser->getPktsCaptured();
 
 		/* Updating next max_idle_scan_index */
 		this->max_idle_scan_index = ((this->idle_scan_index + this->max_idle_scan_index) % this->max_active_flows) + 1;
@@ -321,7 +321,7 @@ void NapatechReader::taskReceiverAny(const char* streamName, NtFlowStream_t& flo
                 tracer->traceEvent(0, "\tError while adding new flow\r\n");
         }
 
-        status = NT_NetRxRelease(hNetRx, hNetBuf);
+        status = NT_NetRxRelease(this->hNetRxAny, this->hNetBufferAny);
         if(handleErrorStatus(status, "Error while releasing packet") != 0)
             continue;
     }   
@@ -390,7 +390,7 @@ int NapatechReader::checkEnd()
 
 void NapatechReader::printStats()
 {
-    pkt_parser->printStats(this);
+    pkt_parser->printStats((Reader *) this);
 }
 
 /* ********************************** */
@@ -398,14 +398,14 @@ void NapatechReader::printStats()
 int NapatechReader::newFlow(FlowInfo * & flow_to_process) {
     if (this->cur_active_flows == this->max_active_flows) {
         tracer->traceEvent(0, "[%8llu] max flows to track reached: %llu, idle: %llu\n",
-                                pkt_parser->captured_stats.packets_captured, this->max_active_flows, this->cur_idle_flows);
+                                pkt_parser->getPktsCaptured(), this->max_active_flows, this->cur_idle_flows);
         return -1;
     }
 
     flow_to_process = (FlowInfo *)ndpi_malloc(sizeof(*flow_to_process));
     if (flow_to_process == nullptr) {
         tracer->traceEvent(0, "[%8llu] Not enough memory for flow info\n",
-                                pkt_parser->captured_stats.packets_captured);
+                                pkt_parser->getPktsCaptured());
         return -1;
     }
 

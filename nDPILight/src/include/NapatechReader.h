@@ -43,8 +43,7 @@ class NapatechReader : public Reader {
         unsigned long long int total_idle_flows;
 
     public:
-        explicit NapatechReader();
-        explicit NapatechReader(char const * dst);
+	~NapatechReader();
 
         /*  
          *  Function used to start the pcap_loop   

@@ -458,14 +458,13 @@ void NtDissector::processPacket(void * args,
     reader->newPacket((void *)hNetBuffer);
     
     // Parsing packets
-    this->getDyn(* hNetBuffer, flow, reader, pDyn1, packet, hashed_index, 
-                    tree_result, flow_to_process, ndpi_src, ndpi_dst, ethernet, ip, 
-                    ip6, time_ms, eth_offset, ip_offset, ip_size, type, l4_ptr, l4_len);
+    this->getDyn(* hNetBuffer, flow, pDyn1, packet, ethernet, ip, ip6, 
+		eth_offset, ip_offset, ip_size, type, l4_ptr, l4_len);
     
     this->captured_stats.packets_processed++;
     this->captured_stats.total_l4_data_len += l4_len;
     
-    if(this->searchVal(reader, flow, tree_result, ip6, hashed_index) != 0) {
+    if(this->searchVal(reader, flow, tree_result, hashed_index) != 0) {
         if(this->addVal(reader, flow, flow_to_process, hashed_index, ndpi_src, ndpi_dst) != 0) {
             this->captured_stats.discarded_bytes += NT_NET_GET_PKT_CAP_LENGTH(* hNetBuffer);;
             reader->setNewFlow(false);
