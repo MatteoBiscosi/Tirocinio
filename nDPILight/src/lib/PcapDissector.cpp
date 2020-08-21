@@ -241,8 +241,8 @@ int PcapDissector::searchVal(PcapReader * & reader,
     }
     flow.hashval += flow.l4_protocol + flow.src_port + flow.dst_port;
 
-    hashed_index = flow.hashval % reader->getMaxActiveFlows;
-    tree_result = ndpi_tfind(&flow, &reader->getActiveFlows[hashed_index], ndpi_workflow_node_cmp);
+    hashed_index = flow.hashval % reader->getMaxActiveFlows();
+    tree_result = ndpi_tfind(&flow, &reader->getActiveFlows()[hashed_index], ndpi_workflow_node_cmp);
 
     if(tree_result == nullptr)
         /*  Not Found   */
@@ -296,7 +296,7 @@ int PcapDissector::addVal(PcapReader * & reader,
     tracer->traceEvent(4, "[%8llu, %4u] new %sflow\n", this->captured_stats.packets_captured, 
                             flow_to_process->flow_id, (flow_to_process->is_midstream_flow != 0 ? "midstream-" : ""));
 
-    if (ndpi_tsearch(flow_to_process, &reader->getActiveFlows[hashed_index], ndpi_workflow_node_cmp) == nullptr) {
+    if (ndpi_tsearch(flow_to_process, &reader->getActiveFlows()[hashed_index], ndpi_workflow_node_cmp) == nullptr) {
         /* Possible Leak */
         return -1;  
     }
@@ -477,8 +477,8 @@ void PcapDissector::processPacket(void * const args,
         return;
     }
 
-    pkt_parser->captured_stats.packets_processed++;
-    pkt_parser->captured_stats.total_l4_data_len += l4_len;
+    this->captured_stats.packets_processed++;
+    this->captured_stats.total_l4_data_len += l4_len;
 
     if(this->searchVal(reader, flow, tree_result, ip6, hashed_index) != 0) {
         if(this->addVal(reader, flow, flow_to_process, hashed_index, ndpi_src, ndpi_dst) != 0) {

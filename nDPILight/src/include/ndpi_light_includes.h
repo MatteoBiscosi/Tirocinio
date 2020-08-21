@@ -35,10 +35,10 @@
 #include "Reader.h"
 #include "ReaderThread.h"
 #include "PacketDissector.h"
+#include "PcapReader.h"
 #include "PcapDissector.h"
 #include "NapatechReader.h"
 #include "NtDissector.h"
-#include "PcapReader.h"
 
 /* ********************************** */
 

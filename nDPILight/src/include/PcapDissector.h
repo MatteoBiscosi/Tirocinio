@@ -14,7 +14,7 @@ class PcapDissector : public PacketDissector {
         /*  
          *  Process datalink layer  
          */
-        int processL2(Reader * reader,
+        int processL2(PcapReader * reader,
                     pcap_pkthdr const * header,
                     uint8_t const * packet,
                     uint16_t& type,
@@ -60,7 +60,7 @@ class PcapDissector : public PacketDissector {
         /*  
          *  Calculate flow hash for btree find, search(insert)
          */
-        int searchVal(Reader * & reader,
+        int searchVal(PcapReader * & reader,
                     FlowInfo& flow,
                     void * & tree_result,
                     struct ndpi_ipv6hdr * & ip6,
@@ -69,7 +69,7 @@ class PcapDissector : public PacketDissector {
         /*  
          *  Add a new flow to the tree  
          */
-        int addVal(Reader * & reader,
+        int addVal(PcapReader * & reader,
                     FlowInfo& flow,
                     FlowInfo * & flow_to_process,
                     size_t& hashed_index,
@@ -79,7 +79,7 @@ class PcapDissector : public PacketDissector {
         /*  
          *  Prints all flow's infos  
          */
-        void printFlowInfos(Reader * & reader,
+        void printFlowInfos(PcapReader * & reader,
                             FlowInfo * & flow_to_process,
                             const struct ndpi_iphdr * & ip,
                             struct ndpi_ipv6hdr * & ip6,
