@@ -91,6 +91,8 @@ class PcapReader : public Reader {
 
         unsigned long long int getTotalIdleFlows();
 
+        pcap_t* getPcapHandle() { return this->pcap_handle; };
+
     private:
         /*  
          *  Scan used to check if there are idle flows   

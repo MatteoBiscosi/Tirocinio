@@ -6,7 +6,7 @@ static uint32_t flow_id = 0;
 
 /* ********************************** */
 
-int PcapDissector::processL2(Reader * const reader,
+int PcapDissector::processL2(PcapReader * const reader,
                                 pcap_pkthdr const * const header,
                                 uint8_t const * const packet,
                                 uint16_t& type,
@@ -15,7 +15,7 @@ int PcapDissector::processL2(Reader * const reader,
                                 const uint16_t& eth_offset,
                                 const struct ndpi_ethhdr * & ethernet)
 {
-    switch (pcap_datalink(reader->pcap_handle)) {
+    switch (pcap_datalink(reader->getPcapHandle())) {
         case DLT_NULL:
             /*  Loopback    */
             if (ntohl(*((uint32_t *)&packet[eth_offset])) == 0x00000002) {
@@ -64,7 +64,7 @@ int PcapDissector::processL2(Reader * const reader,
         default:
             tracer->traceEvent(1, "[%8llu] Captured non IP/Ethernet packet with datalink type 0x%X - skipping\n",
                                     this->captured_stats.packets_captured, 
-                                    pcap_datalink(reader->pcap_handle));
+                                    pcap_datalink(reader->getPcapHandle()));
             return -1;
     }
 
@@ -225,11 +225,11 @@ int PcapDissector::processL4(FlowInfo& flow,
 
 /* ********************************** */
 
-int PcapDissector::searchVal(Reader * & reader,
-                          FlowInfo& flow,
-                          void * & tree_result,
-                          struct ndpi_ipv6hdr * & ip6,
-                          size_t& hashed_index)
+int PcapDissector::searchVal(PcapReader * & reader,
+                            FlowInfo& flow,
+                            void * & tree_result,
+                            struct ndpi_ipv6hdr * & ip6,
+                            size_t& hashed_index)
 {
     if (flow.getFlowL3Type() == 4) {
         /*  IPv4    */
@@ -241,8 +241,8 @@ int PcapDissector::searchVal(Reader * & reader,
     }
     flow.hashval += flow.l4_protocol + flow.src_port + flow.dst_port;
 
-    hashed_index = flow.hashval % reader->max_active_flows;
-    tree_result = ndpi_tfind(&flow, &reader->ndpi_flows_active[hashed_index], ndpi_workflow_node_cmp);
+    hashed_index = flow.hashval % reader->getMaxActiveFlows;
+    tree_result = ndpi_tfind(&flow, &reader->getActiveFlows[hashed_index], ndpi_workflow_node_cmp);
 
     if(tree_result == nullptr)
         /*  Not Found   */
@@ -254,7 +254,7 @@ int PcapDissector::searchVal(Reader * & reader,
 
 /* ********************************** */
 
-int PcapDissector::addVal(Reader * & reader,
+int PcapDissector::addVal(PcapReader * & reader,
                             FlowInfo& flow,
                             FlowInfo * & flow_to_process,
                             size_t& hashed_index,
@@ -296,7 +296,7 @@ int PcapDissector::addVal(Reader * & reader,
     tracer->traceEvent(4, "[%8llu, %4u] new %sflow\n", this->captured_stats.packets_captured, 
                             flow_to_process->flow_id, (flow_to_process->is_midstream_flow != 0 ? "midstream-" : ""));
 
-    if (ndpi_tsearch(flow_to_process, &reader->ndpi_flows_active[hashed_index], ndpi_workflow_node_cmp) == nullptr) {
+    if (ndpi_tsearch(flow_to_process, &reader->getActiveFlows[hashed_index], ndpi_workflow_node_cmp) == nullptr) {
         /* Possible Leak */
         return -1;  
     }
@@ -309,7 +309,7 @@ int PcapDissector::addVal(Reader * & reader,
 
 /* ********************************** */
 
-void PcapDissector::printFlowInfos(Reader * & reader,
+void PcapDissector::printFlowInfos(PcapReader * & reader,
                                     FlowInfo * & flow_to_process,
                                     const struct ndpi_iphdr * & ip,
                                     struct ndpi_ipv6hdr * & ip6,
@@ -324,7 +324,7 @@ void PcapDissector::printFlowInfos(Reader * & reader,
         /* last chance to guess something, better then nothing */
         uint8_t protocol_was_guessed = 0;
         flow_to_process->guessed_protocol =
-                ndpi_detection_giveup(reader->ndpi_struct,
+                ndpi_detection_giveup(reader->getNdpiStruct(),
                                       flow_to_process->ndpi_flow,
                                       1, &protocol_was_guessed);
         if (protocol_was_guessed != 0) {
@@ -332,13 +332,13 @@ void PcapDissector::printFlowInfos(Reader * & reader,
             tracer->traceEvent(3, "\t[%8llu, %4d][GUESSED] protocol: %s | app protocol: %s | category: %s\n",
                     this->captured_stats.packets_captured,
                     flow_to_process->flow_id,
-                    ndpi_get_proto_name(reader->ndpi_struct, flow_to_process->guessed_protocol.master_protocol),
-                    ndpi_get_proto_name(reader->ndpi_struct, flow_to_process->guessed_protocol.app_protocol),
-                    ndpi_category_get_name(reader->ndpi_struct, flow_to_process->guessed_protocol.category));
+                    ndpi_get_proto_name(reader->getNdpiStruct(), flow_to_process->guessed_protocol.master_protocol),
+                    ndpi_get_proto_name(reader->getNdpiStruct(), flow_to_process->guessed_protocol.app_protocol),
+                    ndpi_category_get_name(reader->getNdpiStruct(), flow_to_process->guessed_protocol.category));
             
             this->captured_stats.protos_cnt[flow_to_process->guessed_protocol.master_protocol]++;
             this->captured_stats.guessed_flow_protocols++;
-            char *tmp = ndpi_get_proto_breed_name(reader->ndpi_struct, ndpi_get_proto_breed(reader->ndpi_struct, flow_to_process->detected_l7_protocol.master_protocol));
+            char *tmp = ndpi_get_proto_breed_name(reader->getNdpiStruct(), ndpi_get_proto_breed(reader->getNdpiStruct(), flow_to_process->detected_l7_protocol.master_protocol));
             if(flow_to_process->l3_type == L3_IP) {
                 if(strcmp(tmp, "Unsafe") == 0)
                     tracer->traceEvent(1, " [%s flow] src ip: %lu | port: %u\n", 
@@ -365,11 +365,11 @@ void PcapDissector::printFlowInfos(Reader * & reader,
     }
 
     flow_to_process->detected_l7_protocol =
-            ndpi_detection_process_packet(reader->ndpi_struct, flow_to_process->ndpi_flow,
+            ndpi_detection_process_packet(reader->getNdpiStruct(), flow_to_process->ndpi_flow,
                                           ip != nullptr ? (uint8_t *)ip : (uint8_t *)ip6,
                                           ip_size, time_ms, ndpi_src, ndpi_dst);
 
-    if (ndpi_is_protocol_detected(reader->ndpi_struct,
+    if (ndpi_is_protocol_detected(reader->getNdpiStruct(),
                                   flow_to_process->detected_l7_protocol) != 0 &&
         flow_to_process->detection_completed == 0)
     {
@@ -382,11 +382,11 @@ void PcapDissector::printFlowInfos(Reader * & reader,
             tracer->traceEvent(3, "\t[%8llu, %4d][DETECTED] protocol: %s | app protocol: %s | category: %s\n",
                                     this->captured_stats.packets_captured,
                                     flow_to_process->flow_id,
-                                    ndpi_get_proto_name(reader->ndpi_struct, flow_to_process->detected_l7_protocol.master_protocol),
-                                    ndpi_get_proto_name(reader->ndpi_struct, flow_to_process->detected_l7_protocol.app_protocol),
-                                    ndpi_category_get_name(reader->ndpi_struct, flow_to_process->detected_l7_protocol.category));
+                                    ndpi_get_proto_name(reader->getNdpiStruct(), flow_to_process->detected_l7_protocol.master_protocol),
+                                    ndpi_get_proto_name(reader->getNdpiStruct(), flow_to_process->detected_l7_protocol.app_protocol),
+                                    ndpi_category_get_name(reader->getNdpiStruct(), flow_to_process->detected_l7_protocol.category));
             
-            char *tmp = ndpi_get_proto_breed_name(reader->ndpi_struct, ndpi_get_proto_breed(reader->ndpi_struct, flow_to_process->detected_l7_protocol.master_protocol));
+            char *tmp = ndpi_get_proto_breed_name(reader->getNdpiStruct(), ndpi_get_proto_breed(reader->getNdpiStruct(), flow_to_process->detected_l7_protocol.master_protocol));
             
 	
             if(flow_to_process->l3_type == L3_IP) {
@@ -419,7 +419,7 @@ void PcapDissector::processPacket(void * const args,
                                     void * packet_tmp)
 {
     FlowInfo flow = FlowInfo();
-    Reader * reader = (Reader *) args;
+    PcapReader * reader = (PcapReader *) args;
        
     pcap_pkthdr const * const header = (pcap_pkthdr const * const) header_tmp;
     uint8_t const * const packet = (uint8_t const * const) packet_tmp;

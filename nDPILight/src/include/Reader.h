@@ -30,7 +30,15 @@ class Reader {
         virtual int checkEnd() = 0;
         virtual int newFlow(FlowInfo * & flow_to_process) = 0;
 
+        /* Getters and setters */
         uint8_t getErrorOfEof() { return this->error_or_eof; };
+
+        void ** getActiveFlows() { return this->ndpi_flows_active; };
+        void ** getIdleFlows() { return this->ndpi_flows_idle; };
+        unsigned long long int getMaxActiveFlows() {return this->max_active_flows; };
+        unsigned long long int getMaxIdleFlows() {return this->max_idle_flows; };
+
+        struct ndpi_detection_module_struct * getNdpiStruct() { return this->ndpi_struct; };
 };
 
 
