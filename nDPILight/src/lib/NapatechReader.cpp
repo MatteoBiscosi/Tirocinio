@@ -244,7 +244,7 @@ void NapatechReader::newPacket(void * header)
     NtNetBuf_t * hNetBuffer = (NtNetBuf_t *) header;   
 
     this->last_time = (uint64_t) NT_NET_GET_PKT_TIMESTAMP(* hNetBuffer);
-	printf("Prova new\n");
+
     /*  Scan done every 15000 ms more or less   */    
     pkt_parser->incrWireBytes(NT_NET_GET_PKT_CAP_LENGTH(* hNetBuffer));
     this->checkForIdleFlows();
@@ -254,18 +254,16 @@ void NapatechReader::newPacket(void * header)
 
 void NapatechReader::checkForIdleFlows()
 {
-	if(this->ndpi_flows_active == nullptr)
-		printf("Prova null\n");
-	printf("Prova check, %d\n, %d\n", pkt_parser->getPktsCaptured(), this->last_packets_scan);
 	/*  Check if at least IDLE_SCAN_PERIOD passed since last scan   */
 	if (this->last_idle_scan_time + IDLE_SCAN_PERIOD * 10000 < this->last_time || 
 			pkt_parser->getPktsCaptured() - this->last_packets_scan > PACKET_SCAN_PERIOD) {
 		for (this->idle_scan_index; this->idle_scan_index < this->max_idle_scan_index; ++this->idle_scan_index) {
+
 			if(this->ndpi_flows_active[this->idle_scan_index] == nullptr)
 				continue;
-printf("Prova2\n");
+
 			ndpi_twalk(this->ndpi_flows_active[this->idle_scan_index], nt_idle_scan_walker, this);
-printf("Prova3\n");
+
 			/*  Removes all idle flows that were copied into ndpi_flows_idle from the ndpi_twalk    */
 			while (this->cur_idle_flows > 0) {
 				/*  Get the flow    */
@@ -293,6 +291,7 @@ printf("Prova3\n");
 		}
 
 		this->last_idle_scan_time = this->last_time;
+
 		this->last_packets_scan = pkt_parser->getPktsCaptured();
 
 		/* Updating next max_idle_scan_index */
@@ -318,7 +317,7 @@ void NapatechReader::taskReceiverAny(const char* streamName, NtFlowStream_t& flo
 
         if(handleErrorStatus(status, "Error while sniffing next packet") != 0)
             continue;
-	printf("Pkt received\n");	
+	
         pkt_parser->processPacket(this, &(this->hNetBufferAny), nullptr);
 	
         if(this->newFlowCheck == true) {
@@ -330,7 +329,7 @@ void NapatechReader::taskReceiverAny(const char* streamName, NtFlowStream_t& flo
         status = NT_NetRxRelease(this->hNetRxAny, this->hNetBufferAny);
         if(handleErrorStatus(status, "Error while releasing packet") != 0)
             continue;
-    }   
+     }     
 }
 
 /* ********************************** */
@@ -482,7 +481,6 @@ int NapatechReader::createNewFlow(NtFlowStream_t& flowStream)
         // Program the flow into the adapter.
         status = NT_FlowWrite(flowStream, flow.get(), -1);
         handleErrorStatus(status, "NT_FlowWrite() failed");
-        printf("id counter: %d\n", idCounter);
     }
 }
 

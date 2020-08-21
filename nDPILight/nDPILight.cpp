@@ -110,7 +110,7 @@ static int setup_napatech()
     NapatechReader *tmp = new NapatechReader();
     reader_thread.initNtReader(tmp);
 
-    pkt_parser = new PcapDissector();
+    pkt_parser = new NtDissector();
 
     if(reader_thread.init() == -1)
         return -1;
@@ -186,7 +186,7 @@ static int stop_reader()
 {
     reader_thread.stopRead();
 
-    tracer->traceEvent(1, "\tStopping analysis\r\n\r\n");
+    tracer->traceEvent(1, "Stopping analysis\r\n\r\n");
 
     struct timespec abstime;
 
