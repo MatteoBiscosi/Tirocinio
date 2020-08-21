@@ -456,11 +456,11 @@ void NtDissector::processPacket(void * args,
     
     // Checking idle flows
     reader->newPacket((void *)hNetBuffer);
-    
+    printf("Prova\n");
     // Parsing packets
     this->getDyn(* hNetBuffer, flow, pDyn1, packet, ethernet, ip, ip6, 
 		eth_offset, ip_offset, ip_size, type, l4_ptr, l4_len);
-    
+    printf("Prova2\n"); 
     this->captured_stats.packets_processed++;
     this->captured_stats.total_l4_data_len += l4_len;
     
@@ -485,7 +485,7 @@ void NtDissector::processPacket(void * args,
             ndpi_dst = flow_to_process->ndpi_dst;
         }
     }
-    
+    printf("Prova3\n");
     flow_to_process->packets_processed++;
     flow_to_process->total_l4_data_len += l4_len;
     /* update timestamps, important for timeout handling */

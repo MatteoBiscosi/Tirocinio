@@ -14,7 +14,8 @@ ReaderThread::ReaderThread()
 
 ReaderThread::~ReaderThread()
 {
-    delete(this->rdr);
+    if(this->rdr != nullptr)
+    	delete(this->rdr);
 }
 
 void ReaderThread::initNtReader(Reader* tmpRdr) 
@@ -51,5 +52,16 @@ void ReaderThread::printStats()
 {
     this->rdr->printStats();
 }
+
+void ReaderThread::close()
+{
+    if(this->rdr != nullptr)
+        delete(this->rdr);
+}
+/*
+void ReaderThread::forceClose()
+{
+    pcap_close(this->rdr->pcap_handle);
+}*/
 /* ********************************** */
 

@@ -29,7 +29,6 @@
 #include "ndpi_typedefs.h"
 #include "ndpi_classify.h"
 #include "SupportStructs.h"
-#include "CaptureStats.h"
 #include "Trace.h"
 #include "FlowInfo.h"
 #include "Reader.h"

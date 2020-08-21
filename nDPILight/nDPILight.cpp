@@ -143,7 +143,7 @@ static int setup_reader(char const * const file_or_device)
 static void * run_reader(void * const tmp)
 /*  Reader run function, it calls for the pcap_loop */
 {
-    reader_thread->startRead();
+    reader_thread.startRead();
 
     return nullptr;
 }
@@ -184,7 +184,7 @@ static int start_reader()
 static int stop_reader()
 /*  Stop the reader_thread, it means that the program is gonna terminate soon   */
 {
-    reader_thread->stopRead();
+    reader_thread.stopRead();
 
     tracer->traceEvent(1, "\tStopping analysis\r\n\r\n");
 
@@ -195,14 +195,14 @@ static int stop_reader()
 
     if (pthread_timedjoin_np(reader_thread.getThreadId(), nullptr, &abstime) != 0) {
         tracer->traceEvent(0, "Error in pthread_join: %d; Forcing termination\n", strerror(errno));
-        reader_thread.rdr->printStats();
-        pcap_close(reader_thread.rdr->pcap_handle);
+        reader_thread.printStats();
+        //reader_thread.forceClose();
         return -1;
     }
 
-    reader_thread.rdr->printStats();
+    reader_thread.printStats();
 
-    delete(reader_thread);
+    //reader_thread.close();
 
     return 0;
 }
@@ -229,12 +229,10 @@ static void sighandler(int signum)
 /* ********************************** */
 
 static int check_error_or_eof()
-/*  Checks if eof is reached in case of a Pcap file */
+/*  Checks if eof is reached */
 {
-    if(reader_thread != nullptr) {
-        if (reader_thread.getEof() == 0)
-            return 0;
-    }
+    if (reader_thread.getEof() == 0)
+        return 0;
 
     return -1;
 }

@@ -21,11 +21,13 @@ class ReaderThread {
         void startRead();
         void stopRead();
         void printStats();
+	void close();
+//	void forceClose();
 
         void setThreadId(pthread_t tmp_thread_id) { this->thread_id = tmp_thread_id; };
         pthread_t* getThreadIdPtr() { return &this->thread_id; };
         pthread_t getThreadId() { return this->thread_id; };
-        uint8_t getEof() { return this->rdr->getErrorOfEof(); };
+        uint8_t getEof() { if(this->rdr != nullptr) return this->rdr->getErrorOfEof(); return 1; };
 };
 
 

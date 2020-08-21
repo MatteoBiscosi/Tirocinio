@@ -113,7 +113,6 @@ int NapatechReader::initConfig(NtFlowAttr_t& flowAttr,
     if(ntplCall(hCfgStream, "Delete = All") != 0)
         return 1;
         
-
     // Set new filters and flow tables settings
     if(ntplCall(hCfgStream, "KeyType[Name=kt4] = {sw_32_32,   sw_16_16}") != 0)
         return 1;
@@ -153,8 +152,10 @@ int NapatechReader::initConfig(NtFlowAttr_t& flowAttr,
 
     // Opens a flow programming stream and returns a stream handle (flowStream).
     status = NT_FlowOpen_Attr(&(flowStream), "open_flow_stream_example", &(flowAttr));
-    handleErrorStatus(status, "Error while opening the flow stream");
+    if(handleErrorStatus(status, "Error while opening the flow stream") != 0)
         return 1;
+
+    return 0;
 }
 
 /* ********************************** */
@@ -219,9 +220,11 @@ int NapatechReader::initFileOrDevice()
         delete(this);
         return -1;
     }
-
+	
     return 0;
 }
+
+/* ********************************** */
 
 int NapatechReader::openStreams()
 {
@@ -241,7 +244,7 @@ void NapatechReader::newPacket(void * header)
     NtNetBuf_t * hNetBuffer = (NtNetBuf_t *) header;   
 
     this->last_time = (uint64_t) NT_NET_GET_PKT_TIMESTAMP(* hNetBuffer);
-
+	printf("Prova new\n");
     /*  Scan done every 15000 ms more or less   */    
     pkt_parser->incrWireBytes(NT_NET_GET_PKT_CAP_LENGTH(* hNetBuffer));
     this->checkForIdleFlows();
@@ -251,15 +254,18 @@ void NapatechReader::newPacket(void * header)
 
 void NapatechReader::checkForIdleFlows()
 {
+	if(this->ndpi_flows_active == nullptr)
+		printf("Prova null\n");
+	printf("Prova check, %d\n, %d\n", pkt_parser->getPktsCaptured(), this->last_packets_scan);
 	/*  Check if at least IDLE_SCAN_PERIOD passed since last scan   */
 	if (this->last_idle_scan_time + IDLE_SCAN_PERIOD * 10000 < this->last_time || 
 			pkt_parser->getPktsCaptured() - this->last_packets_scan > PACKET_SCAN_PERIOD) {
 		for (this->idle_scan_index; this->idle_scan_index < this->max_idle_scan_index; ++this->idle_scan_index) {
 			if(this->ndpi_flows_active[this->idle_scan_index] == nullptr)
 				continue;
-
+printf("Prova2\n");
 			ndpi_twalk(this->ndpi_flows_active[this->idle_scan_index], nt_idle_scan_walker, this);
-
+printf("Prova3\n");
 			/*  Removes all idle flows that were copied into ndpi_flows_idle from the ndpi_twalk    */
 			while (this->cur_idle_flows > 0) {
 				/*  Get the flow    */
@@ -303,7 +309,7 @@ void NapatechReader::taskReceiverAny(const char* streamName, NtFlowStream_t& flo
     while(this->error_or_eof == 0) {
         // Get package from rx stream.
         status = NT_NetRxGetNextPacket(this->hNetRxAny, &(this->hNetBufferAny), -1);
-        
+	        
         if(status == NT_STATUS_TIMEOUT || status == NT_STATUS_TRYAGAIN) 
             continue;
 
@@ -312,7 +318,7 @@ void NapatechReader::taskReceiverAny(const char* streamName, NtFlowStream_t& flo
 
         if(handleErrorStatus(status, "Error while sniffing next packet") != 0)
             continue;
-	
+	printf("Pkt received\n");	
         pkt_parser->processPacket(this, &(this->hNetBufferAny), nullptr);
 	
         if(this->newFlowCheck == true) {
@@ -320,7 +326,7 @@ void NapatechReader::taskReceiverAny(const char* streamName, NtFlowStream_t& flo
             if(status != 0)
                 tracer->traceEvent(0, "\tError while adding new flow\r\n");
         }
-
+	
         status = NT_NetRxRelease(this->hNetRxAny, this->hNetBufferAny);
         if(handleErrorStatus(status, "Error while releasing packet") != 0)
             continue;
@@ -343,7 +349,7 @@ int NapatechReader::startRead()
         delete(this);
         return 1;
     }
-
+	
     status = initConfig(flowAttr, flowStream, hCfgStream);
     if(status != 0) {
         delete(this);
