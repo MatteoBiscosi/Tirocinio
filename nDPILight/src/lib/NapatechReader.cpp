@@ -356,6 +356,8 @@ int NapatechReader::startRead()
         return 1;
     }
 
+    tracer->traceEvent(2, "\tAnalysis started\r\n\r\n");
+
     std::thread receiverThread2(taskReceiverUnh, "flowmatch_example_receiver_net_rx_unhandled", this);
     this->taskReceiverAny("flowmatch_example_receiver_net_rx_miss", flowStream);
 

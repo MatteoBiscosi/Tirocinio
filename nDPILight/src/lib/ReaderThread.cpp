@@ -12,6 +12,11 @@ ReaderThread::ReaderThread()
     this->thread_id = 0;
 }
 
+ReaderThread::~ReaderThread()
+{
+    delete(this->rdr);
+}
+
 void ReaderThread::initNtReader(Reader* tmpRdr) 
 {
     this->rdr = tmpRdr;
@@ -24,5 +29,27 @@ void ReaderThread::initPcapReader(Reader* tmpRdr)
     this->reader_type = 1;
 }
 
+int ReaderThread::init()
+{
+    if(this->rdr->initFileOrDevice() != 0)
+        return 1;
+    
+    return 0;
+}
+
+void ReaderThread::startRead()
+{
+    this->rdr->startRead();
+}
+
+void ReaderThread::stopRead()
+{
+    this->rdr->stopRead();
+}
+
+void ReaderThread::printStats()
+{
+    this->rdr->printStats();
+}
 /* ********************************** */
 

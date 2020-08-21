@@ -91,13 +91,12 @@ static char * check_args(int &argc, char ** argv)
 static int setup_pcap(char const * const file_or_device)
 /*  Setup the reader_thread */
 {
-    reader_thread.reader_type = 1;
     PcapReader *tmp = new PcapReader(file_or_device);
-    reader_thread.rdr = tmp;
+    reader_thread.initPcapReader(tmp);
 
     pkt_parser = new PcapDissector();
 
-    if(reader_thread.rdr->initFileOrDevice() == -1)
+    if(reader_thread.init() == -1)
         return -1;
 
     return 0;
@@ -105,16 +104,15 @@ static int setup_pcap(char const * const file_or_device)
 
 /* ********************************** */
 
-static int setup_napatech(char const * const file_or_device)
+static int setup_napatech()
 /*  Setup the reader_thread */
 {
-    reader_thread.reader_type = 0;
-    NapatechReader *tmp = new NapatechReader(file_or_device);
-    reader_thread.rdr = tmp;
+    NapatechReader *tmp = new NapatechReader();
+    reader_thread.initNtReader(tmp);
 
-    pkt_parser = new NtDissector();
+    pkt_parser = new PcapDissector();
 
-    if(reader_thread.rdr->initFileOrDevice() == -1)
+    if(reader_thread.init() == -1)
         return -1;
 
     return 0;
@@ -126,7 +124,7 @@ static int setup_reader(char const * const file_or_device)
 {
     /*  Napatech    */
     if(starts_with(file_or_device, "nt")) {
-        if(setup_napatech(file_or_device) != 0) {
+        if(setup_napatech() != 0) {
             return -1;
         }
     }
@@ -145,9 +143,7 @@ static int setup_reader(char const * const file_or_device)
 static void * run_reader(void * const tmp)
 /*  Reader run function, it calls for the pcap_loop */
 {
-    tracer->traceEvent(2, "\tStarting reader, Thread id: %d\r\n\r\n", reader_thread.thread_id);
-
-    reader_thread.rdr->startRead();
+    reader_thread->startRead();
 
     return nullptr;
 }
@@ -169,7 +165,7 @@ static int start_reader()
     }
 
     /*  Run necessary threads to monitor flows  */
-    if (pthread_create(&reader_thread.thread_id, nullptr,
+    if (pthread_create(reader_thread.getThreadIdPtr(), nullptr,
                        run_reader, nullptr) != 0) {
         tracer->traceEvent(0, "Error pthread_create: %d\n", strerror(errno));
         return -1;
@@ -188,16 +184,16 @@ static int start_reader()
 static int stop_reader()
 /*  Stop the reader_thread, it means that the program is gonna terminate soon   */
 {
-    reader_thread.rdr->stopRead();
+    reader_thread->stopRead();
 
-    tracer->traceEvent(1, "Stopping reader, Thread id: %d\r\n\r\n", reader_thread.thread_id);
+    tracer->traceEvent(1, "\tStopping analysis\r\n\r\n");
 
     struct timespec abstime;
 
     clock_gettime(CLOCK_REALTIME, &abstime);
     abstime.tv_sec += 10; 
 
-    if (pthread_timedjoin_np(reader_thread.thread_id, nullptr, &abstime) != 0) {
+    if (pthread_timedjoin_np(reader_thread.getThreadId(), nullptr, &abstime) != 0) {
         tracer->traceEvent(0, "Error in pthread_join: %d; Forcing termination\n", strerror(errno));
         reader_thread.rdr->printStats();
         pcap_close(reader_thread.rdr->pcap_handle);
@@ -206,8 +202,7 @@ static int stop_reader()
 
     reader_thread.rdr->printStats();
 
-    if(reader_thread.reader_type == 1 && reader_thread.rdr != nullptr)
-        delete(reader_thread.rdr);
+    delete(reader_thread);
 
     return 0;
 }
@@ -236,8 +231,8 @@ static void sighandler(int signum)
 static int check_error_or_eof()
 /*  Checks if eof is reached in case of a Pcap file */
 {
-    if(reader_thread.rdr != nullptr) {
-        if (reader_thread.rdr->checkEnd() == 0)
+    if(reader_thread != nullptr) {
+        if (reader_thread.getEof() == 0)
             return 0;
     }
 

@@ -119,6 +119,8 @@ void PcapReader::printStats()
 
 int PcapReader::startRead()
 {
+    tracer->traceEvent(2, "\tAnalysis started\r\n\r\n");
+
     if(this->pcap_handle != nullptr) {
         if (pcap_loop(this->pcap_handle, -1,
                       &process_helper, (uint8_t *) this) == PCAP_ERROR) {
