@@ -7,5 +7,4 @@
 
 
 
-
 #endif //NDPILIGHT_CAPTURE_STATS_H

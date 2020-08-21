@@ -37,6 +37,7 @@ class PacketDissector {
 
     public:
         PacketDissector();
+        PacketDissector(uint num);
         ~PacketDissector();
 
 	    /*  
@@ -46,6 +47,8 @@ class PacketDissector {
         virtual void processPacket(void * args,
                                     void * header,
                                     void * packet) = 0;
+        void initProtosCnt(uint num);
+        void printStats();
         void incrPktsCaptured() { captured_stats.packets_captured++; };
         void incrUnhaPkts() { captured_stats.unhandled_packets++; };
 };

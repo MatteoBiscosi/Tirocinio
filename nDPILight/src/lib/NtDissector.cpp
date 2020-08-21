@@ -246,8 +246,8 @@ int NtDissector::searchVal(NapatechReader * & reader,
     }
     flow.hashval += flow.l4_protocol + flow.src_port + flow.dst_port;
 
-    hashed_index = flow.hashval % reader->max_active_flows;
-    tree_result = ndpi_tfind(&flow, &reader->ndpi_flows_active[hashed_index], ndpi_workflow_node_cmp);
+    hashed_index = flow.hashval % reader->getMaxActiveFlows();
+    tree_result = ndpi_tfind(&flow, &reader->getActiveFlows()[hashed_index], ndpi_workflow_node_cmp);
 
     if(tree_result == nullptr)
         /*  Not Found   */
@@ -300,7 +300,7 @@ int NtDissector::addVal(NapatechReader * & reader,
     tracer->traceEvent(4, "[%8llu, %4u] new %sflow\n", this->captured_stats.packets_captured, 
                             flow_to_process->flow_id, (flow_to_process->is_midstream_flow != 0 ? "midstream-" : ""));
 
-    if (ndpi_tsearch(flow_to_process, &reader->ndpi_flows_active[hashed_index], ndpi_workflow_node_cmp) == nullptr) {
+    if (ndpi_tsearch(flow_to_process, &reader->getActiveFlows()[hashed_index], ndpi_workflow_node_cmp) == nullptr) {
         /* Possible Leak */
         return -1;  
     }
@@ -328,7 +328,7 @@ void NtDissector::printFlowInfos(NapatechReader * & reader,
         /* last chance to guess something, better then nothing */
         uint8_t protocol_was_guessed = 0;
         flow_to_process->guessed_protocol =
-                ndpi_detection_giveup(reader->ndpi_struct,
+                ndpi_detection_giveup(reader->getNdpiStruct(),
                                       flow_to_process->ndpi_flow,
                                       1, &protocol_was_guessed);
         if (protocol_was_guessed != 0) {
@@ -336,14 +336,14 @@ void NtDissector::printFlowInfos(NapatechReader * & reader,
             tracer->traceEvent(3, "\t[%8llu, %4d][GUESSED] protocol: %s | app protocol: %s | category: %s\n",
                     this->captured_stats.packets_captured,
                     flow_to_process->flow_id,
-                    ndpi_get_proto_name(reader->ndpi_struct, flow_to_process->guessed_protocol.master_protocol),
-                    ndpi_get_proto_name(reader->ndpi_struct, flow_to_process->guessed_protocol.app_protocol),
-                    ndpi_category_get_name(reader->ndpi_struct, flow_to_process->guessed_protocol.category));
+                    ndpi_get_proto_name(reader->getNdpiStruct(), flow_to_process->guessed_protocol.master_protocol),
+                    ndpi_get_proto_name(reader->getNdpiStruct(), flow_to_process->guessed_protocol.app_protocol),
+                    ndpi_category_get_name(reader->getNdpiStruct(), flow_to_process->guessed_protocol.category));
             
             this->captured_stats.protos_cnt[flow_to_process->guessed_protocol.master_protocol]++;
             this->captured_stats.guessed_flow_protocols++;
 
-            char *tmp = ndpi_get_proto_breed_name(reader->ndpi_struct, ndpi_get_proto_breed(reader->ndpi_struct, flow_to_process->detected_l7_protocol.master_protocol));
+            char *tmp = ndpi_get_proto_breed_name(reader->getNdpiStruct(), ndpi_get_proto_breed(reader->getNdpiStruct(), flow_to_process->detected_l7_protocol.master_protocol));
             if(flow_to_process->l3_type == L3_IP) {
                 if(strcmp(tmp, "Unsafe") == 0)
                     tracer->traceEvent(1, " [%s flow] src ip: %lu | port: %u\n", 
@@ -369,11 +369,11 @@ void NtDissector::printFlowInfos(NapatechReader * & reader,
     }
 
     flow_to_process->detected_l7_protocol =
-            ndpi_detection_process_packet(reader->ndpi_struct, flow_to_process->ndpi_flow,
+            ndpi_detection_process_packet(reader->getNdpiStruct(), flow_to_process->ndpi_flow,
                                           ip != nullptr ? (uint8_t *)ip : (uint8_t *)ip6,
                                           ip_size, time_ms, ndpi_src, ndpi_dst);
 
-    if (ndpi_is_protocol_detected(reader->ndpi_struct,
+    if (ndpi_is_protocol_detected(reader->getNdpiStruct(),
                                   flow_to_process->detected_l7_protocol) != 0 &&
         flow_to_process->detection_completed == 0)
     {
@@ -386,12 +386,12 @@ void NtDissector::printFlowInfos(NapatechReader * & reader,
             tracer->traceEvent(3, "\t[%8llu, %4d][DETECTED] protocol: %s | app protocol: %s | category: %s\n",
                                     this->captured_stats.packets_captured,
                                     flow_to_process->flow_id,
-                                    ndpi_get_proto_name(reader->ndpi_struct, flow_to_process->detected_l7_protocol.master_protocol),
-                                    ndpi_get_proto_name(reader->ndpi_struct, flow_to_process->detected_l7_protocol.app_protocol),
-                                    ndpi_category_get_name(reader->ndpi_struct, flow_to_process->detected_l7_protocol.category));
+                                    ndpi_get_proto_name(reader->getNdpiStruct(), flow_to_process->detected_l7_protocol.master_protocol),
+                                    ndpi_get_proto_name(reader->getNdpiStruct(), flow_to_process->detected_l7_protocol.app_protocol),
+                                    ndpi_category_get_name(reader->getNdpiStruct(), flow_to_process->detected_l7_protocol.category));
         }
 
-        char *tmp = ndpi_get_proto_breed_name(reader->ndpi_struct, ndpi_get_proto_breed(reader->ndpi_struct, flow_to_process->detected_l7_protocol.master_protocol));
+        char *tmp = ndpi_get_proto_breed_name(reader->getNdpiStruct(), ndpi_get_proto_breed(reader->getNdpiStruct(), flow_to_process->detected_l7_protocol.master_protocol));
         if(flow_to_process->l3_type == L3_IP) {
             if(strcmp(tmp, "Unsafe") == 0)
                 tracer->traceEvent(1, " [%s flow] src ip: %lu | port: %u\n", 
@@ -462,8 +462,8 @@ void NtDissector::processPacket(void * args,
                     tree_result, flow_to_process, ndpi_src, ndpi_dst, ethernet, ip, 
                     ip6, time_ms, eth_offset, ip_offset, ip_size, type, l4_ptr, l4_len);
     
-    pkt_parser->captured_stats.packets_processed++;
-    pkt_parser->captured_stats.total_l4_data_len += l4_len;
+    this->captured_stats.packets_processed++;
+    this->captured_stats.total_l4_data_len += l4_len;
     
     if(this->searchVal(reader, flow, tree_result, ip6, hashed_index) != 0) {
         if(this->addVal(reader, flow, flow_to_process, hashed_index, ndpi_src, ndpi_dst) != 0) {
