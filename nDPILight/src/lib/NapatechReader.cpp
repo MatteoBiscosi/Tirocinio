@@ -18,12 +18,14 @@ int handleErrorStatus(int status, const char* message)
 
 /* ********************************** */
 
-void ntplCall(NtConfigStream_t& hCfgStream, const char* str)
+int ntplCall(NtConfigStream_t& hCfgStream, const char* str)
 {
-  NtNtplInfo_t ntplInfo;
-  int status = NT_NTPL(hCfgStream, str, &ntplInfo, NT_NTPL_PARSER_VALIDATE_NORMAL);
-  if(handleErrorStatus(status, "NT_NTPL() failed") != 0)
-    std::exit(EXIT_FAILURE);
+    NtNtplInfo_t ntplInfo;
+    int status = NT_NTPL(hCfgStream, str, &ntplInfo, NT_NTPL_PARSER_VALIDATE_NORMAL);
+    if(handleErrorStatus(status, "NT_NTPL() failed") != 0)
+        return 1;
+
+    return 0;
 }
 
 /* ********************************** */
@@ -54,19 +56,46 @@ void nt_idle_scan_walker(void const * const A, ndpi_VISIT which, int depth, void
     }
 }
 
+/* ********************************** */
+
+void taskReceiverUnh(const char* streamName, NapatechReader *reader)
+{
+    int status;
+
+    while(reader->getErrorOfEof() == 0) {
+        // Get package from rx stream.
+        status = NT_NetRxGetNextPacket(* reader->getUnhStream(), reader->getUnhBuffer(), -1);
+        
+        if(status == NT_STATUS_TIMEOUT || status == NT_STATUS_TRYAGAIN) 
+            continue;
+
+        if(status == NT_ERROR_NT_TERMINATING)
+	        break;
+
+        if(handleErrorStatus(status, "Error while sniffing next packet") != 0) {
+            continue;
+        }
+
+        pkt_parser->incrPktsCaptured();
+        pkt_parser->incrUnhaPkts();
+
+        NT_NetRxRelease(hNetRx, hNetBuf);
+    }	
+}
 
 /* ********************************** */
 
-/*  Costructors and Destructors  */
-NapatechReader::NapatechReader() : file_or_device(nullptr)
+NapatechReader::~NapatechReader()
 {
-    file_or_device = nullptr;
-}
+    this->error_or_eof = 1;
 
-NapatechReader::NapatechReader(const char *dst) : file_or_device(nullptr)
-{
-    file_or_device = dst;
-}
+    // Closes the configuration
+    NT_ConfigClose(hCfgStream);
+
+    // Closes rx stream.
+    NT_NetRxClose(hNetRxAny);
+    NT_NetRxClose(hNetRxUnh); 
+}  
 
 /* ********************************** */
 
@@ -77,29 +106,46 @@ int NapatechReader::initConfig(NtFlowAttr_t& flowAttr,
     int status;
     // Open a configuration stream to assign a filter to a stream ID.
     status = NT_ConfigOpen(&hCfgStream, "Learn_config");
+    if(handleErrorStatus(status, "NT_ConfigOpen() failed") != 0)
+        return 1;
+    
 
-    ntplCall(hCfgStream, "Delete = All");
+    if(ntplCall(hCfgStream, "Delete = All") != 0)
+        return 1;
         
 
     // Set new filters and flow tables settings
-    ntplCall(hCfgStream, "KeyType[Name=kt4] = {sw_32_32,   sw_16_16}");
-    ntplCall(hCfgStream, "KeyType[Name=kt6] = {sw_128_128, sw_16_16}");
-    ntplCall(hCfgStream, "KeyDef[Name=kd4; KeyType=kt4; IpProtocolField=Outer] = (Layer3Header[12]/32/32,  Layer4Header[0]/16/16)");
-    ntplCall(hCfgStream, "keydef[Name=kd6; KeyType=kt6; IpProtocolField=Outer] = (Layer3Header[8]/128/128, Layer4Header[0]/16/16)");
+    if(ntplCall(hCfgStream, "KeyType[Name=kt4] = {sw_32_32,   sw_16_16}") != 0)
+        return 1;
+    if(ntplCall(hCfgStream, "KeyType[Name=kt6] = {sw_128_128, sw_16_16}") != 0)
+        return 1;
+    if(ntplCall(hCfgStream, "KeyDef[Name=kd4; KeyType=kt4; IpProtocolField=Outer] = (Layer3Header[12]/32/32,  Layer4Header[0]/16/16)") != 0)
+        return 1;
+    if(ntplCall(hCfgStream, "keydef[Name=kd6; KeyType=kt6; IpProtocolField=Outer] = (Layer3Header[8]/128/128, Layer4Header[0]/16/16)") != 0)
+        return 1;
     
     
 	// Shorthand for the checks used in these filters.
-    ntplCall(hCfgStream, "DefineMacro(\"LearnFilterCheck\", \"Port==$1 and Layer2Protocol==EtherII and Layer3Protocol==$2\")");
-	//
-	ntplCall(hCfgStream, "Assign[StreamId=" STR(STREAM_ID_ANY) "; Descriptor=DYN1, ColorBits=FlowID, Offset0=Layer3Header[12]; ColorMask=" STR(COLOR_IPV4) "] = LearnFilterCheck(0,ipv4) and Key(kd4, KeyID=" STR(KEY_ID_IPV4) ")==ANY");
-    ntplCall(hCfgStream, "Assign[StreamId=" STR(STREAM_ID_ANY) "; Descriptor=DYN1, ColorBits=FlowID, Offset0=Layer3Header[8];  ColorMask=" STR(COLOR_IPV6) "] = LearnFilterCheck(0,ipv6) and Key(kd6, KeyID=" STR(KEY_ID_IPV6) ")==ANY");
-    ntplCall(hCfgStream, "Assign[StreamId=" STR(STREAM_ID_ANY) "; Descriptor=DYN1, ColorBits=FlowID, Offset0=Layer3Header[12]; ColorMask=" STR(COLOR_IPV4) "] = LearnFilterCheck(1,ipv4) and Key(kd4, KeyID=" STR(KEY_ID_IPV4) ", FieldAction=Swap)==ANY");
-    ntplCall(hCfgStream, "Assign[StreamId=" STR(STREAM_ID_ANY) "; Descriptor=DYN1, ColorBits=FlowID, Offset0=Layer3Header[8];  ColorMask=" STR(COLOR_IPV6) "] = LearnFilterCheck(1,ipv6) and Key(kd6, KeyID=" STR(KEY_ID_IPV6) ", FieldAction=Swap)==ANY");
+    if(ntplCall(hCfgStream, "DefineMacro(\"LearnFilterCheck\", \"Port==$1 and Layer2Protocol==EtherII and Layer3Protocol==$2\")") != 0)
+        return 1;
+	
+	if(ntplCall(hCfgStream, "Assign[StreamId=" STR(STREAM_ID_ANY) "; Descriptor=DYN1, ColorBits=FlowID, Offset0=Layer3Header[12]; ColorMask=" STR(COLOR_IPV4) "] = LearnFilterCheck(0,ipv4) and Key(kd4, KeyID=" STR(KEY_ID_IPV4) ")==ANY") != 0)
+        return 1;
+    if(ntplCall(hCfgStream, "Assign[StreamId=" STR(STREAM_ID_ANY) "; Descriptor=DYN1, ColorBits=FlowID, Offset0=Layer3Header[8];  ColorMask=" STR(COLOR_IPV6) "] = LearnFilterCheck(0,ipv6) and Key(kd6, KeyID=" STR(KEY_ID_IPV6) ")==ANY") != 0)
+        return 1;
+    if(ntplCall(hCfgStream, "Assign[StreamId=" STR(STREAM_ID_ANY) "; Descriptor=DYN1, ColorBits=FlowID, Offset0=Layer3Header[12]; ColorMask=" STR(COLOR_IPV4) "] = LearnFilterCheck(1,ipv4) and Key(kd4, KeyID=" STR(KEY_ID_IPV4) ", FieldAction=Swap)==ANY") != 0)
+        return 1;
+    if(ntplCall(hCfgStream, "Assign[StreamId=" STR(STREAM_ID_ANY) "; Descriptor=DYN1, ColorBits=FlowID, Offset0=Layer3Header[8];  ColorMask=" STR(COLOR_IPV6) "] = LearnFilterCheck(1,ipv6) and Key(kd6, KeyID=" STR(KEY_ID_IPV6) ", FieldAction=Swap)==ANY") != 0)
+        return 1;
 
-    ntplCall(hCfgStream, "Assign[StreamId=" STR(STREAM_ID_UNHA) "] = LearnFilterCheck(0,ipv4) and Key(kd4, KeyID=" STR(KEY_ID_IPV4) ")==UNHANDLED");
-    ntplCall(hCfgStream, "Assign[StreamId=" STR(STREAM_ID_UNHA) "] = LearnFilterCheck(0,ipv6) and Key(kd6, KeyID=" STR(KEY_ID_IPV6) ")==UNHANDLED");
-    ntplCall(hCfgStream, "Assign[StreamId=" STR(STREAM_ID_UNHA) "] = LearnFilterCheck(1,ipv4) and Key(kd4, KeyID=" STR(KEY_ID_IPV4) ", FieldAction=Swap)==UNHANDLED");
-    ntplCall(hCfgStream, "Assign[StreamId=" STR(STREAM_ID_UNHA) "] = LearnFilterCheck(1,ipv6) and Key(kd6, KeyID=" STR(KEY_ID_IPV6) ", FieldAction=Swap)==UNHANDLED");
+    if(ntplCall(hCfgStream, "Assign[StreamId=" STR(STREAM_ID_UNHA) "] = LearnFilterCheck(0,ipv4) and Key(kd4, KeyID=" STR(KEY_ID_IPV4) ")==UNHANDLED") != 0)
+        return 1;
+    if(ntplCall(hCfgStream, "Assign[StreamId=" STR(STREAM_ID_UNHA) "] = LearnFilterCheck(0,ipv6) and Key(kd6, KeyID=" STR(KEY_ID_IPV6) ")==UNHANDLED") != 0)
+        return 1;
+    if(ntplCall(hCfgStream, "Assign[StreamId=" STR(STREAM_ID_UNHA) "] = LearnFilterCheck(1,ipv4) and Key(kd4, KeyID=" STR(KEY_ID_IPV4) ", FieldAction=Swap)==UNHANDLED") != 0)
+        return 1;
+    if(ntplCall(hCfgStream, "Assign[StreamId=" STR(STREAM_ID_UNHA) "] = LearnFilterCheck(1,ipv6) and Key(kd6, KeyID=" STR(KEY_ID_IPV6) ", FieldAction=Swap)==UNHANDLED") != 0)
+        return 1;
 
     // Initialize flow stream attributes and set adapter number attribute.
     NT_FlowOpenAttrInit(&(flowAttr));
@@ -108,6 +154,7 @@ int NapatechReader::initConfig(NtFlowAttr_t& flowAttr,
     // Opens a flow programming stream and returns a stream handle (flowStream).
     status = NT_FlowOpen_Attr(&(flowStream), "open_flow_stream_example", &(flowAttr));
     handleErrorStatus(status, "Error while opening the flow stream");
+        return 1;
 }
 
 /* ********************************** */
@@ -176,13 +223,15 @@ int NapatechReader::initFileOrDevice()
     return 0;
 }
 
-void NapatechReader::openStreams()
+int NapatechReader::openStreams()
 {
     int status = NT_NetRxOpen(&(this->hNetRxAny), "Miss packets stream", NT_NET_INTERFACE_PACKET, STREAM_ID_ANY, -1);
-    handleErrorStatus(status, "NT_NetRxOpen() failed");
+    if(handleErrorStatus(status, "NT_NetRxOpen() failed") != 0)
+        return 1;
 
     status = NT_NetRxOpen(&(this->hNetRxUnh), "Unhandled packets stream", NT_NET_INTERFACE_PACKET, STREAM_ID_UNHA, -1);
-    handleErrorStatus(status, "NT_NetRxOpen() failed");
+    if(handleErrorStatus(status, "NT_NetRxOpen() failed") != 0)
+        return 1;
 }
 
 /* ********************************** */
@@ -247,31 +296,6 @@ void NapatechReader::checkForIdleFlows()
 
 /* ********************************** */
 
-void taskReceiverUnh(const char* streamName, NapatechReader *reader)
-{
-    int status;
-
-    while(reader->error_or_eof == 0) {
-        // Get package from rx stream.
-        status = NT_NetRxGetNextPacket(* reader->getUnhStream(), reader->getUnhBuffer(), -1);
-        
-        if(status == NT_STATUS_TIMEOUT || status == NT_STATUS_TRYAGAIN) 
-            continue;
-
-        if(status == NT_ERROR_NT_TERMINATING)
-	    break;
-
-        if(handleErrorStatus(status, "Error while sniffing next packet") != 0) {
-            continue;
-        }
-
-        pkt_parser->incrPktsCaptured();
-        pkt_parser->incrUnhaPkts();
-    }	
-}
-
-/* ********************************** */
-
 void NapatechReader::taskReceiverAny(const char* streamName, NtFlowStream_t& flowStream)
 {
     int status;
@@ -286,9 +310,8 @@ void NapatechReader::taskReceiverAny(const char* streamName, NtFlowStream_t& flo
         if(status == NT_ERROR_NT_TERMINATING)
 	    break;
 
-        if(handleErrorStatus(status, "Error while sniffing next packet") != 0) {
+        if(handleErrorStatus(status, "Error while sniffing next packet") != 0)
             continue;
-        }
 	
         pkt_parser->processPacket(this, &(this->hNetBufferAny), nullptr);
 	
@@ -297,6 +320,10 @@ void NapatechReader::taskReceiverAny(const char* streamName, NtFlowStream_t& flo
             if(status != 0)
                 tracer->traceEvent(0, "\tError while adding new flow\r\n");
         }
+
+        status = NT_NetRxRelease(hNetRx, hNetBuf);
+        if(handleErrorStatus(status, "Error while releasing packet") != 0)
+            continue;
     }   
 }
 
@@ -312,12 +339,22 @@ int NapatechReader::startRead()
     unsigned long long int idCounter = 0;
 
     status = NT_Init(NTAPI_VERSION);
+    if(handleErrorStatus(status, "NT_NetRxOpen() failed") != 0) {
+        delete(this);
+        return 1;
+    }
 
     status = initConfig(flowAttr, flowStream, hCfgStream);
-    if(handleErrorStatus(status, "NT_NetRxOpen() failed") != 0)
+    if(status != 0) {
+        delete(this);
         return 1;
+    }
 
-    openStreams();
+    status = openStreams();
+    if(status != 0) {
+        delete(this);
+        return 1;
+    }
 
     std::thread receiverThread2(taskReceiverUnh, "flowmatch_example_receiver_net_rx_unhandled", this);
     this->taskReceiverAny("flowmatch_example_receiver_net_rx_miss", flowStream);
@@ -504,30 +541,4 @@ int NapatechReader::createNewFlow(NtFlowStream_t& flowStream)
 }
 
 /* ********************************** */
-/*  GETTERS AND SETTERS */
-void NapatechReader::incrTotalIdleFlows()
-{
-    this->total_idle_flows++;
-}
 
-void NapatechReader::incrCurIdleFlows()
-{
-    this->cur_idle_flows++;
-}
-
-uint64_t NapatechReader::getLastTime()
-{
-    return this->last_time;
-}
-
-void **NapatechReader::getNdpiFlowsIdle()
-{
-    return this->ndpi_flows_idle;
-}
-
-unsigned long long int NapatechReader::getCurIdleFlows()
-{
-    return this->cur_idle_flows;
-}
-
-/* ********************************** */

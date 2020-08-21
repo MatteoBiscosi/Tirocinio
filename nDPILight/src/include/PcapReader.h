@@ -15,6 +15,7 @@ class PcapReader : public Reader {
         const char *file_or_device;
 
     private:
+        pcap_t *pcap_handle;
 
         uint64_t last_idle_scan_time = 0;
         uint64_t last_time = 0;
@@ -56,12 +57,12 @@ class PcapReader : public Reader {
         int checkEnd() override;
 
         /*  
-         *  Function used to start the pcap_loop   
+         *  Function used to start pcap_loop   
          */
         int startRead() override;
 
         /*  
-         *  Function used to set pcap to nullptr   
+         *  Function used to stop pcap_loop   
          */
         void stopRead() override;
 

@@ -389,8 +389,8 @@ void PcapDissector::printFlowInfos(Reader * & reader,
             char *tmp = ndpi_get_proto_breed_name(reader->ndpi_struct, ndpi_get_proto_breed(reader->ndpi_struct, flow_to_process->detected_l7_protocol.master_protocol));
             
 	
-	    if(flow_to_process->l3_type == L3_IP) {
-		uint8_t *ip_format = (uint8_t *) &flow_to_process->ip_tuple.v4.src;
+            if(flow_to_process->l3_type == L3_IP) {
+            uint8_t *ip_format = (uint8_t *) &flow_to_process->ip_tuple.v4.src;
 
                 if(strcmp(tmp, "Unsafe") == 0)
                     tracer->traceEvent(1, "[%s flow] src ip: %d.%d.%d.%d | port: %u\n", 

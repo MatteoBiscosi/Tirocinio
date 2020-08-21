@@ -28,6 +28,7 @@
 #include "ndpi_main.h"
 #include "ndpi_typedefs.h"
 #include "ndpi_classify.h"
+#include "SupportStructs.h"
 #include "CaptureStats.h"
 #include "Trace.h"
 #include "FlowInfo.h"
@@ -39,7 +40,7 @@
 #include "NtDissector.h"
 #include "PcapReader.h"
 
-
+/* ********************************** */
 
 #define MAX_FLOW_ROOTS_PER_THREAD 1048576
 #define MAX_IDLE_FLOWS_PER_THREAD 65536
@@ -71,5 +72,6 @@
 
 #define STR_INNER(A)  #A
 #define STR(A)        STR_INNER(A)
+
 
 #endif //NDPILIGHT_NDPI_LIGHT_INCLUDES_H

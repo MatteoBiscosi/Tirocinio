@@ -10,77 +10,55 @@ class NtDissector : public PacketDissector{
 	    void processPacket(void *, void *, void *);    
 	
     private:
+        /*
+         *  Function used to parse and update l4 infos
+         */
         int DumpL4(FlowInfo& flow,
-                    NapatechReader * & reader,
-                    NtDyn1Descr_t* & pDyn1,
-                    uint8_t* & packet,
-                    size_t & hashed_index,
-                    void * & tree_result,
-                    FlowInfo * & flow_to_process,
-                    struct ndpi_id_struct * & ndpi_src,
-                    struct ndpi_id_struct * & ndpi_dst,
-                    const struct ndpi_ethhdr * & ethernet,
-                    const struct ndpi_iphdr * & ip,
-                    struct ndpi_ipv6hdr * & ip6,
-                    uint64_t & time_ms,
-                    const uint16_t & eth_offset,
-                    uint16_t & ip_offset,
-                    uint16_t & ip_size,
-                    uint16_t & type,
-                    const uint8_t * & l4_ptr,
-                    uint16_t & l4_len);
+                    const uint8_t * & l4_ptr);
+
+        /*
+         *  Parse ipv4 packets
+         */
         int DumpIPv4(FlowInfo& flow,
-                        NapatechReader * & reader,
                         NtDyn1Descr_t* & pDyn1,
                         uint8_t* & packet,
-                        size_t & hashed_index,
-                        void * & tree_result,
-                        FlowInfo * & flow_to_process,
-                        struct ndpi_id_struct * & ndpi_src,
-                        struct ndpi_id_struct * & ndpi_dst,
                         const struct ndpi_ethhdr * & ethernet,
                         const struct ndpi_iphdr * & ip,
                         struct ndpi_ipv6hdr * & ip6,
-                        uint64_t & time_ms,
                         const uint16_t & eth_offset,
                         uint16_t & ip_offset,
                         uint16_t & ip_size,
                         uint16_t & type,
                         const uint8_t * & l4_ptr,
                         uint16_t & l4_len);
+
+        /*
+         *  Parse ipv6 packets
+         */
         int DumpIPv6(FlowInfo& flow,
-                        NapatechReader * & reader,
                         NtDyn1Descr_t* & pDyn1,
                         uint8_t* & packet,
-                        size_t & hashed_index,
-                        void * & tree_result,
-                        FlowInfo * & flow_to_process,
-                        struct ndpi_id_struct * & ndpi_src,
-                        struct ndpi_id_struct * & ndpi_dst,
                         const struct ndpi_ethhdr * & ethernet,
                         const struct ndpi_iphdr * & ip,
                         struct ndpi_ipv6hdr * & ip6,
-                        uint64_t & time_ms,
                         const uint16_t & eth_offset,
                         uint16_t & ip_offset,
                         uint16_t & ip_size,
                         uint16_t & type,
                         const uint8_t * & l4_ptr,
                         uint16_t & l4_len);
+
+        /*
+         *  Get the dynamic descriptor of the packet
+         *  and parse packets using DumpIPv6 and DumpIPv4
+         */
         int getDyn(NtNetBuf_t& hNetBuffer,
                     FlowInfo& flow,
-                    NapatechReader * & reader,
                     NtDyn1Descr_t* & pDyn1,
                     uint8_t* & packet,
-                    size_t & hashed_index,
-                    void * & tree_result,
-                    FlowInfo * & flow_to_process,
-                    struct ndpi_id_struct * & ndpi_src,
-                    struct ndpi_id_struct * & ndpi_dst,
                     const struct ndpi_ethhdr * & ethernet,
                     const struct ndpi_iphdr * & ip,
                     struct ndpi_ipv6hdr * & ip6,
-                    uint64_t & time_ms,
                     const uint16_t & eth_offset,
                     uint16_t & ip_offset,
                     uint16_t & ip_size,
@@ -88,17 +66,27 @@ class NtDissector : public PacketDissector{
                     const uint8_t * & l4_ptr,
                     uint16_t & l4_len);
         
+        /*  
+         *  Calculate flow hash for btree find, search(insert)
+         */
         int searchVal(NapatechReader * & reader,
-                            FlowInfo& flow,
-                            void * & tree_result,
-                            struct ndpi_ipv6hdr * & ip6,
-                            size_t& hashed_index);
+                        FlowInfo& flow,
+                        void * & tree_result,
+                        size_t& hashed_index);
+
+        /*  
+         *  Add a new flow to the tree  
+         */                
         int addVal(NapatechReader * & reader,
                         FlowInfo& flow,
                         FlowInfo * & flow_to_process,
                         size_t& hashed_index,
                         struct ndpi_id_struct * & ndpi_src,
                         struct ndpi_id_struct * & ndpi_dst);
+
+        /*  
+         *  Prints all flow's infos  
+         */                
         void printFlowInfos(NapatechReader * & reader,
                                         FlowInfo * & flow_to_process,
                                         const struct ndpi_iphdr * & ip,
@@ -107,20 +95,6 @@ class NtDissector : public PacketDissector{
                                         struct ndpi_id_struct * & ndpi_src,
                                         struct ndpi_id_struct * & ndpi_dst,
                                         uint64_t& time_ms);
-        int newFlow(int proto, int keySetId, NtNetBuf_t& hNetBuffer, Reader * reader); 
-};
-
-
-
-struct ntpcap_ts_s {
-    uint32_t sec;
-    uint32_t usec;
-};
-
-struct ntpcap_hdr_s {
-    struct ntpcap_ts_s ts;
-    uint32_t caplen;
-    uint32_t wirelen;
 };
 
 #endif

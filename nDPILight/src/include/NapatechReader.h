@@ -12,139 +12,105 @@ extern Trace * tracer;
 
 
 class NapatechReader : public Reader {
-public:
+    private:
+        bool newFlowCheck;
+        uint8_t adapterNo;
+        NtFlowAttr_t flowAttr;
 
-    const char *file_or_device = nullptr;
+        NtNetStreamRx_t hNetRxAny;
+        NtNetBuf_t hNetBufferAny;
 
-private:
-    bool newFlowCheck;
-    uint8_t adapterNo;
-    NtFlowAttr_t flowAttr;
+        NtNetStreamRx_t hNetRxUnh;
+        NtNetBuf_t hNetBufferUnh;
 
-    NtNetStreamRx_t hNetRxAny;
-    NtNetBuf_t hNetBufferAny;
+        NtConfigStream_t hCfgStream;
 
-    NtNetStreamRx_t hNetRxUnh;
-    NtNetBuf_t hNetBufferUnh;
+        NtFlowStream_t * flowStream;
 
-    NtConfigStream_t hCfgStream;
+        uint64_t last_idle_scan_time;
+        uint64_t last_time;
+        size_t idle_scan_index;
+        size_t max_idle_scan_index;
 
-    NtFlowStream_t * flowStream;
+        unsigned long long int idCounter;
 
-    uint64_t last_idle_scan_time = 0;
-    uint64_t last_time = 0;
-    size_t idle_scan_index = 0;
-    size_t max_idle_scan_index = 0;
+        unsigned long long int last_packets_scan;    
 
-    unsigned long long int idCounter = 0;
+        unsigned long long int cur_active_flows;
+        unsigned long long int total_active_flows;
+        
+        unsigned long long int cur_idle_flows;
+        unsigned long long int total_idle_flows;
 
-    unsigned long long int last_packets_scan = 0;    
+    public:
+        explicit NapatechReader();
+        explicit NapatechReader(char const * dst);
 
-    unsigned long long int cur_active_flows = 0;
-    unsigned long long int total_active_flows = 0;
-    
-    unsigned long long int cur_idle_flows = 0;
-    unsigned long long int total_idle_flows = 0;
+        /*  
+         *  Function used to start the pcap_loop   
+         */
+        int startRead() override;
 
-public:
-    explicit NapatechReader();
-    explicit NapatechReader(char const * dst);
+        /*  
+         *  Initializing the napatech_handler, 
+         *  needed to read from a file or a device  
+         */
+        int initFileOrDevice() override;
 
-    int startRead() override;
-    int initFileOrDevice() override;
-    void stopRead() override;
-    int checkEnd() override;
+        /*  
+         *  Function used to set pcap to nullptr   
+         */
+        void stopRead() override;
 
-    void printStats() override;
-    void newPacket(void * header) override;
-    int newFlow(FlowInfo * & flow_to_process) override;
-    
-    /*      Getters and setters       */
-    void incrTotalIdleFlows();
-    void incrCurIdleFlows();
-    uint64_t getLastTime();
-    void **getNdpiFlowsIdle();    
-    unsigned long long int getCurIdleFlows();
-    unsigned long long int getTotalIdleFlows();
-    void setNewFlow(bool flow) { newFlowCheck = flow; };
-    bool getNewFlow() { return newFlowCheck; };
-    NtNetStreamRx_t * getUnhStream() { return &hNetRxUnh; };
-    NtNetBuf_t * getUnhBuffer() { return &hNetBufferUnh; };
-private:
-    void checkForIdleFlows();
+        /*  
+         *  Checks if eof is reached  
+         */
+        int checkEnd() override;
 
-    int initInfos();
-    int initModule();
-    int initConfig(NtFlowAttr_t& flowAttr,
-                    NtFlowStream_t& flowStream,
-                    NtConfigStream_t& hCfgStream);
-    void openStreams();
-    
-    void taskReceiverAny(const char* streamName, 
-			     NtFlowStream_t& flowStream);
+        /*  
+         *  Prints infos about packets, flows and bytes  
+         */
+        void printStats() override;
 
-    int createNewFlow(NtFlowStream_t& flowStream);
+        /*  
+         *  Function called each packet for updating infos  
+         */
+        void newPacket(void * header) override;
+
+        /*  
+         *  Function called each new flow, used to update
+         *  flow's infos and allocate the necessary memory   
+         */
+        int newFlow(FlowInfo * & flow_to_process) override;
+        
+        
+        /*      Getters and setters       */
+        void incrTotalIdleFlows() { this->total_idle_flows++; };
+        void incrCurIdleFlows() { this->cur_idle_flows++; };
+        uint64_t getLastTime() { return this->last_time; };
+        void **getNdpiFlowsIdle() { return this->ndpi_flows_idle; };    
+        unsigned long long int getCurIdleFlows() { return this->cur_idle_flows; };
+        unsigned long long int getTotalIdleFlows() { return this->cur_active_flows; };;
+        void setNewFlow(bool flow) { newFlowCheck = flow; };
+        bool getNewFlow() { return newFlowCheck; };
+        NtNetStreamRx_t * getUnhStream() { return &hNetRxUnh; };
+        NtNetBuf_t * getUnhBuffer() { return &hNetBufferUnh; };
+
+    private:
+        void checkForIdleFlows();
+
+        int initInfos();
+        int initModule();
+        int initConfig(NtFlowAttr_t& flowAttr,
+                        NtFlowStream_t& flowStream,
+                        NtConfigStream_t& hCfgStream);
+        int openStreams();
+        
+        void taskReceiverAny(const char* streamName, 
+                    NtFlowStream_t& flowStream);
+
+        int createNewFlow(NtFlowStream_t& flowStream);
 };
-
-/* ********************************** */
-
-struct IPv6Header_s {
-    // Little endian encoding
-    uint8_t ip_tclass1:4;
-    uint8_t ip_v:4;
-    uint8_t ip_flow1:4;
-    uint8_t ip_tclass2:4;
-    uint16_t ip_flow2;
-    uint16_t ip_len;
-    uint8_t ip_nexthdr;
-    uint8_t ip_hoplim;
-    uint32_t ip_src[4];
-    uint32_t ip_dest[4];
-}; // 40 bytes;
-
-/* ********************************** */
-
-struct IPv4Header_s {
-    uint16_t ip_hl: 4;
-    uint16_t ip_v: 4;
-    uint16_t ip_tos: 8;
-    uint16_t ip_len;
-    uint32_t ip_id:16;
-    uint32_t ip_frag_off:16;
-    #define IP_DONT_FRAGMENT  0x4000
-    #define IP_MORE_FRAGMENTS 0x2000
-    uint32_t ip_ttl:8;
-    uint32_t ip_prot:8;
-    uint32_t ip_crc:16;
-    uint32_t ip_src;
-    uint32_t ip_dest;
-}; //20 bytes
-
-/* ********************************** */
-
-struct UDPHeader_s {
-    uint32_t udp_src:16;
-    uint32_t udp_dest:16;
-    uint32_t udp_len:16;
-    uint32_t udp_crc:16;
-}; // 8 bytes
-
-/* ********************************** */
-
-struct TCPHeader_s {
-    uint32_t tcp_src:16;
-    uint32_t tcp_dest:16;
-    uint32_t tcp_seq;
-    uint32_t tcp_ack;
-    uint32_t reserved:4;
-    uint32_t tcp_doff:4;
-    uint32_t tcp_ec_ctl:8;
-    uint32_t tcp_window:16;
-    uint32_t tcp_crc:16;
-    uint32_t tcp_urgp:16;
-}; // 20 bytes
-
-/* ********************************** */
 
 
 #endif //NDPILIGHT_NAPATECH_READER_H

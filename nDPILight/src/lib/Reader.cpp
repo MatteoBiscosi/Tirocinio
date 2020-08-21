@@ -68,4 +68,33 @@ int ndpi_workflow_node_cmp(void const * const A, void const * const B)
     return flow_info_a->ipTuplesCompare(flow_info_b);
 }
 
+/* ********************************** */
 
+Reader::Reader()
+{
+    this->ndpi_flows_active = nullptr;
+    this->ndpi_flows_idle = nullptr;
+    this->error_or_eof = 0;
+    this->ndpi_struct = nullptr;
+}
+
+/* ********************************** */
+
+Reader::~Reader()
+{
+    if (this->ndpi_struct != nullptr) {
+        ndpi_exit_detection_module(this->ndpi_struct);
+    }
+
+    if(this->ndpi_flows_active != nullptr) {
+        for(size_t i = 0; i < this->max_active_flows; i++) {
+            ndpi_tdestroy(this->ndpi_flows_active[i], flowFreer);
+        }
+    }
+
+    if(this->ndpi_flows_active != nullptr)
+        ndpi_free(this->ndpi_flows_active);
+
+    if(this->ndpi_flows_idle != nullptr)
+        ndpi_free(this->ndpi_flows_idle);
+}   

@@ -6,24 +6,7 @@
 /* ********************************** */
 
 int NtDissector::DumpL4(FlowInfo& flow,
-                            NapatechReader * & reader,
-                            NtDyn1Descr_t* & pDyn1,
-                            uint8_t* & packet,
-                            size_t & hashed_index,
-                            void * & tree_result,
-                            FlowInfo * & flow_to_process,
-                            struct ndpi_id_struct * & ndpi_src,
-                            struct ndpi_id_struct * & ndpi_dst,
-                            const struct ndpi_ethhdr * & ethernet,
-                            const struct ndpi_iphdr * & ip,
-                            struct ndpi_ipv6hdr * & ip6,
-                            uint64_t & time_ms,
-                            const uint16_t & eth_offset,
-                            uint16_t & ip_offset,
-                            uint16_t & ip_size,
-                            uint16_t & type,
-                            const uint8_t * & l4_ptr,
-                            uint16_t & l4_len)
+                        const uint8_t * & l4_ptr)
 {
     if (flow.l4_protocol == IPPROTO_TCP) {
         /*  TCP   */
@@ -57,18 +40,11 @@ int NtDissector::DumpL4(FlowInfo& flow,
 /* ********************************** */
 
 int NtDissector::DumpIPv4(FlowInfo& flow,
-                            NapatechReader * & reader,
                             NtDyn1Descr_t* & pDyn1,
                             uint8_t* & packet,
-                            size_t & hashed_index,
-                            void * & tree_result,
-                            FlowInfo * & flow_to_process,
-                            struct ndpi_id_struct * & ndpi_src,
-                            struct ndpi_id_struct * & ndpi_dst,
                             const struct ndpi_ethhdr * & ethernet,
                             const struct ndpi_iphdr * & ip,
                             struct ndpi_ipv6hdr * & ip6,
-                            uint64_t & time_ms,
                             const uint16_t & eth_offset,
                             uint16_t & ip_offset,
                             uint16_t & ip_size,
@@ -123,9 +99,7 @@ int NtDissector::DumpIPv4(FlowInfo& flow,
     this->captured_stats.ip_pkts++;
     this->captured_stats.ip_bytes += (pl3->ip_len - 14);
 
-    if(DumpL4(flow, reader, pDyn1, packet, hashed_index,
-                    tree_result, flow_to_process, ndpi_src, ndpi_dst, ethernet, ip,
-                    ip6, time_ms, eth_offset, ip_offset, ip_size, type, l4_ptr, l4_len) != 0)
+    if(DumpL4(flow, l4_ptr) != 0)
         return -1;
     
     return 0;
@@ -134,18 +108,11 @@ int NtDissector::DumpIPv4(FlowInfo& flow,
 /* ********************************** */
 
 int NtDissector::DumpIPv6(FlowInfo& flow,
-                            NapatechReader * & reader,
                             NtDyn1Descr_t* & pDyn1,
                             uint8_t* & packet,
-                            size_t & hashed_index,
-                            void * & tree_result,
-                            FlowInfo * & flow_to_process,
-                            struct ndpi_id_struct * & ndpi_src,
-                            struct ndpi_id_struct * & ndpi_dst,
                             const struct ndpi_ethhdr * & ethernet,
                             const struct ndpi_iphdr * & ip,
                             struct ndpi_ipv6hdr * & ip6,
-                            uint64_t & time_ms,
                             const uint16_t & eth_offset,
                             uint16_t & ip_offset,
                             uint16_t & ip_size,
@@ -199,9 +166,7 @@ int NtDissector::DumpIPv6(FlowInfo& flow,
     this->captured_stats.ip_pkts++;
     this->captured_stats.ip_bytes += pl3->ip_len;
 
-    if(DumpL4(flow, reader, pDyn1, packet, hashed_index,
-              tree_result, flow_to_process, ndpi_src, ndpi_dst, ethernet, ip,
-              ip6, time_ms, eth_offset, ip_offset, ip_size, type, l4_ptr, l4_len) != 0)
+    if(DumpL4(flow, l4_ptr) != 0)
         return -1;
 
     return 0;
@@ -211,25 +176,18 @@ int NtDissector::DumpIPv6(FlowInfo& flow,
 
 
 int NtDissector::getDyn(NtNetBuf_t& hNetBuffer,
-                            FlowInfo& flow,
-                            NapatechReader * & reader,
-                            NtDyn1Descr_t* & pDyn1,
-                            uint8_t* & packet,
-                            size_t & hashed_index,
-                            void * & tree_result,
-                            FlowInfo * & flow_to_process,
-                            struct ndpi_id_struct * & ndpi_src,
-                            struct ndpi_id_struct * & ndpi_dst,
-                            const struct ndpi_ethhdr * & ethernet,
-                            const struct ndpi_iphdr * & ip,
-                            struct ndpi_ipv6hdr * & ip6,
-                            uint64_t & time_ms,
-                            const uint16_t & eth_offset,
-                            uint16_t & ip_offset,
-                            uint16_t & ip_size,
-                            uint16_t & type,
-                            const uint8_t * & l4_ptr,
-                            uint16_t & l4_len)
+                        FlowInfo& flow,
+                        NtDyn1Descr_t* & pDyn1,
+                        uint8_t* & packet,
+                        const struct ndpi_ethhdr * & ethernet,
+                        const struct ndpi_iphdr * & ip,
+                        struct ndpi_ipv6hdr * & ip6,
+                        const uint16_t & eth_offset,
+                        uint16_t & ip_offset,
+                        uint16_t & ip_size,
+                        uint16_t & type,
+                        const uint8_t * & l4_ptr,
+                        uint16_t & l4_len)
 {
     // descriptor DYN1 is used, which is set up via NTPL.
     pDyn1 = NT_NET_DESCR_PTR_DYN1(hNetBuffer);
@@ -245,27 +203,23 @@ int NtDissector::getDyn(NtNetBuf_t& hNetBuffer,
         } else {
             switch (pDyn1->color >> 2) {
             case 0:  // IPv4
-                    if(DumpIPv4(flow, reader, pDyn1, packet, hashed_index,
-                    		tree_result, flow_to_process, ndpi_src, ndpi_dst, ethernet, ip,
-                    		ip6, time_ms, eth_offset, ip_offset, ip_size, type, l4_ptr, l4_len) != 0)
+                    if(DumpIPv4(flow, pDyn1, packet, ethernet, ip, ip6, 
+                                eth_offset, ip_offset, ip_size, type, l4_ptr, l4_len) != 0)
                         return -1;
                     break;
             case 1:  // IPv6
-                    if(DumpIPv6(flow, reader, pDyn1, packet, hashed_index,
-                    		tree_result, flow_to_process, ndpi_src, ndpi_dst, ethernet, ip,
-                    		ip6, time_ms, eth_offset, ip_offset, ip_size, type, l4_ptr, l4_len) != 0)
+                    if(DumpIPv6(flow, pDyn1, packet, ethernet, ip, ip6, 
+                                eth_offset, ip_offset, ip_size, type, l4_ptr, l4_len) != 0)
                         return -1;
                     break;
             case 2:  // Tunneled IPv4
-                    if(DumpIPv4(flow, reader, pDyn1, packet, hashed_index,
-                    		tree_result, flow_to_process, ndpi_src, ndpi_dst, ethernet, ip,
-                   		ip6, time_ms, eth_offset, ip_offset, ip_size, type, l4_ptr, l4_len) != 0)
+                    if(DumpIPv4(flow, pDyn1, packet, ethernet, ip, ip6, 
+                                eth_offset, ip_offset, ip_size, type, l4_ptr, l4_len) != 0)
                         return -1;
                     break;
             case 3:  // Tunneled IPv6
-                    if(DumpIPv6(flow, reader, pDyn1, packet, hashed_index,
-                    		tree_result, flow_to_process, ndpi_src, ndpi_dst, ethernet, ip,
-                    		ip6, time_ms, eth_offset, ip_offset, ip_size, type, l4_ptr, l4_len) != 0)
+                    if(DumpIPv6(flow, pDyn1, packet, ethernet, ip, ip6, 
+                                eth_offset, ip_offset, ip_size, type, l4_ptr, l4_len) != 0)
                         return -1;
                     break;
             }
@@ -278,10 +232,9 @@ int NtDissector::getDyn(NtNetBuf_t& hNetBuffer,
 /* ********************************** */
 
 int NtDissector::searchVal(NapatechReader * & reader,
-                          FlowInfo& flow,
-                          void * & tree_result,
-                          struct ndpi_ipv6hdr * & ip6,
-                          size_t& hashed_index)
+                            FlowInfo& flow,
+                            void * & tree_result,
+                            size_t& hashed_index)
 {
     if (flow.getFlowL3Type() == 4) {
         /*  IPv4    */
@@ -307,11 +260,11 @@ int NtDissector::searchVal(NapatechReader * & reader,
 /* ********************************** */
 
 int NtDissector::addVal(NapatechReader * & reader,
-                            FlowInfo& flow,
-                            FlowInfo * & flow_to_process,
-                            size_t& hashed_index,
-                            struct ndpi_id_struct * & ndpi_src,
-                            struct ndpi_id_struct * & ndpi_dst)
+                        FlowInfo& flow,
+                        FlowInfo * & flow_to_process,
+                        size_t& hashed_index,
+                        struct ndpi_id_struct * & ndpi_src,
+                        struct ndpi_id_struct * & ndpi_dst)
 {
     if(reader->newFlow(flow_to_process) != 0) 
         return -1;
@@ -389,6 +342,25 @@ void NtDissector::printFlowInfos(NapatechReader * & reader,
             
             this->captured_stats.protos_cnt[flow_to_process->guessed_protocol.master_protocol]++;
             this->captured_stats.guessed_flow_protocols++;
+
+            char *tmp = ndpi_get_proto_breed_name(reader->ndpi_struct, ndpi_get_proto_breed(reader->ndpi_struct, flow_to_process->detected_l7_protocol.master_protocol));
+            if(flow_to_process->l3_type == L3_IP) {
+                if(strcmp(tmp, "Unsafe") == 0)
+                    tracer->traceEvent(1, " [%s flow] src ip: %lu | port: %u\n", 
+                                            tmp, flow_to_process->ip_tuple.v4.src, flow_to_process->dst_port);
+                else
+                    tracer->traceEvent(3, " [%s flow] src ip: %lu | port: %u\n", 
+                                            tmp, flow_to_process->ip_tuple.v4.src, flow_to_process->dst_port);
+            }
+            else
+            {
+                if(strcmp(tmp, "Unsafe") == 0)
+                    tracer->traceEvent(1, " [%s flow] src ip: %lu%lu | port: %u\n", 
+                                            tmp, flow_to_process->ip_tuple.v6.src[0], flow_to_process->ip_tuple.v6.src[1], flow_to_process->dst_port);
+                else
+                    tracer->traceEvent(1, " [%s flow] src ip: %lu | port: %u\n", 
+                                            tmp, flow_to_process->ip_tuple.v4.src, flow_to_process->dst_port);
+            }
         } else {
             tracer->traceEvent(3, "\t[%8llu, %d, %4d][FLOW NOT CLASSIFIED]\n",
                                     this->captured_stats.packets_captured, flow_to_process->flow_id);
@@ -418,14 +390,33 @@ void NtDissector::printFlowInfos(NapatechReader * & reader,
                                     ndpi_get_proto_name(reader->ndpi_struct, flow_to_process->detected_l7_protocol.app_protocol),
                                     ndpi_category_get_name(reader->ndpi_struct, flow_to_process->detected_l7_protocol.category));
         }
+
+        char *tmp = ndpi_get_proto_breed_name(reader->ndpi_struct, ndpi_get_proto_breed(reader->ndpi_struct, flow_to_process->detected_l7_protocol.master_protocol));
+        if(flow_to_process->l3_type == L3_IP) {
+            if(strcmp(tmp, "Unsafe") == 0)
+                tracer->traceEvent(1, " [%s flow] src ip: %lu | port: %u\n", 
+                                        tmp, flow_to_process->ip_tuple.v4.src, flow_to_process->dst_port);
+            else
+                tracer->traceEvent(3, " [%s flow] src ip: %lu | port: %u\n", 
+                                        tmp, flow_to_process->ip_tuple.v4.src, flow_to_process->dst_port);
+        }
+        else
+        {
+            if(strcmp(tmp, "Unsafe") == 0)
+                tracer->traceEvent(1, " [%s flow] src ip: %lu%lu | port: %u\n", 
+                                        tmp, flow_to_process->ip_tuple.v6.src[0], flow_to_process->ip_tuple.v6.src[1], flow_to_process->dst_port);
+            else
+                tracer->traceEvent(1, " [%s flow] src ip: %lu | port: %u\n", 
+                                        tmp, flow_to_process->ip_tuple.v4.src, flow_to_process->dst_port);
+        }
     }
 }
 
 /* ********************************** */
 
 void NtDissector::processPacket(void * args,
-                                    void * header_tmp,
-                                    void * stream_id_tmp)
+                                void * header_tmp,
+                                void * stream_id_tmp)
 {
     FlowInfo flow = FlowInfo();
     NapatechReader * reader = (NapatechReader *) args;
@@ -457,13 +448,16 @@ void NtDissector::processPacket(void * args,
 
     this->captured_stats.packets_captured++;
 
+    // Updating time counters
     if(!this->captured_stats.nt_time_start)
     	this->captured_stats.nt_time_start = (uint64_t) NT_NET_GET_PKT_TIMESTAMP(* hNetBuffer);
     
     this->captured_stats.nt_time_end = (uint64_t) NT_NET_GET_PKT_TIMESTAMP(* hNetBuffer);
     
+    // Checking idle flows
     reader->newPacket((void *)hNetBuffer);
     
+    // Parsing packets
     this->getDyn(* hNetBuffer, flow, reader, pDyn1, packet, hashed_index, 
                     tree_result, flow_to_process, ndpi_src, ndpi_dst, ethernet, ip, 
                     ip6, time_ms, eth_offset, ip_offset, ip_size, type, l4_ptr, l4_len);

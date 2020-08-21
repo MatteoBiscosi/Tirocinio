@@ -6,23 +6,21 @@
 
 
 class Reader {
-    public:
+    protected:
 
-        uint8_t error_or_eof = 0;
-
-        pcap_t *pcap_handle = nullptr;
+        uint8_t error_or_eof;
         
-        void **ndpi_flows_active = nullptr;
-        unsigned long long int max_active_flows = 0;
+        void **ndpi_flows_active;
+        unsigned long long int max_active_flows;
 
-        void **ndpi_flows_idle = nullptr;
-        unsigned long long int max_idle_flows = 0;
+        void **ndpi_flows_idle;
+        unsigned long long int max_idle_flows;
 
-        struct ndpi_detection_module_struct * ndpi_struct = nullptr;
+        struct ndpi_detection_module_struct * ndpi_struct;
 
     public:
-
-        virtual ~Reader() {};
+        Reader();
+        ~Reader();
 
         virtual void printStats() = 0;
         virtual void newPacket(void * header) = 0;
@@ -31,6 +29,8 @@ class Reader {
         virtual void stopRead() = 0;
         virtual int checkEnd() = 0;
         virtual int newFlow(FlowInfo * & flow_to_process) = 0;
+
+        uint8_t getErrorOfEof() { return this->error_or_eof; };
 };
 
 

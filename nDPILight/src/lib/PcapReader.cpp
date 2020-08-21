@@ -27,24 +27,6 @@ PcapReader::~PcapReader()
         pcap_close(this->pcap_handle);
         this->pcap_handle = nullptr;
     }
-
-    if (this->ndpi_struct != nullptr) {
-        ndpi_exit_detection_module(this->ndpi_struct);
-    }
-
-    for(size_t i = 0; i < this->max_active_flows; i++) {
-        ndpi_tdestroy(this->ndpi_flows_active[i], flowFreer);
-    }
-
-    if(this->ndpi_flows_active != nullptr)
-        ndpi_free(this->ndpi_flows_active);
-    if(this->ndpi_flows_idle != nullptr)
-        ndpi_free(this->ndpi_flows_idle);
-
-    if(pkt_parser == nullptr)
-	return;
-    if(pkt_parser->captured_stats.protos_cnt != nullptr)
-        delete [] pkt_parser->captured_stats.protos_cnt;
 }   
 
 /* ********************************** */
@@ -122,8 +104,7 @@ int PcapReader::initInfos()
     ndpi_set_protocol_detection_bitmask2(this->ndpi_struct, &protos);
     ndpi_finalize_initalization(this->ndpi_struct);
 
-    pkt_parser->captured_stats.protos_cnt = new uint16_t[ndpi_get_num_supported_protocols(this->ndpi_struct) + 1] ();
-
+    ndpi_get_num_supported_protocols(this->ndpi_struct);
     return 0;
 }
 
