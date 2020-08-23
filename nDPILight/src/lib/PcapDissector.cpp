@@ -94,7 +94,8 @@ int PcapDissector::setL2Ip(pcap_pkthdr const * const header,
     }
 
     ip_size = header->len - ip_offset;
-
+struct IPv6Header_s *pl3 = (struct IPv6Header_s*)((uint8_t*) &packet[ip_offset]);
+printf("%d, %d, %d, %d\n", ip_size, header->caplen, ip_offset, pl3->ip_len/8);
     if (type == ETH_P_IP && header->len >= ip_offset) {
         if (header->caplen < header->len) {
             tracer->traceEvent(0, "[%8llu] Captured packet size is smaller than packet size: %u < %u\n", 

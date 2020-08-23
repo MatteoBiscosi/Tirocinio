@@ -47,7 +47,8 @@ void PacketDissector::printStats(Reader *reader)
     tracer->traceEvent(2, "\t\tIP packets:                 %-20llu of %llu packets total\n",
                             this->captured_stats.ip_pkts,
                             this->captured_stats.packets_captured);
-
+    tracer->traceEvent(2, "\t\tUnhandled IP packets:                 %-20llu\n",
+                            this->captured_stats.unhandled_packets);
     /* In order to prevent Floating point exception in case of no traffic*/
     if(this->captured_stats.ip_bytes && this->captured_stats.packets_captured)
         avg_pkt_size = this->captured_stats.ip_bytes/this->captured_stats.packets_captured;

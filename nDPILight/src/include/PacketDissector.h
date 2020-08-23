@@ -50,9 +50,9 @@ class PacketDissector {
         void initProtosCnt(uint num);
         void printStats(Reader* reader);
 	unsigned long long int getPktsCaptured() { return captured_stats.packets_captured; };
-        void incrPktsCaptured() { captured_stats.packets_captured++; };
-        void incrUnhaPkts() { captured_stats.unhandled_packets++; };
-	void incrWireBytes(unsigned long long int bytes) { captured_stats.total_wire_bytes += bytes; };
+        void incrPktsCaptured() { this->captured_stats.packets_captured++; };
+        void incrUnhaPkts() { this->captured_stats.unhandled_packets++; };
+	void incrWireBytes(unsigned long long int bytes) { this->captured_stats.total_wire_bytes += bytes; };
 };
 
 

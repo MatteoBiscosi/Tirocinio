@@ -20,6 +20,7 @@ class NtDissector : public PacketDissector{
          *  Parse ipv4 packets
          */
         int DumpIPv4(FlowInfo& flow,
+			NtNetBuf_t& hNetBuffer,
                         NtDyn1Descr_t* & pDyn1,
                         uint8_t* & packet,
                         const struct ndpi_ethhdr * & ethernet,

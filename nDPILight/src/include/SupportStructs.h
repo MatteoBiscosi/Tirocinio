@@ -27,7 +27,7 @@ struct IPv4Header_s {
     uint16_t ip_hl: 4;
     uint16_t ip_v: 4;
     uint16_t ip_tos: 8;
-    uint16_t ip_len;
+    uint16_t ip_len: 8;
     uint32_t ip_id:16;
     uint32_t ip_frag_off:16;
     #define IP_DONT_FRAGMENT  0x4000

@@ -40,6 +40,7 @@ int NtDissector::DumpL4(FlowInfo& flow,
 /* ********************************** */
 
 int NtDissector::DumpIPv4(FlowInfo& flow,
+			    NtNetBuf_t& hNetBuffer,
                             NtDyn1Descr_t* & pDyn1,
                             uint8_t* & packet,
                             const struct ndpi_ethhdr * & ethernet,
@@ -53,7 +54,7 @@ int NtDissector::DumpIPv4(FlowInfo& flow,
                             uint16_t & l4_len)
 {
     uint32_t ipaddr;
-    struct IPv4Header_s *pl3 = (struct IPv4Header_s*)((uint8_t*)pDyn1 + pDyn1->descrLength + pDyn1->offset0);
+    struct IPv4Header_s *pl3 = (struct IPv4Header_s*)((uint8_t*)&packet[sizeof(struct ndpi_ethhdr) + eth_offset]);
 
     /*  Lvl 2   */
     ethernet = (struct ndpi_ethhdr *) &packet[eth_offset];
@@ -61,7 +62,7 @@ int NtDissector::DumpIPv4(FlowInfo& flow,
     type = ntohs(ethernet->h_proto);
 
     if (type == ETH_P_IP) {
-        ip = (struct ndpi_iphdr *)&packet[ip_offset];
+        ip = (struct ndpi_iphdr *)(&packet[ip_offset]);
         ip6 = nullptr;
     } else if (type == ETH_P_IPV6) {
         ip = nullptr;
@@ -74,11 +75,17 @@ int NtDissector::DumpIPv4(FlowInfo& flow,
 
     /*  Lvl 3   */
 
-    ip_size = pl3->ip_len;
-
-    if (ip_size < sizeof(*ip)) {
-        tracer->traceEvent(0, "[%8llu] Packet smaller than IP4 header length: %u < %zu\n", 
-                                this->captured_stats.packets_captured, ip_size, sizeof(*ip)); 
+    ip_size = pDyn1->capLength - pDyn1->descrLength - ip_offset;
+/*	printf("%d\n", ip_offset);
+	printf("%d, %d\n", pDyn1->capLength - pDyn1->descrLength - ip_offset, pDyn1->descrLength);
+	printf("%d\n", NT_NET_GET_PKT_CAP_LENGTH(hNetBuffer) - ip_offset);
+	printf("%d, %d, %d\n", sizeof(*ip), pDyn1->capLength, NT_NET_GET_PKT_CAP_LENGTH(hNetBuffer));
+uint8_t *ip_format = (uint8_t *) &ip->saddr;
+                    tracer->traceEvent(1, "src ip: %d.%d.%d.%d", 
+                                            ip_format[0], ip_format[1], ip_format[1], ip_format[3]);
+  */  if (ip_size < sizeof(*ip)) {
+        tracer->traceEvent(0, "[%8llu] Packet smaller than IP4 header length: %u < %zu, pkt_lenght: %d\n", 
+                                this->captured_stats.packets_captured, ip_size, sizeof(*ip), NT_NET_GET_PKT_CAP_LENGTH(hNetBuffer) - NT_NET_GET_PKT_DESCR_LENGTH(hNetBuffer)); 
         return -1;
     }
 
@@ -97,7 +104,7 @@ int NtDissector::DumpIPv4(FlowInfo& flow,
     flow.ip_tuple.v4.dst = ip->daddr;
 
     this->captured_stats.ip_pkts++;
-    this->captured_stats.ip_bytes += (pl3->ip_len - 14);
+    this->captured_stats.ip_bytes += (ip_size);
 
     if(DumpL4(flow, l4_ptr) != 0)
         return -1;
@@ -203,7 +210,7 @@ int NtDissector::getDyn(NtNetBuf_t& hNetBuffer,
         } else {
             switch (pDyn1->color >> 2) {
             case 0:  // IPv4
-                    if(DumpIPv4(flow, pDyn1, packet, ethernet, ip, ip6, 
+                    if(DumpIPv4(flow,hNetBuffer, pDyn1, packet, ethernet, ip, ip6, 
                                 eth_offset, ip_offset, ip_size, type, l4_ptr, l4_len) != 0)
                         return -1;
                     break;
@@ -213,7 +220,7 @@ int NtDissector::getDyn(NtNetBuf_t& hNetBuffer,
                         return -1;
                     break;
             case 2:  // Tunneled IPv4
-                    if(DumpIPv4(flow, pDyn1, packet, ethernet, ip, ip6, 
+                    if(DumpIPv4(flow,hNetBuffer, pDyn1, packet, ethernet, ip, ip6, 
                                 eth_offset, ip_offset, ip_size, type, l4_ptr, l4_len) != 0)
                         return -1;
                     break;

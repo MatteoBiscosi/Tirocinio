@@ -76,7 +76,6 @@ void taskReceiverUnh(const char* streamName, NapatechReader *reader)
             continue;
         }
 
-        pkt_parser->incrPktsCaptured();
         pkt_parser->incrUnhaPkts();
 
         NT_NetRxRelease(* reader->getUnhStream(), * reader->getUnhBuffer());
@@ -118,9 +117,9 @@ int NapatechReader::initConfig(NtFlowAttr_t& flowAttr,
         return 1;
     if(ntplCall(hCfgStream, "KeyType[Name=kt6] = {sw_128_128, sw_16_16}") != 0)
         return 1;
-    if(ntplCall(hCfgStream, "KeyDef[Name=kd4; KeyType=kt4; IpProtocolField=Outer] = (Layer3Header[12]/32/32,  Layer4Header[0]/16/16)") != 0)
+    if(ntplCall(hCfgStream, "KeyDef[Name=kd4; KeyType=kt4] = (Layer3Header[12]/32/32,  Layer4Header[0]/16/16)") != 0)
         return 1;
-    if(ntplCall(hCfgStream, "keydef[Name=kd6; KeyType=kt6; IpProtocolField=Outer] = (Layer3Header[8]/128/128, Layer4Header[0]/16/16)") != 0)
+    if(ntplCall(hCfgStream, "keydef[Name=kd6; KeyType=kt6] = (Layer3Header[8]/128/128, Layer4Header[0]/16/16)") != 0)
         return 1;
     
     
@@ -255,8 +254,7 @@ void NapatechReader::newPacket(void * header)
 void NapatechReader::checkForIdleFlows()
 {
 	/*  Check if at least IDLE_SCAN_PERIOD passed since last scan   */
-	if (this->last_idle_scan_time + IDLE_SCAN_PERIOD * 10000 < this->last_time || 
-			pkt_parser->getPktsCaptured() - this->last_packets_scan > PACKET_SCAN_PERIOD) {
+	if (this->last_idle_scan_time + IDLE_SCAN_PERIOD * 10000 < this->last_time) {
 		for (this->idle_scan_index; this->idle_scan_index < this->max_idle_scan_index; ++this->idle_scan_index) {
 
 			if(this->ndpi_flows_active[this->idle_scan_index] == nullptr)
@@ -308,7 +306,7 @@ void NapatechReader::taskReceiverAny(const char* streamName, NtFlowStream_t& flo
     while(this->error_or_eof == 0) {
         // Get package from rx stream.
         status = NT_NetRxGetNextPacket(this->hNetRxAny, &(this->hNetBufferAny), -1);
-	        
+//	printf("Prova\n");	        
         if(status == NT_STATUS_TIMEOUT || status == NT_STATUS_TRYAGAIN) 
             continue;
 
