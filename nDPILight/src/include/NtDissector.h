@@ -39,7 +39,6 @@ class NtDissector : public PacketDissector{
         int getDyn(NtNetBuf_t& hNetBuffer,
                     FlowInfo& flow,
                     NtDyn1Descr_t* & pDyn1,
-                    uint8_t* & packet,
                     struct ndpi_support& pkt_infos);
         
         /*  

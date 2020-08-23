@@ -53,7 +53,7 @@ class PacketDissector {
         /*  
          *  Prints all flow's infos  
          */                
-        void printFlowInfos(Reader * & reader,
+        void printFlowInfos(Reader * reader,
                             FlowInfo * & flow_to_process,
                             const struct ndpi_iphdr * & ip,
                             struct ndpi_ipv6hdr * & ip6,
