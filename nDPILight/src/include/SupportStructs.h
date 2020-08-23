@@ -7,36 +7,26 @@
 
 /* ********************************** */
 
-struct IPv6Header_s {
-    // Little endian encoding
-    uint8_t ip_tclass1:4;
-    uint8_t ip_v:4;
-    uint8_t ip_flow1:4;
-    uint8_t ip_tclass2:4;
-    uint16_t ip_flow2;
-    uint16_t ip_len;
-    uint8_t ip_nexthdr;
-    uint8_t ip_hoplim;
-    uint32_t ip_src[4];
-    uint32_t ip_dest[4];
-}; // 40 bytes;
+struct ndpi_support {
+    size_t hashed_index;
+    void * tree_result;
+    FlowInfo * flow_to_process;
 
-/* ********************************** */
+    struct ndpi_id_struct * ndpi_src;
+    struct ndpi_id_struct * ndpi_dst;
 
-struct IPv4Header_s {
-    uint16_t ip_hl: 4;
-    uint16_t ip_v: 4;
-    uint16_t ip_tos: 8;
-    uint16_t ip_len: 8;
-    uint32_t ip_id:16;
-    uint32_t ip_frag_off:16;
-    #define IP_DONT_FRAGMENT  0x4000
-    #define IP_MORE_FRAGMENTS 0x2000
-    uint32_t ip_ttl:8;
-    uint32_t ip_prot:8;
-    uint32_t ip_crc:16;
-    uint32_t ip_src;
-    uint32_t ip_dest;
+    const struct ndpi_ethhdr * ethernet;
+    const struct ndpi_iphdr * ip;
+    struct ndpi_ipv6hdr * ip6;
+
+    uint64_t time_ms;
+    const uint16_t eth_offset;
+    uint16_t ip_offset;
+    uint16_t ip_size;
+    uint16_t type;
+
+    const uint8_t * l4_ptr;
+    uint16_t l4_len;
 }; //20 bytes
 
 /* ********************************** */
