@@ -13,7 +13,6 @@ extern Trace * tracer;
 
 class NapatechReader : public Reader {
     private:
-        bool newFlowCheck;
         uint8_t adapterNo;
         NtFlowAttr_t flowAttr;
 
@@ -89,9 +88,7 @@ class NapatechReader : public Reader {
         uint64_t getLastTime() { return this->last_time; };
         void **getNdpiFlowsIdle() { return this->ndpi_flows_idle; };    
         unsigned long long int getCurIdleFlows() { return this->cur_idle_flows; };
-        unsigned long long int getTotalIdleFlows() { return this->cur_active_flows; };;
-        void setNewFlow(bool flow) { newFlowCheck = flow; };
-        bool getNewFlow() { return newFlowCheck; };
+        unsigned long long int getTotalIdleFlows() { return this->cur_active_flows; };
         NtNetStreamRx_t * getUnhStream() { return &hNetRxUnh; };
         NtNetBuf_t * getUnhBuffer() { return &hNetBufferUnh; };
 

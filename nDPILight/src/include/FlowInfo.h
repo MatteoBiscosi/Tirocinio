@@ -39,6 +39,7 @@ public:
     uint8_t flow_ack_seen:1;
     uint8_t detection_completed:1;
     uint8_t l4_protocol;
+    uint8_t ended_dpi:1;
 
     struct ndpi_proto detected_l7_protocol;
     struct ndpi_proto guessed_protocol;

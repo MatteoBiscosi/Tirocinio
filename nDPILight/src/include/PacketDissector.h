@@ -40,13 +40,19 @@ class PacketDissector {
         PacketDissector(uint num);
         ~PacketDissector();
 
+
+        virtual int parsePacket(FlowInfo flow
+                                Reader * & const args,
+                                void * header_tmp,
+                                void * packet_tmp,
+                                struct ndpi_support & pkt_infos) = 0;
 	    /*  
          *  This function is called every time a new packets appears;
          *  it process all the packets, adding new flows, updating infos, ecc.  
          */
-        virtual void processPacket(void * args,
-                                    void * header,
-                                    void * packet) = 0;
+        void processPacket(void * args,
+                            void * header,
+                            void * packet);
         void initProtosCnt(uint num);
         void printStats(Reader* reader);
         

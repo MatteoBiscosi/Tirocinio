@@ -7,9 +7,11 @@
 
 class PcapDissector : public PacketDissector {
     public:
-        void processPacket(void * args,
-                            void * header,
-                            void * packet);
+        void parsePacket(FlowInfo flow
+                            Reader * & const args,
+                            void * header_tmp,
+                            void * packet_tmp,
+                            struct ndpi_support & pkt_infos);
     private:
         /*  
          *  Process datalink layer  
@@ -75,18 +77,6 @@ class PcapDissector : public PacketDissector {
                     size_t& hashed_index,
                     struct ndpi_id_struct * & ndpi_src,
                     struct ndpi_id_struct * & ndpi_dst);
-
-        /*  
-         *  Prints all flow's infos  
-         */
-        void printFlowInfos(PcapReader * & reader,
-                            FlowInfo * & flow_to_process,
-                            const struct ndpi_iphdr * & ip,
-                            struct ndpi_ipv6hdr * & ip6,
-                            uint16_t& ip_size,
-                            struct ndpi_id_struct * & ndpi_src,
-                            struct ndpi_id_struct * & ndpi_dst,
-                            uint64_t& time_ms);
 };
 
 extern PacketDissector * pkt_parser;

@@ -7,6 +7,7 @@
 
 class Reader {
     protected:
+        bool newFlowCheck;
 
         uint8_t error_or_eof;
         
@@ -37,6 +38,9 @@ class Reader {
         void ** getIdleFlows() { return this->ndpi_flows_idle; };
         unsigned long long int getMaxActiveFlows() {return this->max_active_flows; };
         unsigned long long int getMaxIdleFlows() {return this->max_idle_flows; };
+
+        void setNewFlow(bool flow) { newFlowCheck = flow; };
+        bool getNewFlow() { return newFlowCheck; };
 
         struct ndpi_detection_module_struct * getNdpiStruct() { return this->ndpi_struct; };
 };
