@@ -7,11 +7,11 @@
 
 class PcapDissector : public PacketDissector {
     public:
-        void parsePacket(FlowInfo flow
-                            Reader * & const args,
+        int parsePacket(FlowInfo & flow,
+                            Reader * & args,
                             void * header_tmp,
                             void * packet_tmp,
-                            struct ndpi_support & pkt_infos);
+                            struct ndpi_support & pkt_infos) override;
     private:
         /*  
          *  Process datalink layer  
@@ -19,22 +19,14 @@ class PcapDissector : public PacketDissector {
         int processL2(PcapReader * reader,
                     pcap_pkthdr const * header,
                     uint8_t const * packet,
-                    uint16_t& type,
-                    uint16_t& ip_size,
-                    uint16_t& ip_offset,
-                    const uint16_t& eth_offset,
-                    const struct ndpi_ethhdr * & ethernet);
+                    struct ndpi_support & pkt_infos);
 
         /*  
          *  Set l2 infos
          */
         int setL2Ip(pcap_pkthdr const * header,
                     uint8_t const * packet,
-                    uint16_t& type,
-                    uint16_t& ip_size,
-                    uint16_t& ip_offset,
-                    const struct ndpi_iphdr * & ip,
-                    struct ndpi_ipv6hdr * & ip6);
+                    struct ndpi_support & pkt_infos);
 
         /*  
          *  Process level3 of the packet 
@@ -42,13 +34,7 @@ class PcapDissector : public PacketDissector {
         int processL3(FlowInfo& flow,
                     pcap_pkthdr const * header,
                     uint8_t const * packet,
-                    uint16_t& type,
-                    uint16_t& ip_size,
-                    uint16_t& ip_offset,
-                    const struct ndpi_iphdr * & ip,
-                    struct ndpi_ipv6hdr * & ip6,
-                    const uint8_t * & l4_ptr,
-                    uint16_t& l4_len);
+                    struct ndpi_support & pkt_infos);
 
         /*  
          *  Process level 4 of the packet 
@@ -56,27 +42,7 @@ class PcapDissector : public PacketDissector {
         int processL4(FlowInfo& flow,
                     pcap_pkthdr const * header,
                     uint8_t const * packet,
-                    const uint8_t * & l4_ptr,
-                    uint16_t& l4_len);
-
-        /*  
-         *  Calculate flow hash for btree find, search(insert)
-         */
-        int searchVal(PcapReader * & reader,
-                    FlowInfo& flow,
-                    void * & tree_result,
-                    struct ndpi_ipv6hdr * & ip6,
-                    size_t& hashed_index);
-
-        /*  
-         *  Add a new flow to the tree  
-         */
-        int addVal(PcapReader * & reader,
-                    FlowInfo& flow,
-                    FlowInfo * & flow_to_process,
-                    size_t& hashed_index,
-                    struct ndpi_id_struct * & ndpi_src,
-                    struct ndpi_id_struct * & ndpi_dst);
+                    struct ndpi_support & pkt_infos);
 };
 
 extern PacketDissector * pkt_parser;

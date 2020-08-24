@@ -41,8 +41,8 @@ class PacketDissector {
         ~PacketDissector();
 
 
-        virtual int parsePacket(FlowInfo flow
-                                Reader * & const args,
+        virtual int parsePacket(FlowInfo & flow,
+                                Reader * &args,
                                 void * header_tmp,
                                 void * packet_tmp,
                                 struct ndpi_support & pkt_infos) = 0;
@@ -60,18 +60,21 @@ class PacketDissector {
          *  Prints all flow's infos  
          */                
         void printFlowInfos(Reader * reader,
-                            FlowInfo * & flow_to_process,
-                            const struct ndpi_iphdr * & ip,
-                            struct ndpi_ipv6hdr * & ip6,
-                            uint16_t& ip_size,
-                            struct ndpi_id_struct * & ndpi_src,
-                            struct ndpi_id_struct * & ndpi_dst,
-                            uint64_t& time_ms);
+                            struct ndpi_support & pkt_infos);
 
-	    unsigned long long int getPktsCaptured() { return captured_stats.packets_captured; };
+	int searchVal(Reader * & reader,
+                      FlowInfo& flow,
+                      struct ndpi_support & pkt_infos);
+
+	int addVal(Reader * & reader,
+                        FlowInfo& flow,
+                        struct ndpi_support & pkt_infos);
+
+
+	unsigned long long int getPktsCaptured() { return captured_stats.packets_captured; };
         void incrPktsCaptured() { this->captured_stats.packets_captured++; };
         void incrUnhaPkts() { this->captured_stats.unhandled_packets++; };
-	    void incrWireBytes(unsigned long long int bytes) { this->captured_stats.total_wire_bytes += bytes; };
+	void incrWireBytes(unsigned long long int bytes) { this->captured_stats.total_wire_bytes += bytes; };
 };
 
 

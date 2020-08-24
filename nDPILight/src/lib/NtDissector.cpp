@@ -53,7 +53,7 @@ int NtDissector::DumpIPv4(FlowInfo& flow,
     pkt_infos.ip_offset = sizeof(struct ndpi_ethhdr) + pkt_infos.eth_offset;
     pkt_infos.ip = (struct ndpi_iphdr *)(&packet[pkt_infos.ip_offset]);
     pkt_infos.ip6 = nullptr;
-
+    //printf("timestamp: %d\n", pDyn1->timestamp);
     /*  Lvl 3   */
 
     pkt_infos.ip_size = pDyn1->capLength - pDyn1->descrLength - pkt_infos.ip_offset;
@@ -182,8 +182,8 @@ int NtDissector::getDyn(NtNetBuf_t& hNetBuffer,
 
 /* ********************************** */
 
-void NtDissector::parsePacket(FlowInfo flow
-                                Reader * & const args,
+int NtDissector::parsePacket(FlowInfo & flow,
+                                Reader * & args,
                                 void * header_tmp,
                                 void * packet_tmp,
                                 struct ndpi_support & pkt_infos)
@@ -199,9 +199,10 @@ void NtDissector::parsePacket(FlowInfo flow
     // Updating time counters
     if(!this->captured_stats.nt_time_start)
     	this->captured_stats.nt_time_start = (uint64_t) NT_NET_GET_PKT_TIMESTAMP(* hNetBuffer);
-    
+        
     this->captured_stats.nt_time_end = (uint64_t) NT_NET_GET_PKT_TIMESTAMP(* hNetBuffer);
-    
+    //printf("timestamp type: %d, %d\n", NT_NET_GET_PKT_TIMESTAMP_TYPE(* hNetBuffer), NT_NET_GET_PKT_TIMESTAMP(* hNetBuffer));
+    pkt_infos.time_ms = NT_NET_GET_PKT_TIMESTAMP(* hNetBuffer);
     // Checking idle flows
     reader->newPacket((void *)hNetBuffer);
 /*

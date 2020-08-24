@@ -46,6 +46,7 @@ void nt_idle_scan_walker(void const * const A, ndpi_VISIT which, int depth, void
             flow->last_seen + MAX_IDLE_TIME < workflow->getLastTime())
             /*  New flow that need to be added to idle flows    */
         {
+	    printf("%llu, %d, %llu\n", flow->last_seen, MAX_IDLE_TIME, workflow->getLastTime());
             char src_addr_str[INET6_ADDRSTRLEN+1];
             char dst_addr_str[INET6_ADDRSTRLEN+1];
             flow->ipTupleToString(src_addr_str, sizeof(src_addr_str), dst_addr_str, sizeof(dst_addr_str));
@@ -244,6 +245,7 @@ void NapatechReader::newPacket(void * header)
 
     this->last_time = (uint64_t) NT_NET_GET_PKT_TIMESTAMP(* hNetBuffer);
 
+    //printf("%d\n", this->last_time);
     /*  Scan done every 15000 ms more or less   */    
     pkt_parser->incrWireBytes(NT_NET_GET_PKT_CAP_LENGTH(* hNetBuffer));
     this->checkForIdleFlows();
@@ -255,6 +257,7 @@ void NapatechReader::checkForIdleFlows()
 {
 	/*  Check if at least IDLE_SCAN_PERIOD passed since last scan   */
 	if (this->last_idle_scan_time + IDLE_SCAN_PERIOD * 10000 < this->last_time) {
+	//	printf("inside idle flow, %d\n", this->cur_active_flows);
 		for (this->idle_scan_index; this->idle_scan_index < this->max_idle_scan_index; ++this->idle_scan_index) {
 
 			if(this->ndpi_flows_active[this->idle_scan_index] == nullptr)
@@ -264,6 +267,7 @@ void NapatechReader::checkForIdleFlows()
 
 			/*  Removes all idle flows that were copied into ndpi_flows_idle from the ndpi_twalk    */
 			while (this->cur_idle_flows > 0) {
+				
 				/*  Get the flow    */
 				FlowInfo * const tmp_f =
 					(FlowInfo *)this->ndpi_flows_idle[--this->cur_idle_flows];
@@ -276,7 +280,7 @@ void NapatechReader::checkForIdleFlows()
 				} else {
 					tracer->traceEvent(4, "[%4u] Freeing idle flow\n", tmp_f->flow_id);
 				}
-
+				printf("\t\t\tinside while\n");
 				/*  Removes it from the active flows    */
 				ndpi_tdelete(tmp_f, &this->ndpi_flows_active[this->idle_scan_index],
 						ndpi_workflow_node_cmp);

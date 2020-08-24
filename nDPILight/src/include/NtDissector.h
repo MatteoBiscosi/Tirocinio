@@ -7,7 +7,11 @@
 
 class NtDissector : public PacketDissector{
     public:
-	    void processPacket(void *, void *, void *);    
+	virtual int parsePacket(FlowInfo & flow,
+                                Reader * &args,
+                                void * header_tmp,
+                                void * packet_tmp,
+                                struct ndpi_support & pkt_infos) override;    
 	
     private:
         /*
@@ -40,24 +44,6 @@ class NtDissector : public PacketDissector{
                     FlowInfo& flow,
                     NtDyn1Descr_t* & pDyn1,
                     struct ndpi_support& pkt_infos);
-        
-        /*  
-         *  Calculate flow hash for btree find, search(insert)
-         */
-        int searchVal(NapatechReader * & reader,
-                        FlowInfo& flow,
-                        void * & tree_result,
-                        size_t& hashed_index);
-
-        /*  
-         *  Add a new flow to the tree  
-         */                
-        int addVal(NapatechReader * & reader,
-                    FlowInfo& flow,
-                    FlowInfo * & flow_to_process,
-                    size_t& hashed_index,
-                    struct ndpi_id_struct * & ndpi_src,
-                    struct ndpi_id_struct * & ndpi_dst);
 };
 
 #endif

@@ -46,7 +46,7 @@
 #define TICK_RESOLUTION 1000
 #define IDLE_SCAN_PERIOD 15000 /* msec */
 #define PACKET_SCAN_PERIOD 524288 /* n_pkts */
-#define MAX_IDLE_TIME 300000 /* msec */
+#define MAX_IDLE_TIME 300000000 /* msec */
 
 #ifndef ETH_P_IP
 #define ETH_P_IP 0x0800

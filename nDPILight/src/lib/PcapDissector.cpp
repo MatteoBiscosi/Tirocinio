@@ -30,7 +30,7 @@ int PcapDissector::processL2(PcapReader * const reader,
             pkt_infos.ethernet = (struct ndpi_ethhdr *) &packet[pkt_infos.eth_offset];
             pkt_infos.ip_offset = sizeof(struct ndpi_ethhdr) + pkt_infos.eth_offset;
             pkt_infos.type = ntohs(pkt_infos.ethernet->h_proto);
-            switch (type) {
+            switch (pkt_infos.type) {
                 case ETH_P_IP:
                     /* IPv4 */
                     if (header->len < sizeof(struct ndpi_ethhdr) + sizeof(struct ndpi_iphdr)) {
@@ -53,7 +53,7 @@ int PcapDissector::processL2(PcapReader * const reader,
 
                 default:
                     tracer->traceEvent(1, "[%8llu] Unknown Ethernet packet with type 0x%X - skipping\n", 
-                                        this->captured_stats.packets_captured, type);
+                                        this->captured_stats.packets_captured, pkt_infos.type);
                     return -1;
             }
             break;
@@ -76,7 +76,7 @@ int PcapDissector::setL2Ip(pcap_pkthdr const * const header,
     if (pkt_infos.type == ETH_P_IP) {
         pkt_infos.ip = (struct ndpi_iphdr *)&packet[pkt_infos.ip_offset];
         pkt_infos.ip6 = nullptr;
-    } else if (type == ETH_P_IPV6) {
+    } else if (pkt_infos.type == ETH_P_IPV6) {
         pkt_infos.ip = nullptr;
         pkt_infos.ip6 = (struct ndpi_ipv6hdr *)&packet[pkt_infos.ip_offset];
     } else {
@@ -210,8 +210,8 @@ int PcapDissector::processL4(FlowInfo& flow,
 
 /* ********************************** */
 
-void PcapDissector::parsePacket(FlowInfo flow
-                                Reader * & const args,
+int PcapDissector::parsePacket(FlowInfo & flow,
+                                Reader * & args,
                                 void * header_tmp,
                                 void * packet_tmp,
                                 struct ndpi_support & pkt_infos)
