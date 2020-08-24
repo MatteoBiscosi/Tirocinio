@@ -50,11 +50,11 @@ int ndpi_workflow_node_cmp(void const * const A, void const * const B)
     }
 
     /*  Flows have the same hash, check l4_protocol */
-    if (flow_info_a->l4_protocol < flow_info_b->l4_protocol) {
+  /*  if (flow_info_a->l4_protocol < flow_info_b->l4_protocol) {
         return(-1);
     } else if (flow_info_a->l4_protocol > flow_info_b->l4_protocol) {
         return(1);
-    }
+    }*/
 
     /*  Have same hashval and l4, check l3 ip   */
     if (flow_info_a->ipTuplesEqual(flow_info_b) != 0 &&

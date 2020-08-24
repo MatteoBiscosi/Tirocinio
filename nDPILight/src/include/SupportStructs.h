@@ -6,6 +6,13 @@
 
 /* ********************************** */
 
+struct ports {
+    uint16_t srcPort;
+    uint16_t dstPort;
+};
+
+/* ********************************** */
+
 struct ntpcap_ts_s {
     uint32_t sec;
     uint32_t usec;

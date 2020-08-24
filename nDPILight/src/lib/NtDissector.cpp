@@ -5,6 +5,41 @@
 
 /* ********************************** */
 
+int NtDissector::setupFlowToSearch(Reader * & reader,
+                                    FlowInfo& flow,
+                                    NtDyn1Descr_t* & pDyn1,
+                                    PacketInfo& pkt_infos,
+                                    int l3Type)
+{
+    if (l3Type == 4) {
+        /*  IPv4    */
+        flow.ip_tuple.v4.src = pkt_infos.ip->saddr;
+        flow.ip_tuple.v4.dst = pkt_infos.ip->daddr;
+
+    } else if (l3Type == 6) {
+        /*  IPv6    */
+        flow.ip_tuple.v6.src[0] = pkt_infos.ip6->ip6_src.u6_addr.u6_addr64[0];
+        flow.ip_tuple.v6.src[1] = pkt_infos.ip6->ip6_src.u6_addr.u6_addr64[1];
+        flow.ip_tuple.v6.dst[0] = pkt_infos.ip6->ip6_dst.u6_addr.u6_addr64[0];
+        flow.ip_tuple.v6.dst[1] = pkt_infos.ip6->ip6_dst.u6_addr.u6_addr64[1];
+    }
+
+    struct ports pktPorts = pDyn1->offset1;
+
+    flow.src_port = ntohs(pktPorts->srcPort);
+    flow.dst_port = ntohs(pktPorts->dstPort);
+
+    if(this->searchVal(reader, flow, pkt_infos) != 0)
+        return -1;
+
+    this->captured_stats.ip_pkts++;
+    this->captured_stats.ip_bytes += pkt_infos.ip_size;
+
+    return 0;
+}
+
+/* ********************************** */
+
 int NtDissector::DumpL4(FlowInfo& flow,
                         PacketInfo& pkt_infos)
 {
@@ -18,8 +53,6 @@ int NtDissector::DumpL4(FlowInfo& flow,
         flow.is_midstream_flow = (tcp->syn == 0 ? 1 : 0);
         flow.flow_fin_ack_seen = (tcp->fin == 1 && tcp->ack == 1 ? 1 : 0);
         flow.flow_ack_seen = tcp->ack;
-        flow.src_port = ntohs(tcp->source);
-        flow.dst_port = ntohs(tcp->dest);
 
         this->captured_stats.tcp_pkts++;
 
@@ -28,8 +61,6 @@ int NtDissector::DumpL4(FlowInfo& flow,
         const struct ndpi_udphdr * udp;
 
         udp = (struct ndpi_udphdr *)pkt_infos.l4_ptr;
-        flow.src_port = ntohs(udp->source);
-        flow.dst_port = ntohs(udp->dest);
 
         this->captured_stats.udp_pkts++;
     }
@@ -39,7 +70,8 @@ int NtDissector::DumpL4(FlowInfo& flow,
 
 /* ********************************** */
 
-int NtDissector::DumpIPv4(FlowInfo& flow,
+int NtDissector::DumpIPv4(Reader * & reader,
+                            FlowInfo& flow,
                             NtDyn1Descr_t* & pDyn1,
                             uint8_t* & packet,
                             PacketInfo& pkt_infos)
@@ -50,23 +82,13 @@ int NtDissector::DumpIPv4(FlowInfo& flow,
     pkt_infos.ip = (struct ndpi_iphdr *)(&packet[pkt_infos.ip_offset]);
     pkt_infos.ip6 = nullptr;
     
-    /*uint32_t test[4];
-    test[0] = pDyn1->offset0;
-	test[1] = pDyn1->offset0 + 1;
-test[2] = pDyn1->offset0 + 2;
-test[3] = pDyn1->offset0 + 3;
-
-    //printf("Prova ipv4: %llu, ip: %llu\n", test, pkt_infos.ip->saddr);
-    /*  Lvl 3   *//*
-char src_addr_str[INET6_ADDRSTRLEN+1];
-            char dst_addr_str[INET6_ADDRSTRLEN+1];
-inet_ntop(AF_INET, (struct sockaddr_in *)&pkt_infos.ip->saddr,
-                             src_addr_str, sizeof(src_addr_str));
-printf("src ip: %s | dst ip: \n", src_addr_str);*/
     pkt_infos.ip_size = pDyn1->capLength - pDyn1->descrLength - pkt_infos.ip_offset;
-/*  printf("%llu\n", pkt_infos.ip_size);
-/*	printf("%llu.%llu.%llu.%llu\n",test[0], test[1], test[2], test[3] );
-  */  if (pkt_infos.ip_size < sizeof(*pkt_infos.ip)) {
+
+    if(setupFlowToSearch(reader, flow, pDyn1, pkt_infos, 4) == 0)
+        return 2;
+
+    /*  Lvl 3   */
+    if (pkt_infos.ip_size < sizeof(*pkt_infos.ip)) {
         tracer->traceEvent(0, "[%8llu] Packet smaller than IP4 header length: %u < %zu, pkt_lenght: %d\n", 
                                 this->captured_stats.packets_captured, pkt_infos.ip_size, sizeof(*pkt_infos.ip),
                                 pDyn1->capLength - pDyn1->descrLength); 
@@ -84,20 +106,19 @@ printf("src ip: %s | dst ip: \n", src_addr_str);*/
         return -1;
     }
 
-    flow.ip_tuple.v4.src = pkt_infos.ip->saddr;
-    flow.ip_tuple.v4.dst = pkt_infos.ip->daddr;
     this->captured_stats.ip_pkts++;
     this->captured_stats.ip_bytes += pkt_infos.ip_size;
 
     if(DumpL4(flow, pkt_infos) != 0)
         return -1;
     
-    return 0;
+    return 1;
 }
 
 /* ********************************** */
 
-int NtDissector::DumpIPv6(FlowInfo& flow,
+int NtDissector::DumpIPv6(Reader * & reader,
+                            FlowInfo& flow,
                             NtDyn1Descr_t* & pDyn1,
                             uint8_t* & packet,
                             PacketInfo& pkt_infos)
@@ -108,10 +129,12 @@ int NtDissector::DumpIPv6(FlowInfo& flow,
     pkt_infos.ip = nullptr;
     pkt_infos.ip6 = (struct ndpi_ipv6hdr *)&packet[pkt_infos.ip_offset];
 
-    /*  Lvl 3   */
-
     pkt_infos.ip_size = pDyn1->capLength - pDyn1->descrLength - pkt_infos.ip_offset;
 
+    if(setupFlowToSearch(reader, flow, pDyn1, pkt_infos, 4) == 0)
+        return 2;
+
+    /*  Lvl 3   */
     if (pkt_infos.ip_size < sizeof(pkt_infos.ip6->ip6_hdr)) {
         tracer->traceEvent(0, "[%8llu] Packet smaller than IP6 header length: %u < %zu\n",
                                 this->captured_stats.packets_captured, pkt_infos.ip_size, sizeof(pkt_infos.ip6->ip6_hdr));
@@ -128,24 +151,20 @@ int NtDissector::DumpIPv6(FlowInfo& flow,
         return -1;
     }
 
-    flow.ip_tuple.v6.src[0] = pkt_infos.ip6->ip6_src.u6_addr.u6_addr64[0];
-    flow.ip_tuple.v6.src[1] = pkt_infos.ip6->ip6_src.u6_addr.u6_addr64[1];
-    flow.ip_tuple.v6.dst[0] = pkt_infos.ip6->ip6_dst.u6_addr.u6_addr64[0];
-    flow.ip_tuple.v6.dst[1] = pkt_infos.ip6->ip6_dst.u6_addr.u6_addr64[1];
-
     this->captured_stats.ip_pkts++;
     this->captured_stats.ip_bytes += pkt_infos.ip_size;
 
     if(DumpL4(flow, pkt_infos) != 0)
         return -1;
 
-    return 0;
+    return 1;
 }
 
 /* ********************************** */
 
 
-int NtDissector::getDyn(NtNetBuf_t& hNetBuffer,
+int NtDissector::getDyn(Reader * & reader,
+                        NtNetBuf_t& hNetBuffer,
                         FlowInfo& flow,
                         NtDyn1Descr_t* & pDyn1,
                         PacketInfo& pkt_infos)
@@ -164,21 +183,13 @@ int NtDissector::getDyn(NtNetBuf_t& hNetBuffer,
         } else {
             switch (pDyn1->color >> 2) {
             case 0:  // IPv4
-                    if(DumpIPv4(flow, pDyn1, packet, pkt_infos) != 0)
-                        return -1;
-                    break;
+                    return DumpIPv4(reader, flow, pDyn1, packet, pkt_infos);
             case 1:  // IPv6
-                    if(DumpIPv6(flow, pDyn1, packet, pkt_infos) != 0)
-                        return -1;
-                    break;
+                    return DumpIPv6(reader, flow, pDyn1, packet, pkt_infos);
             case 2:  // Tunneled IPv4
-                    if(DumpIPv4(flow, pDyn1, packet, pkt_infos) != 0)
-                        return -1;
-                    break;
+                    return DumpIPv4(reader, flow, pDyn1, packet, pkt_infos);
             case 3:  // Tunneled IPv6
-                    if(DumpIPv6(flow, pDyn1, packet, pkt_infos) != 0)
-                        return -1;
-                    break;
+                    return DumpIPv6(reader, flow, pDyn1, packet, pkt_infos);
             }
         }
     }
@@ -205,13 +216,7 @@ int NtDissector::parsePacket(FlowInfo & flow,
     reader->newPacket((void *)hNetBuffer);
 
     // Parsing packets
-    if(this->getDyn(* hNetBuffer, flow, pDyn1, pkt_infos) != 0)
-        return -1;
-    
-    this->captured_stats.packets_processed++;
-    this->captured_stats.total_l4_data_len += pkt_infos.l4_len;
-
-    return 0;
+    return this->getDyn(reader, * hNetBuffer, flow, pDyn1, pkt_infos);
 }
 
 /* ********************************** */
