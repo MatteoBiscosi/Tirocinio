@@ -11,7 +11,7 @@ class PcapDissector : public PacketDissector {
                             Reader * & args,
                             void * header_tmp,
                             void * packet_tmp,
-                            struct ndpi_support & pkt_infos) override;
+                            PacketInfo & pkt_infos) override;
     private:
         /*  
          *  Process datalink layer  
@@ -19,14 +19,14 @@ class PcapDissector : public PacketDissector {
         int processL2(PcapReader * reader,
                     pcap_pkthdr const * header,
                     uint8_t const * packet,
-                    struct ndpi_support & pkt_infos);
+                    PacketInfo & pkt_infos);
 
         /*  
          *  Set l2 infos
          */
         int setL2Ip(pcap_pkthdr const * header,
                     uint8_t const * packet,
-                    struct ndpi_support & pkt_infos);
+                    PacketInfo & pkt_infos);
 
         /*  
          *  Process level3 of the packet 
@@ -34,7 +34,7 @@ class PcapDissector : public PacketDissector {
         int processL3(FlowInfo& flow,
                     pcap_pkthdr const * header,
                     uint8_t const * packet,
-                    struct ndpi_support & pkt_infos);
+                    PacketInfo & pkt_infos);
 
         /*  
          *  Process level 4 of the packet 
@@ -42,7 +42,7 @@ class PcapDissector : public PacketDissector {
         int processL4(FlowInfo& flow,
                     pcap_pkthdr const * header,
                     uint8_t const * packet,
-                    struct ndpi_support & pkt_infos);
+                    PacketInfo & pkt_infos);
 };
 
 extern PacketDissector * pkt_parser;

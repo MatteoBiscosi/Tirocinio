@@ -9,7 +9,7 @@ static uint32_t flow_id = 0;
 int PcapDissector::processL2(PcapReader * const reader,
                                 pcap_pkthdr const * const header,
                                 uint8_t const * const packet,
-                                struct ndpi_support & pkt_infos)
+                                PacketInfo & pkt_infos)
 {
     switch (pcap_datalink(reader->getPcapHandle())) {
         case DLT_NULL:
@@ -71,7 +71,7 @@ int PcapDissector::processL2(PcapReader * const reader,
 
 int PcapDissector::setL2Ip(pcap_pkthdr const * const header,
                             uint8_t const * const packet,
-                            struct ndpi_support & pkt_infos)
+                            PacketInfo & pkt_infos)
 {
     if (pkt_infos.type == ETH_P_IP) {
         pkt_infos.ip = (struct ndpi_iphdr *)&packet[pkt_infos.ip_offset];
@@ -103,7 +103,7 @@ int PcapDissector::setL2Ip(pcap_pkthdr const * const header,
 int PcapDissector::processL3(FlowInfo& flow,
                           pcap_pkthdr const * const header,
                           uint8_t const * const packet,
-                          struct ndpi_support & pkt_infos)
+                          PacketInfo & pkt_infos)
 {
     if (pkt_infos.ip != nullptr && pkt_infos.ip->version == 4) {
         /*  IPv4    */
@@ -166,7 +166,7 @@ int PcapDissector::processL3(FlowInfo& flow,
 int PcapDissector::processL4(FlowInfo& flow,
                           pcap_pkthdr const * const header,
                           uint8_t const * const packet,
-                          struct ndpi_support & pkt_infos)
+                          PacketInfo & pkt_infos)
 {
     if (flow.l4_protocol == IPPROTO_TCP) {
         /*  TCP   */
@@ -214,7 +214,7 @@ int PcapDissector::parsePacket(FlowInfo & flow,
                                 Reader * & args,
                                 void * header_tmp,
                                 void * packet_tmp,
-                                struct ndpi_support & pkt_infos)
+                                PacketInfo & pkt_infos)
 {
     PcapReader * reader = (PcapReader *) args;
        
@@ -222,12 +222,6 @@ int PcapDissector::parsePacket(FlowInfo & flow,
     uint8_t const * const packet = (uint8_t const * const) packet_tmp;
 
     this->captured_stats.packets_captured++;
-    if(!this->captured_stats.pcap_start.tv_sec) {
-        this->captured_stats.pcap_start.tv_sec = header->ts.tv_sec ;
-        this->captured_stats.pcap_start.tv_usec = header->ts.tv_usec;
-    }
-    this->captured_stats.pcap_end.tv_sec = header->ts.tv_sec;
-    this->captured_stats.pcap_end.tv_usec = header->ts.tv_usec;
 
     reader->newPacket((void *) header);
 
@@ -255,49 +249,6 @@ int PcapDissector::parsePacket(FlowInfo & flow,
     }
 
     return 0;
-/*
-    this->captured_stats.packets_processed++;
-    this->captured_stats.total_l4_data_len += pkt_infos.l4_len;
-
-    if(this->searchVal(reader, flow, pkt_infos) != 0) {
-        if(this->addVal(reader, flow, pkt_infos) != 0) {
-            this->captured_stats.discarded_bytes += header->len;
-            return;
-        }
-        else
-            this->captured_stats.total_flows_captured++;
-    } else {
-        pkt_infos.flow_to_process = *(FlowInfo **)pkt_infos.tree_result;
-
-        if (pkt_infos.ndpi_src != pkt_infos.flow_to_process->ndpi_src) {
-            pkt_infos.ndpi_src = pkt_infos.flow_to_process->ndpi_dst;
-            pkt_infos.ndpi_dst = pkt_infos.flow_to_process->ndpi_src;
-        } else {
-            pkt_infos.ndpi_src = pkt_infos.flow_to_process->ndpi_src;
-            pkt_infos.ndpi_dst = pkt_infos.flow_to_process->ndpi_dst;
-        }
-    }
-
-    pkt_infos.flow_to_process->packets_processed++;
-    pkt_infos.flow_to_process->total_l4_data_len += pkt_infos.l4_len;
-    /* update timestamps, important for timeout handling */
- /*   if (pkt_infos.flow_to_process->first_seen == 0) {
- /*       pkt_infos.flow_to_process->first_seen = pkt_infos.time_ms;
-    }
- /*   pkt_infos.flow_to_process->last_seen = pkt_infos.time_ms;
-    /* current packet is an TCP-ACK? */
-/*    pkt_infos.flow_to_process->flow_ack_seen = flow.flow_ack_seen;
-
-    /* TCP-FIN: indicates that at least one side wants to end the connection */
- /*   if (flow.flow_fin_ack_seen != 0 && pkt_infos.flow_to_process->flow_fin_ack_seen == 0) {
-        pkt_infos.flow_to_process->flow_fin_ack_seen = 1;
-        tracer->traceEvent(4, "[%8llu, %4u] end of flow\n",
-                                    this->captured_stats.packets_captured, flow_to_process->flow_id);
-        this->captured_stats.discarded_bytes += header->len;
-        return;
-    }
-
-    this->printFlowInfos(reader, pkt_infos);*/
 }
 
 /* ********************************** */

@@ -11,14 +11,14 @@ class NtDissector : public PacketDissector{
                                 Reader * &args,
                                 void * header_tmp,
                                 void * packet_tmp,
-                                struct ndpi_support & pkt_infos) override;    
+                                PacketInfo & pkt_infos) override;    
 	
     private:
         /*
          *  Function used to parse and update l4 infos
          */
         int DumpL4(FlowInfo& flow,
-                    struct ndpi_support& pkt_infos);
+                    PacketInfo& pkt_infos);
 
         /*
          *  Parse ipv4 packets
@@ -26,7 +26,7 @@ class NtDissector : public PacketDissector{
         int DumpIPv4(FlowInfo& flow,
                         NtDyn1Descr_t* & pDyn1,
                         uint8_t* & packet,
-                        struct ndpi_support& pkt_infos);
+                        PacketInfo& pkt_infos);
 
         /*
          *  Parse ipv6 packets
@@ -34,7 +34,7 @@ class NtDissector : public PacketDissector{
         int DumpIPv6(FlowInfo& flow,
                         NtDyn1Descr_t* & pDyn1,
                         uint8_t* & packet,
-                        struct ndpi_support& pkt_infos);
+                        PacketInfo& pkt_infos);
 
         /*
          *  Get the dynamic descriptor of the packet
@@ -43,7 +43,7 @@ class NtDissector : public PacketDissector{
         int getDyn(NtNetBuf_t& hNetBuffer,
                     FlowInfo& flow,
                     NtDyn1Descr_t* & pDyn1,
-                    struct ndpi_support& pkt_infos);
+                    PacketInfo& pkt_infos);
 };
 
 #endif

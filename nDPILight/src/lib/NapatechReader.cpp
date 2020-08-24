@@ -43,10 +43,9 @@ void nt_idle_scan_walker(void const * const A, ndpi_VISIT which, int depth, void
 
     if (which == ndpi_preorder || which == ndpi_leaf) {
         if ((flow->flow_fin_ack_seen == 1 && flow->flow_ack_seen == 1) ||
-            flow->last_seen + MAX_IDLE_TIME < workflow->getLastTime())
+            flow->last_seen + MAX_IDLE_TIME * 1000 < workflow->getLastTime())
             /*  New flow that need to be added to idle flows    */
         {
-	    printf("%llu, %d, %llu\n", flow->last_seen, MAX_IDLE_TIME, workflow->getLastTime());
             char src_addr_str[INET6_ADDRSTRLEN+1];
             char dst_addr_str[INET6_ADDRSTRLEN+1];
             flow->ipTupleToString(src_addr_str, sizeof(src_addr_str), dst_addr_str, sizeof(dst_addr_str));
@@ -245,9 +244,8 @@ void NapatechReader::newPacket(void * header)
 
     this->last_time = (uint64_t) NT_NET_GET_PKT_TIMESTAMP(* hNetBuffer);
 
-    //printf("%d\n", this->last_time);
     /*  Scan done every 15000 ms more or less   */    
-    pkt_parser->incrWireBytes(NT_NET_GET_PKT_CAP_LENGTH(* hNetBuffer));
+    pkt_parser->incrWireBytes(NT_NET_GET_PKT_CAP_LENGTH(* hNetBuffer) - NT_NET_GET_PKT_DESCR_LENGTH(* hNetBuffer));
     this->checkForIdleFlows();
 }
 
@@ -256,10 +254,9 @@ void NapatechReader::newPacket(void * header)
 void NapatechReader::checkForIdleFlows()
 {
 	/*  Check if at least IDLE_SCAN_PERIOD passed since last scan   */
-	if (this->last_idle_scan_time + IDLE_SCAN_PERIOD * 10000 < this->last_time) {
-	//	printf("inside idle flow, %d\n", this->cur_active_flows);
+	if (this->last_idle_scan_time + IDLE_SCAN_PERIOD * 1000 < this->last_time) {
+        printf("Test time\n");
 		for (this->idle_scan_index; this->idle_scan_index < this->max_idle_scan_index; ++this->idle_scan_index) {
-
 			if(this->ndpi_flows_active[this->idle_scan_index] == nullptr)
 				continue;
 
@@ -267,7 +264,6 @@ void NapatechReader::checkForIdleFlows()
 
 			/*  Removes all idle flows that were copied into ndpi_flows_idle from the ndpi_twalk    */
 			while (this->cur_idle_flows > 0) {
-				
 				/*  Get the flow    */
 				FlowInfo * const tmp_f =
 					(FlowInfo *)this->ndpi_flows_idle[--this->cur_idle_flows];
@@ -293,7 +289,6 @@ void NapatechReader::checkForIdleFlows()
 		}
 
 		this->last_idle_scan_time = this->last_time;
-
 		this->last_packets_scan = pkt_parser->getPktsCaptured();
 
 		/* Updating next max_idle_scan_index */
@@ -310,7 +305,7 @@ void NapatechReader::taskReceiverAny(const char* streamName, NtFlowStream_t& flo
     while(this->error_or_eof == 0) {
         // Get package from rx stream.
         status = NT_NetRxGetNextPacket(this->hNetRxAny, &(this->hNetBufferAny), -1);
-//	printf("Prova\n");	        
+	        
         if(status == NT_STATUS_TIMEOUT || status == NT_STATUS_TRYAGAIN) 
             continue;
 
