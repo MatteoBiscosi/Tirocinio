@@ -39,8 +39,8 @@ void PacketDissector::updateSrcDst(PacketInfo & pkt_infos)
 
 /* ********************************** */
 
-void updateTimerAndCntrs(FlowInfo& flow,
-                            PacketInfo & pkt_infos)
+void PacketDissector::updateTimerAndCntrs(FlowInfo& flow,
+                      			      PacketInfo & pkt_infos)
 {
     pkt_infos.flow_to_process->packets_processed++;
     pkt_infos.flow_to_process->total_l4_data_len += pkt_infos.l4_len;
@@ -76,7 +76,7 @@ void PacketDissector::printStats(Reader *reader)
     tracer->traceEvent(2, "\t\tIP packets:                 %-20llu of %llu packets total\n",
                             this->captured_stats.ip_pkts,
                             this->captured_stats.packets_captured);
-    tracer->traceEvent(2, "\t\tUnhandled IP packets:                 %-20llu\n",
+    tracer->traceEvent(2, "\t\tUnhandled IP packets:       %-20llu\n",
                             this->captured_stats.unhandled_packets);
     /* In order to prevent Floating point exception in case of no traffic*/
     if(this->captured_stats.ip_bytes && this->captured_stats.packets_captured)
@@ -89,15 +89,6 @@ void PacketDissector::printStats(Reader *reader)
 
     tracer->traceEvent(2, "\t\tTCP Packets:                %-20lu\n", this->captured_stats.tcp_pkts);
     tracer->traceEvent(2, "\t\tUDP Packets:                %-20lu\n", this->captured_stats.udp_pkts);
-
-    char when[64];
-    struct tm result;
-
-    strftime(when, sizeof(when), "%d/%b/%Y %H:%M:%S", localtime_r(&this->captured_stats.pcap_start.tv_sec, &result));
-    tracer->traceEvent(2, "\t\tAnalysis begin:             %s\n", when);
-
-    strftime(when, sizeof(when), "%d/%b/%Y %H:%M:%S", localtime_r(&this->captured_stats.pcap_end.tv_sec, &result));
-    tracer->traceEvent(2, "\t\tAnalysis end:               %s\n", when);
 
     tracer->traceEvent(2, "\t\tDetected flow protos:       %-20u\n", this->captured_stats.detected_flow_protocols);
     tracer->traceEvent(2, "\t\tGuessed flow protos:        %-20u\n", this->captured_stats.guessed_flow_protocols);
@@ -168,7 +159,7 @@ int PacketDissector::addVal(Reader * & reader,
     
 
     memcpy(pkt_infos.flow_to_process, &flow, sizeof(*pkt_infos.flow_to_process));
-    flow_to_process->flow_id = flow_id++;
+    pkt_infos.flow_to_process->flow_id = flow_id++;
 
     pkt_infos.flow_to_process->ndpi_flow = (struct ndpi_flow_struct *)ndpi_flow_malloc(SIZEOF_FLOW_STRUCT);
     if (pkt_infos.flow_to_process->ndpi_flow == nullptr) {
@@ -241,7 +232,7 @@ void PacketDissector::printFlowInfos(Reader * reader,
             char *tmp = ndpi_get_proto_breed_name(reader->getNdpiStruct(), 
                                                     ndpi_get_proto_breed(reader->getNdpiStruct(), 
                                                     pkt_infos.flow_to_process->detected_l7_protocol.master_protocol));
-            flow->ipTupleToString(src_addr_str, sizeof(src_addr_str), dst_addr_str, sizeof(dst_addr_str));
+            pkt_infos.flow_to_process->ipTupleToString(src_addr_str, sizeof(src_addr_str), dst_addr_str, sizeof(dst_addr_str));
             
             if(strcmp(tmp, "Unsafe") == 0)
                 tracer->traceEvent(1, "[%s flow] src ip: %s | dst ip: %s | src port: %u | dst port: %u\n", 
@@ -286,7 +277,7 @@ void PacketDissector::printFlowInfos(Reader * reader,
             char *tmp = ndpi_get_proto_breed_name(reader->getNdpiStruct(), 
                                                     ndpi_get_proto_breed(reader->getNdpiStruct(), 
                                                     pkt_infos.flow_to_process->detected_l7_protocol.master_protocol));
-            flow->ipTupleToString(src_addr_str, sizeof(src_addr_str), dst_addr_str, sizeof(dst_addr_str));
+            pkt_infos.flow_to_process->ipTupleToString(src_addr_str, sizeof(src_addr_str), dst_addr_str, sizeof(dst_addr_str));
             
             if(strcmp(tmp, "Unsafe") == 0)
                 tracer->traceEvent(1, "[%s flow] src ip: %s | dst ip: %s | src port: %u | dst port: %u\n", 
@@ -312,9 +303,14 @@ void PacketDissector::processPacket(void * const args,
 
     PacketInfo pkt_infos = PacketInfo();
 
+    this->captured_stats.packets_captured++;
+
     /* Parsing the packet */
     status = this->parsePacket(flow, reader, header_tmp, packet_tmp, pkt_infos);
    
+    if(status != 0) {
+	return;
+    }
     /* Searching the value inside of the flow table */
     if(this->searchVal(reader, flow, pkt_infos) != 0) {
         if(this->addVal(reader, flow, pkt_infos) != 0) {
@@ -342,7 +338,6 @@ void PacketDissector::processPacket(void * const args,
     }
 
     if(pkt_infos.flow_to_process->ended_dpi) {
-        printf("Skipping dpi analysis\n");
         return;
     }
     

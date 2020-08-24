@@ -7,6 +7,7 @@
 
 class PacketDissector {
     protected:
+	unsigned long long int flow_id;
         class CaptureStats {
             public:
                 unsigned long long int unhandled_packets;

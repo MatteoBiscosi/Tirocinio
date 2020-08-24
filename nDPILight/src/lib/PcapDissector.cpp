@@ -221,8 +221,6 @@ int PcapDissector::parsePacket(FlowInfo & flow,
     pcap_pkthdr const * const header = (pcap_pkthdr const * const) header_tmp;
     uint8_t const * const packet = (uint8_t const * const) packet_tmp;
 
-    this->captured_stats.packets_captured++;
-
     reader->newPacket((void *) header);
 
     /*  Process L2  */

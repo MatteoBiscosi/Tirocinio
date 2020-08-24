@@ -254,8 +254,8 @@ void NapatechReader::newPacket(void * header)
 void NapatechReader::checkForIdleFlows()
 {
 	/*  Check if at least IDLE_SCAN_PERIOD passed since last scan   */
-	if (this->last_idle_scan_time + IDLE_SCAN_PERIOD * 1000 < this->last_time) {
-        printf("Test time\n");
+	if (this->last_idle_scan_time + IDLE_SCAN_PERIOD * 10000 < this->last_time) {
+        
 		for (this->idle_scan_index; this->idle_scan_index < this->max_idle_scan_index; ++this->idle_scan_index) {
 			if(this->ndpi_flows_active[this->idle_scan_index] == nullptr)
 				continue;
@@ -276,7 +276,7 @@ void NapatechReader::checkForIdleFlows()
 				} else {
 					tracer->traceEvent(4, "[%4u] Freeing idle flow\n", tmp_f->flow_id);
 				}
-				printf("\t\t\tinside while\n");
+				
 				/*  Removes it from the active flows    */
 				ndpi_tdelete(tmp_f, &this->ndpi_flows_active[this->idle_scan_index],
 						ndpi_workflow_node_cmp);
@@ -304,7 +304,7 @@ void NapatechReader::taskReceiverAny(const char* streamName, NtFlowStream_t& flo
 
     while(this->error_or_eof == 0) {
         // Get package from rx stream.
-        status = NT_NetRxGetNextPacket(this->hNetRxAny, &(this->hNetBufferAny), -1);
+        status = NT_NetRxGet(this->hNetRxAny, &(this->hNetBufferAny), -1);
 	        
         if(status == NT_STATUS_TIMEOUT || status == NT_STATUS_TRYAGAIN) 
             continue;

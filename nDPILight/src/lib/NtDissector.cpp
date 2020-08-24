@@ -45,19 +45,28 @@ int NtDissector::DumpIPv4(FlowInfo& flow,
                             PacketInfo& pkt_infos)
 {
     /*  Lvl 2   */
-    pkt_infos.ethernet = (struct ndpi_ethhdr *) packet;
+    pkt_infos.ethernet = (struct ndpi_ethhdr *) &packet[pkt_infos.eth_offset];
     pkt_infos.ip_offset = sizeof(struct ndpi_ethhdr) + pkt_infos.eth_offset;
     pkt_infos.ip = (struct ndpi_iphdr *)(&packet[pkt_infos.ip_offset]);
     pkt_infos.ip6 = nullptr;
     
-    uint64_t test = pDyn1->offset0;
+    /*uint32_t test[4];
+    test[0] = pDyn1->offset0;
+	test[1] = pDyn1->offset0 + 1;
+test[2] = pDyn1->offset0 + 2;
+test[3] = pDyn1->offset0 + 3;
 
-    printf("Prova ipv4: %llu, ip_offset %llu", test, pkt_infos.ip_offset);
-    /*  Lvl 3   */
-
+    //printf("Prova ipv4: %llu, ip: %llu\n", test, pkt_infos.ip->saddr);
+    /*  Lvl 3   *//*
+char src_addr_str[INET6_ADDRSTRLEN+1];
+            char dst_addr_str[INET6_ADDRSTRLEN+1];
+inet_ntop(AF_INET, (struct sockaddr_in *)&pkt_infos.ip->saddr,
+                             src_addr_str, sizeof(src_addr_str));
+printf("src ip: %s | dst ip: \n", src_addr_str);*/
     pkt_infos.ip_size = pDyn1->capLength - pDyn1->descrLength - pkt_infos.ip_offset;
-  
-    if (pkt_infos.ip_size < sizeof(*pkt_infos.ip)) {
+/*  printf("%llu\n", pkt_infos.ip_size);
+/*	printf("%llu.%llu.%llu.%llu\n",test[0], test[1], test[2], test[3] );
+  */  if (pkt_infos.ip_size < sizeof(*pkt_infos.ip)) {
         tracer->traceEvent(0, "[%8llu] Packet smaller than IP4 header length: %u < %zu, pkt_lenght: %d\n", 
                                 this->captured_stats.packets_captured, pkt_infos.ip_size, sizeof(*pkt_infos.ip),
                                 pDyn1->capLength - pDyn1->descrLength); 
@@ -94,7 +103,7 @@ int NtDissector::DumpIPv6(FlowInfo& flow,
                             PacketInfo& pkt_infos)
 {
     /*  Lvl 2   */
-    pkt_infos.ethernet = (struct ndpi_ethhdr *) packet;
+    pkt_infos.ethernet = (struct ndpi_ethhdr *) &packet[pkt_infos.eth_offset];
     pkt_infos.ip_offset = sizeof(struct ndpi_ethhdr) + pkt_infos.eth_offset;
     pkt_infos.ip = nullptr;
     pkt_infos.ip6 = (struct ndpi_ipv6hdr *)&packet[pkt_infos.ip_offset];
@@ -143,7 +152,7 @@ int NtDissector::getDyn(NtNetBuf_t& hNetBuffer,
 {
     // descriptor DYN1 is used, which is set up via NTPL.
     pDyn1 = NT_NET_DESCR_PTR_DYN1(hNetBuffer);
-    uint8_t* packet = reinterpret_cast<uint8_t*>(pDyn1) + pDyn1->descrLength;
+    uint8_t* packet = (uint8_t *) NT_NET_GET_PKT_L2_PTR(hNetBuffer);
 
     if (pDyn1->color & (1 << 6)) {
         tracer->traceEvent(1, "Packet contain an error and decoding cannot be trusted\n");
@@ -188,9 +197,6 @@ int NtDissector::parsePacket(FlowInfo & flow,
     NapatechReader * reader = (NapatechReader *) args;
     NtNetBuf_t * hNetBuffer = ((NtNetBuf_t *) header_tmp);
     NtDyn1Descr_t* pDyn1;
-
-
-    this->captured_stats.packets_captured++;
 
     // Updating time counters
     pkt_infos.time_ms = NT_NET_GET_PKT_TIMESTAMP(* hNetBuffer);
