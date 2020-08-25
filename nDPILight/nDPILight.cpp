@@ -92,7 +92,7 @@ static int setup_pcap(char const * const file_or_device)
 /*  Setup the reader_thread */
 {
     PcapReader *tmp = new PcapReader(file_or_device);
-    reader_thread.initPcapReader(tmp);
+    reader_thread.initReader(tmp);
 
     pkt_parser = new PcapDissector();
 
@@ -108,7 +108,7 @@ static int setup_napatech()
 /*  Setup the reader_thread */
 {
     NapatechReader *tmp = new NapatechReader();
-    reader_thread.initNtReader(tmp);
+    reader_thread.initReader(tmp);
 
     pkt_parser = new NtDissector();
 

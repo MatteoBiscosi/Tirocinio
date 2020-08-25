@@ -7,7 +7,7 @@
 
 void ndpi_idle_scan_walker(void const * const A, ndpi_VISIT which, int depth, void * const user_data)
 {
-    PcapReader * const workflow = (PcapReader *)user_data;
+    Reader * const workflow = (Reader *)user_data;
     FlowInfo * const flow = *(FlowInfo **)A;
 
     (void)depth;
@@ -48,13 +48,6 @@ int ndpi_workflow_node_cmp(void const * const A, void const * const B)
     } else if (flow_info_a->hashval > flow_info_b->hashval) {
         return(1);
     }
-
-    /*  Flows have the same hash, check l4_protocol */
-  /*  if (flow_info_a->l4_protocol < flow_info_b->l4_protocol) {
-        return(-1);
-    } else if (flow_info_a->l4_protocol > flow_info_b->l4_protocol) {
-        return(1);
-    }*/
 
     /*  Have same hashval and l4, check l3 ip   */
     if (flow_info_a->ipTuplesEqual(flow_info_b) != 0 &&
@@ -98,3 +91,27 @@ Reader::~Reader()
     if(this->ndpi_flows_idle != nullptr)
         ndpi_free(this->ndpi_flows_idle);
 }   
+
+/* ********************************** */
+
+int Reader::newFlow(FlowInfo * & flow_to_process) {
+    if (this->cur_active_flows == this->max_active_flows) {
+        tracer->traceEvent(0, "[%8llu] max flows to track reached: %llu, idle: %llu\n",
+                                pkt_parser->getPktsCaptured(), this->max_active_flows, this->cur_idle_flows);
+        return -1;
+    }
+
+    flow_to_process = (FlowInfo *)ndpi_malloc(sizeof(*flow_to_process));
+    if (flow_to_process == nullptr) {
+        tracer->traceEvent(0, "[%8llu] Not enough memory for flow info\n",
+                                pkt_parser->getPktsCaptured());
+        return -1;
+    }
+
+    this->cur_active_flows++;
+    this->total_active_flows++;
+
+    return 0;
+}
+
+/* ********************************** */

@@ -7,38 +7,38 @@
 
 class NtDissector : public PacketDissector{
     public:
-	virtual int parsePacket(FlowInfo & flow,
-                                Reader * &args,
-                                void * header_tmp,
-                                void * packet_tmp,
-                                PacketInfo & pkt_infos) override;    
+	    int parsePacket(FlowInfo & flow,
+                            Reader * &args,
+                            void * header_tmp,
+                            void * packet_tmp,
+                            PacketInfo & pkt_infos) override;    
 	
     private:
-        /*
-         *  Function used to parse and update l4 infos
+        /**
+         * Function used to parse and update l4 infos
          */
         int DumpL4(FlowInfo& flow,
                     PacketInfo& pkt_infos);
 
-        /*
-         *  Parse ipv4 packets
+        /**
+         * Parse ipv4 packets
          */
         int DumpIPv4(FlowInfo& flow,
                         NtDyn1Descr_t* & pDyn1,
                         uint8_t* & packet,
                         PacketInfo& pkt_infos);
 
-        /*
-         *  Parse ipv6 packets
+        /**
+         * Parse ipv6 packets
          */
         int DumpIPv6(FlowInfo& flow,
                         NtDyn1Descr_t* & pDyn1,
                         uint8_t* & packet,
                         PacketInfo& pkt_infos);
 
-        /*
-         *  Get the dynamic descriptor of the packet
-         *  and parse packets using DumpIPv6 and DumpIPv4
+        /**
+         * Get the dynamic descriptor of the packet
+         * and parse packets using DumpIPv6 and DumpIPv4
          */
         int getDyn(NtNetBuf_t& hNetBuffer,
                     FlowInfo& flow,

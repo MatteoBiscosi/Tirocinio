@@ -26,85 +26,70 @@ class NapatechReader : public Reader {
 
         NtFlowStream_t * flowStream;
 
-        uint64_t last_idle_scan_time;
-        uint64_t last_time;
-        size_t idle_scan_index;
-        size_t max_idle_scan_index;
-
         unsigned long long int idCounter;
 
-        unsigned long long int last_packets_scan;    
-
-        unsigned long long int cur_active_flows;
-        unsigned long long int total_active_flows;
-        
-        unsigned long long int cur_idle_flows;
-        unsigned long long int total_idle_flows;
-
     public:
-	~NapatechReader();
+	    ~NapatechReader();
 
-        /*  
-         *  Function used to start the pcap_loop   
-         */
+       
         int startRead() override;
 
-        /*  
-         *  Initializing the napatech_handler, 
-         *  needed to read from a file or a device  
-         */
         int initFileOrDevice() override;
 
-        /*  
-         *  Function used to set pcap to nullptr   
-         */
         void stopRead() override;
 
-        /*  
-         *  Checks if eof is reached  
-         */
         int checkEnd() override;
 
-        /*  
-         *  Prints infos about packets, flows and bytes  
-         */
         void printStats() override;
 
-        /*  
-         *  Function called each packet for updating infos  
-         */
         void newPacket(void * header) override;
-
-        /*  
-         *  Function called each new flow, used to update
-         *  flow's infos and allocate the necessary memory   
+        
+        
+        /**  
+         * Various getters and setter
+         * 
          */
-        int newFlow(FlowInfo * & flow_to_process) override;
-        
-        
-        /*      Getters and setters       */
-        void incrTotalIdleFlows() { this->total_idle_flows++; };
-        void incrCurIdleFlows() { this->cur_idle_flows++; };
-        uint64_t getLastTime() { return this->last_time; };
-        void **getNdpiFlowsIdle() { return this->ndpi_flows_idle; };    
-        unsigned long long int getCurIdleFlows() { return this->cur_idle_flows; };
-        unsigned long long int getTotalIdleFlows() { return this->cur_active_flows; };
         NtNetStreamRx_t * getUnhStream() { return &hNetRxUnh; };
+        
         NtNetBuf_t * getUnhBuffer() { return &hNetBufferUnh; };
 
     private:
+        /**
+         * Check if idle flows are present into this->ndpi_flows_active
+         */
         void checkForIdleFlows();
 
+        /**
+         * Initialize various infos
+         */
         int initInfos();
+
+        /**
+         * Initialize ndpi modules
+         */
         int initModule();
+
+        /**
+         * Configure napatech library
+         */
         int initConfig(NtFlowAttr_t& flowAttr,
                         NtFlowStream_t& flowStream,
                         NtConfigStream_t& hCfgStream);
+
+        /**
+         * Open streams configured in initConfig
+         */
         int openStreams();
         
+        /**
+         * Analyze each type of packet
+         */
         void taskReceiverAny(const char* streamName, 
                     NtFlowStream_t& flowStream);
 
+        /**
+         * Add a new flow to the nt_flow_table
+         */
         int createNewFlow(NtFlowStream_t& flowStream);
 };
 

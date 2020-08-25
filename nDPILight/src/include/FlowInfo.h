@@ -50,37 +50,55 @@ public:
 
 public:
 
-    /*  
-     *  Function used to convert an ip_tuple to a String 
+    /**
+     * Function used to convert this src_ip and this dst_ip to a String
+     * and save them into src_addr_str and dst_addr_str respectively 
+     *
+     * @par    src_addr_str = string to save the src_ip
+     * @par    dst_addr_str = string to save the dst_ip
+     * @par    src_addr_len = length of the src address
+     * @par    dst_addr_len = length of the dst address
+     * @return 1 if the conversion was succesfull 0 otherwise
+     *
      */
     int ipTupleToString(char * src_addr_str, size_t src_addr_len,
                         char * dst_addr_str, size_t dst_addr_len);
     
-    /*  
-     *  Checks if this and B are equals 
+    /**
+     * Function used to fetch if this and an other FlowInfo are equals 
+     *
+     * @par    B = pointer to an other FlowInfo
+     * @return 1 if this and B are equals 0 otherwise
+     *
      */
     int ipTuplesEqual(FlowInfo const * B);
 
-    /*  
-     *  Compares this with B and checks if they are equals or who is 
-     *  minor and who is major
+    /**
+     * Compares this with B and checks if they are equals or who is 
+     * minor and who is major
+     *
+     * @par    B = pointer to an other FlowInfo
+     * @return 0 if they are equals, 1 if this > B,
+     *         -1 if B > this
+     *
      */
     int ipTuplesCompare(FlowInfo const * B);
 
-    /*  
-     *  Set this.l3_type to A
+    /**
+     * Getters and setters of this->flow.l3_type
+     *
      */
     void setFlowL3Type(int A);
-
-    /*  
-     *  Return this.l3_type
-     */
     int getFlowL3Type();
 };
 
 
-/*
- *  Frees flow's stats and infos
+/**
+ * Function used to clear dynamic memory allocated
+ * by an element of type FlowInfo
+ *
+ * @par    node = pointer to an element of type FlowInfo
+ *
  */
 static void flowFreer(void * const node)
 {

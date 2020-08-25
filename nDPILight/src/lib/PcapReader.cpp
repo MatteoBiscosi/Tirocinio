@@ -1,7 +1,3 @@
-//
-// Created by matteo on 09/07/2020.
-//
-
 
 #include "ndpi_light_includes.h"
 
@@ -216,49 +212,36 @@ void PcapReader::newPacket(void * header) {
     this->checkForIdleFlows();
 }
 
-/* ********************************** */
-
-int PcapReader::newFlow(FlowInfo * & flow_to_process) {
-    if (this->cur_active_flows == this->max_active_flows) {
-        tracer->traceEvent(0, "[%8llu] max flows to track reached: %llu, idle: %llu\n",
-                                pkt_parser->getPktsCaptured(), this->max_active_flows, this->cur_idle_flows);
-        return -1;
-    }
-
-    flow_to_process = (FlowInfo *)ndpi_malloc(sizeof(*flow_to_process));
-    if (flow_to_process == nullptr) {
-        tracer->traceEvent(0, "[%8llu] Not enough memory for flow info\n",
-                                pkt_parser->getPktsCaptured());
-        return -1;
-    }
-
-    this->cur_active_flows++;
-    this->total_active_flows++;
-
-    return 0;
-}
-
-/* ********************************** */
 /*  GETTERS AND SETTERS */
+/* ********************************** */
+
 void PcapReader::incrTotalIdleFlows()
 {
     this->total_idle_flows++;
 }
+
+/* ********************************** */
 
 void PcapReader::incrCurIdleFlows()
 {
     this->cur_idle_flows++;
 }
 
+/* ********************************** */
+
 uint64_t PcapReader::getLastTime()
 {
     return this->last_time;
 }
 
+/* ********************************** */
+
 void **PcapReader::getNdpiFlowsIdle()
 {
     return this->ndpi_flows_idle;
 }
+
+/* ********************************** */
 
 unsigned long long int PcapReader::getCurIdleFlows()
 {

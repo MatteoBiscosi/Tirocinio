@@ -97,8 +97,8 @@ int FlowInfo::ipTuplesCompare(FlowInfo const * const B)
     return 0;
 }
 
-/* ********************************** */
 /*  Getters and Setters  */
+/* ********************************** */
 
 void FlowInfo::setFlowL3Type(int const type)
 {
@@ -117,3 +117,5 @@ int FlowInfo::getFlowL3Type()
     else
         return 6;
 }
+
+/* ********************************** */

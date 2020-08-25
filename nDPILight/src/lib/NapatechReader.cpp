@@ -5,6 +5,9 @@
 /* ********************************** */
 
 int handleErrorStatus(int status, const char* message)
+/**
+ * Function used to handle nt errors
+ */
 {
   if(status != NT_SUCCESS) {
     char errorBuffer[NT_ERRBUF_SIZE];
@@ -19,6 +22,10 @@ int handleErrorStatus(int status, const char* message)
 /* ********************************** */
 
 int ntplCall(NtConfigStream_t& hCfgStream, const char* str)
+/**
+ * Function used to add new features to the 
+ * configuration stream
+ */
 {
     NtNtplInfo_t ntplInfo;
     int status = NT_NTPL(hCfgStream, str, &ntplInfo, NT_NTPL_PARSER_VALIDATE_NORMAL);
@@ -31,6 +38,10 @@ int ntplCall(NtConfigStream_t& hCfgStream, const char* str)
 /* ********************************** */
 
 void nt_idle_scan_walker(void const * const A, ndpi_VISIT which, int depth, void * const user_data)
+/**
+ * Function used to check for idle flows instead of
+ * ndpi_idle_scan_walker
+ */
 {   
     NapatechReader * const workflow = (NapatechReader *)user_data;
     FlowInfo * const flow = *(FlowInfo **)A;
@@ -59,6 +70,9 @@ void nt_idle_scan_walker(void const * const A, ndpi_VISIT which, int depth, void
 /* ********************************** */
 
 void taskReceiverUnh(const char* streamName, NapatechReader *reader)
+/**
+ * Function used to handle the unhandled stream
+ */
 {
     int status;
 
@@ -395,28 +409,6 @@ int NapatechReader::checkEnd()
 void NapatechReader::printStats()
 {
     pkt_parser->printStats((Reader *) this);
-}
-
-/* ********************************** */
-
-int NapatechReader::newFlow(FlowInfo * & flow_to_process) {
-    if (this->cur_active_flows == this->max_active_flows) {
-        tracer->traceEvent(0, "[%8llu] max flows to track reached: %llu, idle: %llu\n",
-                                pkt_parser->getPktsCaptured(), this->max_active_flows, this->cur_idle_flows);
-        return -1;
-    }
-
-    flow_to_process = (FlowInfo *)ndpi_malloc(sizeof(*flow_to_process));
-    if (flow_to_process == nullptr) {
-        tracer->traceEvent(0, "[%8llu] Not enough memory for flow info\n",
-                                pkt_parser->getPktsCaptured());
-        return -1;
-    }
-
-    this->cur_active_flows++;
-    this->total_active_flows++;
-
-    return 0;
 }
 
 /* ********************************** */

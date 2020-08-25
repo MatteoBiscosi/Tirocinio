@@ -300,26 +300,23 @@ void PacketDissector::processPacket(void * const args,
     int status;
     FlowInfo flow = FlowInfo();
     Reader * reader = (Reader *) args;
-
     PacketInfo pkt_infos = PacketInfo();
+
 
     this->captured_stats.packets_captured++;
 
     /* Parsing the packet */
     status = this->parsePacket(flow, reader, header_tmp, packet_tmp, pkt_infos);
-   
-    if(status != 0) {
-	    return;
-    }
 
     this->captured_stats.packets_processed++;
     this->captured_stats.total_l4_data_len += pkt_infos.l4_len;
 
+    /* Switch the status received from parsePacket */
     switch(status) {
     case -1: /* Error case */
         return;
 
-    case 0: /* Pcap case */
+    case 0: /* No search inside the hashtable done */
         /* Searching the value inside of the flow table */
         if(this->searchVal(reader, flow, pkt_infos) != 0) {
             if(this->addVal(reader, flow, pkt_infos) != 0) {
@@ -335,6 +332,7 @@ void PacketDissector::processPacket(void * const args,
             this->updateSrcDst(pkt_infos);
         }
         break;
+
     case 1: /* Already done some search and value was not found */
         if(this->addVal(reader, flow, pkt_infos) != 0) {
             this->captured_stats.discarded_bytes += pkt_infos.ip_offset + pkt_infos.eth_offset;
@@ -343,6 +341,7 @@ void PacketDissector::processPacket(void * const args,
         reader->setNewFlow(true);
         this->captured_stats.total_flows_captured++;
         break;
+        
     case 2: /* Already done some search and value was found */
         reader->setNewFlow(false);
         pkt_infos.flow_to_process = *(FlowInfo **)pkt_infos.tree_result;
