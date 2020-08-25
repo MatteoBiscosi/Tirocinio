@@ -26,31 +26,26 @@ PacketDissector::~PacketDissector()
 
 /* ********************************** */
 
-void PacketDissector::updateSrcDst(PacketInfo & pkt_infos)
-{
-    if (pkt_infos.ndpi_src != pkt_infos.flow_to_process->ndpi_src) {
-        pkt_infos.ndpi_src = pkt_infos.flow_to_process->ndpi_dst;
-        pkt_infos.ndpi_dst = pkt_infos.flow_to_process->ndpi_src;
-    } else {
-        pkt_infos.ndpi_src = pkt_infos.flow_to_process->ndpi_src;
-        pkt_infos.ndpi_dst = pkt_infos.flow_to_process->ndpi_dst;
-    }
-}
-
-/* ********************************** */
-
 void PacketDissector::updateTimerAndCntrs(FlowInfo& flow,
-                      			      PacketInfo & pkt_infos)
+                      			            PacketInfo & pkt_infos)
 {
     pkt_infos.flow_to_process->packets_processed++;
-    pkt_infos.flow_to_process->total_l4_data_len += pkt_infos.l4_len;
     /* update timestamps, important for timeout handling */
     if (pkt_infos.flow_to_process->first_seen == 0) {
         pkt_infos.flow_to_process->first_seen = pkt_infos.time_ms;
     }
-    pkt_infos.flow_to_process->last_seen = pkt_infos.time_ms;
+    pkt_infos.flow_to_process->last_seen = pkt_infos.time_ms; 
     /* current packet is an TCP-ACK? */
-    pkt_infos.flow_to_process->flow_ack_seen = flow.flow_ack_seen;
+    //pkt_infos.flow_to_process->flow_ack_seen = flow.flow_ack_seen;
+
+    /* TCP-FIN: indicates that at least one side wants to end the connection */
+    /*if (flow.flow_fin_ack_seen != 0 && pkt_infos.flow_to_process->flow_fin_ack_seen == 0) {
+        pkt_infos.flow_to_process->flow_fin_ack_seen = 1;
+        tracer->traceEvent(4, "[%8llu, %4u] end of flow\n",
+                                    this->captured_stats.packets_captured, pkt_infos.flow_to_process->flow_id);
+        this->captured_stats.discarded_bytes += pkt_infos.ip_offset + pkt_infos.eth_offset;
+        return;
+    }*/
 }
 
 /* ********************************** */
@@ -309,7 +304,6 @@ void PacketDissector::processPacket(void * const args,
     status = this->parsePacket(flow, reader, header_tmp, packet_tmp, pkt_infos);
 
     this->captured_stats.packets_processed++;
-    this->captured_stats.total_l4_data_len += pkt_infos.l4_len;
 
     /* Switch the status received from parsePacket */
     switch(status) {
@@ -317,7 +311,6 @@ void PacketDissector::processPacket(void * const args,
         return;
 
     case 0: /* No search inside the hashtable done */
-        /* Searching the value inside of the flow table */
         if(this->searchVal(reader, flow, pkt_infos) != 0) {
             if(this->addVal(reader, flow, pkt_infos) != 0) {
                 this->captured_stats.discarded_bytes += pkt_infos.ip_offset + pkt_infos.eth_offset;
@@ -328,8 +321,6 @@ void PacketDissector::processPacket(void * const args,
         } else {
             reader->setNewFlow(false);
             pkt_infos.flow_to_process = *(FlowInfo **)pkt_infos.tree_result;
-
-            this->updateSrcDst(pkt_infos);
         }
         break;
 
@@ -345,24 +336,12 @@ void PacketDissector::processPacket(void * const args,
     case 2: /* Already done some search and value was found */
         reader->setNewFlow(false);
         pkt_infos.flow_to_process = *(FlowInfo **)pkt_infos.tree_result;
-
-        this->updateSrcDst(pkt_infos);
     }
 
     this->updateTimerAndCntrs(flow, pkt_infos);
 
-    /* TCP-FIN: indicates that at least one side wants to end the connection */
-    if (flow.flow_fin_ack_seen != 0 && pkt_infos.flow_to_process->flow_fin_ack_seen == 0) {
-        pkt_infos.flow_to_process->flow_fin_ack_seen = 1;
-        tracer->traceEvent(4, "[%8llu, %4u] end of flow\n",
-                                    this->captured_stats.packets_captured, pkt_infos.flow_to_process->flow_id);
-        this->captured_stats.discarded_bytes += pkt_infos.ip_offset + pkt_infos.eth_offset;
+    if(pkt_infos.flow_to_process->ended_dpi)
         return;
-    }
-
-    if(pkt_infos.flow_to_process->ended_dpi) {
-        return;
-    }
     
     this->printFlowInfos((Reader *) reader, pkt_infos);
 }

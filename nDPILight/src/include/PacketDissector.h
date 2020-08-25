@@ -52,13 +52,6 @@ class PacketDissector {
                     PacketInfo & pkt_infos);
 
         /**
-         * Function used to update this->ndpi_src 
-         * and this->ndpi_dst
-         *
-         */ 
-        void updateSrcDst(PacketInfo & pkt_infos);
-
-        /**
          * Function used to update timer and counters
          * of flows
          *

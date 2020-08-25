@@ -32,13 +32,19 @@ int FlowInfo::ipTupleToString(char * const src_addr_str, size_t src_addr_len,
 int FlowInfo::ipTuplesEqual(FlowInfo const * const B)
 {
     if (this->l3_type == L3_IP && B->l3_type == L3_IP) {
-        return this->ip_tuple.v4.src == B->ip_tuple.v4.src &&
-               this->ip_tuple.v4.dst == B->ip_tuple.v4.dst;
+        return (this->ip_tuple.v4.src == B->ip_tuple.v4.src &&
+                this->ip_tuple.v4.dst == B->ip_tuple.v4.dst) || 
+               (this->ip_tuple.v4.dst == B->ip_tuple.v4.src &&
+                this->ip_tuple.v4.src == B->ip_tuple.v4.dst);
     } else if (this->l3_type == L3_IP6 && B->l3_type == L3_IP6) {
-        return this->ip_tuple.v6.src[0] == B->ip_tuple.v6.src[0] &&
-               this->ip_tuple.v6.src[1] == B->ip_tuple.v6.src[1] &&
-               this->ip_tuple.v6.dst[0] == B->ip_tuple.v6.dst[0] &&
-               this->ip_tuple.v6.dst[1] == B->ip_tuple.v6.dst[1];
+        return (this->ip_tuple.v6.src[0] == B->ip_tuple.v6.src[0] &&
+                this->ip_tuple.v6.src[1] == B->ip_tuple.v6.src[1] &&
+                this->ip_tuple.v6.dst[0] == B->ip_tuple.v6.dst[0] &&
+                this->ip_tuple.v6.dst[1] == B->ip_tuple.v6.dst[1]) ||
+               (this->ip_tuple.v6.dst[0] == B->ip_tuple.v6.src[0] &&
+                this->ip_tuple.v6.dst[1] == B->ip_tuple.v6.src[1] &&
+                this->ip_tuple.v6.src[0] == B->ip_tuple.v6.dst[0] &&
+                this->ip_tuple.v6.src[1] == B->ip_tuple.v6.dst[1]);
     }
     return 0;
 }
