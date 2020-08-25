@@ -6,6 +6,7 @@
 /* ********************************** */
 
 int NtDissector::setupFlowToSearch(Reader * & reader,
+				    uint8_t * packet,
                                     FlowInfo& flow,
                                     NtDyn1Descr_t* & pDyn1,
                                     PacketInfo& pkt_infos,
@@ -24,7 +25,7 @@ int NtDissector::setupFlowToSearch(Reader * & reader,
         flow.ip_tuple.v6.dst[1] = pkt_infos.ip6->ip6_dst.u6_addr.u6_addr64[1];
     }
 
-    struct ports pktPorts = pDyn1->offset1;
+    struct ports * pktPorts = (struct ports *) &packet[pDyn1->offset1];
 
     flow.src_port = ntohs(pktPorts->srcPort);
     flow.dst_port = ntohs(pktPorts->dstPort);
@@ -83,8 +84,8 @@ int NtDissector::DumpIPv4(Reader * & reader,
     pkt_infos.ip6 = nullptr;
     
     pkt_infos.ip_size = pDyn1->capLength - pDyn1->descrLength - pkt_infos.ip_offset;
-
-    if(setupFlowToSearch(reader, flow, pDyn1, pkt_infos, 4) == 0)
+    
+    if(setupFlowToSearch(reader, packet, flow, pDyn1, pkt_infos, 4) == 0)
         return 2;
 
     /*  Lvl 3   */
@@ -130,8 +131,8 @@ int NtDissector::DumpIPv6(Reader * & reader,
     pkt_infos.ip6 = (struct ndpi_ipv6hdr *)&packet[pkt_infos.ip_offset];
 
     pkt_infos.ip_size = pDyn1->capLength - pDyn1->descrLength - pkt_infos.ip_offset;
-
-    if(setupFlowToSearch(reader, flow, pDyn1, pkt_infos, 4) == 0)
+   
+    if(setupFlowToSearch(reader, packet, flow, pDyn1, pkt_infos, 4) == 0)
         return 2;
 
     /*  Lvl 3   */
@@ -211,12 +212,12 @@ int NtDissector::parsePacket(FlowInfo & flow,
 
     // Updating time counters
     pkt_infos.time_ms = NT_NET_GET_PKT_TIMESTAMP(* hNetBuffer);
-
+    pkt_infos.eth_offset = 0;
     // Checking idle flows
     reader->newPacket((void *)hNetBuffer);
 
     // Parsing packets
-    return this->getDyn(reader, * hNetBuffer, flow, pDyn1, pkt_infos);
+    return this->getDyn(args, * hNetBuffer, flow, pDyn1, pkt_infos);
 }
 
 /* ********************************** */

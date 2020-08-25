@@ -97,7 +97,7 @@ class Reader {
          *         analysis needs to be stopped, 0 otherwise
          *
          */
-        int newFlow(FlowInfo * & flow_to_process) = 0;
+        int newFlow(FlowInfo * & flow_to_process);
 
         /**
          * Various getters and setters
