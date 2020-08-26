@@ -332,6 +332,7 @@ void NapatechReader::taskReceiverAny(const char* streamName, NtFlowStream_t& flo
         pkt_parser->processPacket(this, &(this->hNetBufferAny), nullptr);
 	
         if(this->newFlowCheck == true) {
+            printf("New flow\n");
             status = createNewFlow(flowStream);
             if(status != 0)
                 tracer->traceEvent(0, "\tError while adding new flow\r\n");

@@ -29,23 +29,11 @@ PacketDissector::~PacketDissector()
 void PacketDissector::updateTimerAndCntrs(FlowInfo& flow,
                       			            PacketInfo & pkt_infos)
 {
-    pkt_infos.flow_to_process->packets_processed++;
     /* update timestamps, important for timeout handling */
     if (pkt_infos.flow_to_process->first_seen == 0) {
         pkt_infos.flow_to_process->first_seen = pkt_infos.time_ms;
     }
     pkt_infos.flow_to_process->last_seen = pkt_infos.time_ms; 
-    /* current packet is an TCP-ACK? */
-    //pkt_infos.flow_to_process->flow_ack_seen = flow.flow_ack_seen;
-
-    /* TCP-FIN: indicates that at least one side wants to end the connection */
-    /*if (flow.flow_fin_ack_seen != 0 && pkt_infos.flow_to_process->flow_fin_ack_seen == 0) {
-        pkt_infos.flow_to_process->flow_fin_ack_seen = 1;
-        tracer->traceEvent(4, "[%8llu, %4u] end of flow\n",
-                                    this->captured_stats.packets_captured, pkt_infos.flow_to_process->flow_id);
-        this->captured_stats.discarded_bytes += pkt_infos.ip_offset + pkt_infos.eth_offset;
-        return;
-    }*/
 }
 
 /* ********************************** */
@@ -134,7 +122,6 @@ int PacketDissector::searchVal(Reader * & reader,
     pkt_infos.hashed_index = (uint64_t) flow.hashval % reader->getMaxActiveFlows();
     pkt_infos.tree_result = ndpi_tfind(&flow, &reader->getActiveFlows()[pkt_infos.hashed_index], ndpi_workflow_node_cmp);
 
-//    printf("%d, %d, %d\n", flow.hashval, reader->getMaxActiveFlows(), pkt_infos.hashed_index);
     if(pkt_infos.tree_result == nullptr)
         /*  Not Found   */
         return -1;
@@ -303,8 +290,6 @@ void PacketDissector::processPacket(void * const args,
     /* Parsing the packet */
     status = this->parsePacket(flow, reader, header_tmp, packet_tmp, pkt_infos);
 
-    this->captured_stats.packets_processed++;
-
     /* Switch the status received from parsePacket */
     switch(status) {
     case -1: /* Error case */
@@ -336,7 +321,10 @@ void PacketDissector::processPacket(void * const args,
     case 2: /* Already done some search and value was found */
         reader->setNewFlow(false);
         pkt_infos.flow_to_process = *(FlowInfo **)pkt_infos.tree_result;
+        break;
     }
+
+    this->captured_stats.packets_processed++;
 
     this->updateTimerAndCntrs(flow, pkt_infos);
 
