@@ -273,9 +273,11 @@ int main(int argc, char * argv[])
     signal(SIGTERM, sighandler);
 
 
+    sleep(5);
     /*  have to find a better way of doing this job */
     while (terminate_thread == 0 && check_error_or_eof() == 0) {
-        sleep(3);
+        pkt_parser->printBriefInfos();
+	sleep(1);
     }
 
     if (terminate_thread == 0 && stop_reader() != 0) {

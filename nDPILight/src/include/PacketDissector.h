@@ -13,6 +13,7 @@ class PacketDissector {
             public:
                 unsigned long long int unhandled_packets;
                 unsigned long long int packets_captured;
+		unsigned long long int previous_packets;
                 unsigned long long int discarded_bytes;
                 unsigned long long int ip_pkts;
                 unsigned long long int ip_bytes;
@@ -139,8 +140,9 @@ class PacketDissector {
          * 
          */
         void printFlow(Reader* reader, 
-                        FlowInfo * &pkt_infos);
+                        FlowInfo * pkt_infos);
 
+	void printBriefInfos();
         /**
          * Various setters and getters
          * 

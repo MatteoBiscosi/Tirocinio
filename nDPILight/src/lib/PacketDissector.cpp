@@ -51,23 +51,31 @@ void PacketDissector::initProtosCnt(uint num)
 
 /* ********************************** */
 
+void PacketDissector::printBriefInfos()
+{
+    uint64_t act_packets = this->captured_stats.packets_processed;
+    uint64_t delta = act_packets - this->captured_stats.previous_packets;
+    this->captured_stats.previous_packets = act_packets;
+    tracer->traceEvent(2, "\tCapture brief summary: Tot. packets: %llu | Tot. bytes: %llu | pps: %llu\r\n", 
+			this->captured_stats.packets_processed, this->captured_stats.total_wire_bytes,
+			delta);
+}
+
+/* ********************************** */
+
 void PacketDissector::printFlow(Reader* reader, 
-                                FlowInfo * &pkt_infos)
+                                FlowInfo * pkt_infos)
 {
     char src_addr_str[INET6_ADDRSTRLEN+1];
     char dst_addr_str[INET6_ADDRSTRLEN+1];
-    char *tmp = ndpi_get_proto_breed_name(reader->getNdpiStruct(), 
-                                            ndpi_get_proto_breed(reader->getNdpiStruct(), 
-                                            pkt_infos.flow_to_process->detected_l7_protocol.master_protocol));
-    pkt_infos.flow_to_process->ipTupleToString(src_addr_str, sizeof(src_addr_str), dst_addr_str, sizeof(dst_addr_str));
+    
+    pkt_infos->ipTupleToString(src_addr_str, sizeof(src_addr_str), dst_addr_str, sizeof(dst_addr_str));
 
 
     tracer->traceEvent(2, "\tFlow Summary:\r\n");
-    tracer->traceEvent(2, "\t\tFlow id:                    %-20lu\r\n", pkt_infos->flow_id);
-    tracer->traceEvent(2, "\t\tPackets processed:          %-20lu\r\n", pkt_infos->packets_processed);
-    tracer->traceEvent(2, "\t\tBytes processed:            %-20lu\r\n", pkt_infos->bytes_processed);
-    tracer->traceEvent(2, "\t\tSrc ip:    %-20s |    Src port %-20s\r\n", src_addr_str, pkt_infos->src_port);
-    tracer->traceEvent(2, "\t\tDst ip:    %-20s |    Dst port %-20s\r\n", dst_addr_str, pkt_infos->dst_port);
+    tracer->traceEvent(2, "\t\tFlow id: %lu | Packets received: %lu | Bytes received: %lu | Src ip: %s | Src port %d | Dst ip: %s | Dst port %d\r\n", 
+				pkt_infos->flow_id, pkt_infos->packets_processed, pkt_infos->bytes_processed, 
+				src_addr_str, pkt_infos->src_port, dst_addr_str, pkt_infos->dst_port);
 }
 
 /* ********************************** */

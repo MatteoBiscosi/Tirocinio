@@ -55,15 +55,12 @@ int NtDissector::DumpL4(FlowInfo& flow,
         flow.flow_fin_ack_seen = (tcp->fin == 1 && tcp->ack == 1 ? 1 : 0);
         flow.flow_ack_seen = tcp->ack;
 
-        this->captured_stats.tcp_pkts++;
-
     } else if (flow.l4_protocol == IPPROTO_UDP) {
         /*  UDP   */
         const struct ndpi_udphdr * udp;
 
         udp = (struct ndpi_udphdr *)pkt_infos.l4_ptr;
 
-        this->captured_stats.udp_pkts++;
     }
 
     return 0;

@@ -54,7 +54,7 @@ void nt_idle_scan_walker(void const * const A, ndpi_VISIT which, int depth, void
 
     if (which == ndpi_preorder || which == ndpi_leaf) {
         if ((flow->flow_fin_ack_seen == 1 && flow->flow_ack_seen == 1) ||
-            flow->last_seen + MAX_IDLE_TIME * 1000 < workflow->getLastTime())
+            flow->last_seen + MAX_IDLE_TIME * 1000  < workflow->getLastTime())
             /*  New flow that need to be added to idle flows    */
         {
             char src_addr_str[INET6_ADDRSTRLEN+1];
@@ -268,8 +268,7 @@ void NapatechReader::newPacket(void * header)
 void NapatechReader::checkForIdleFlows()
 {
 	/*  Check if at least IDLE_SCAN_PERIOD passed since last scan   */
-	if (this->last_idle_scan_time + IDLE_SCAN_PERIOD * 10000 < this->last_time) {
-        
+	if (this->last_idle_scan_time + IDLE_SCAN_PERIOD * 10000 < this->last_time) { 
 		for (this->idle_scan_index; this->idle_scan_index < this->max_idle_scan_index; ++this->idle_scan_index) {
 			if(this->ndpi_flows_active[this->idle_scan_index] == nullptr)
 				continue;
@@ -291,7 +290,7 @@ void NapatechReader::checkForIdleFlows()
 					tracer->traceEvent(4, "[%4u] Freeing idle flow\n", tmp_f->flow_id);
 				}
 				
-                pkt_parser->printFlow(this, tmp_f);
+                		pkt_parser->printFlow(this, tmp_f);
 
 				/*  Removes it from the active flows    */
 				ndpi_tdelete(tmp_f, &this->ndpi_flows_active[this->idle_scan_index],
