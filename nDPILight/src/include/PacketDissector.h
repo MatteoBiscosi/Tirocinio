@@ -132,6 +132,16 @@ class PacketDissector {
         void printStats(Reader* reader);
 
         /**
+         * Function used to print stats of a 
+         *
+         * @par    reader    = pointer to a Reader
+         * @par    pkt_infos = pointer to a FlowInfo
+         * 
+         */
+        void printFlow(Reader* reader, 
+                        FlowInfo * &pkt_infos);
+
+        /**
          * Various setters and getters
          * 
          */ 

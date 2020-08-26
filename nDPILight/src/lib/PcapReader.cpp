@@ -181,6 +181,8 @@ void PcapReader::checkForIdleFlows()
                     tracer->traceEvent(4, "[%4u] Freeing idle flow\n", tmp_f->flow_id);
                 }
 
+                pkt_parser->printFlow(this, tmp_f);
+
                 /*  Removes it from the active flows    */
                 ndpi_tdelete(tmp_f, &this->ndpi_flows_active[this->idle_scan_index],
                              ndpi_workflow_node_cmp);

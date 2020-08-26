@@ -29,15 +29,17 @@ PacketDissector::~PacketDissector()
 void PacketDissector::updateTimerAndCntrs(FlowInfo& flow,
                       			            PacketInfo & pkt_infos)
 {
+    pkt_infos.flow_to_process->packets_processed++;
+    pkt_infos.flow_to_process->bytes_processed += pkt_infos.ip_size;
     /* update timestamps, important for timeout handling */
     if (pkt_infos.flow_to_process->first_seen == 0) {
         pkt_infos.flow_to_process->first_seen = pkt_infos.time_ms;
     }
     pkt_infos.flow_to_process->last_seen = pkt_infos.time_ms;
     if (pkt_infos.flow_to_process->l4_protocol == IPPROTO_UDP)
-	this->captured_stats.udp_pkts++;
+	    this->captured_stats.udp_pkts++;
     else
-	this->captured_stats.tcp_pkts++; 
+	    this->captured_stats.tcp_pkts++; 
 }
 
 /* ********************************** */
@@ -45,6 +47,27 @@ void PacketDissector::updateTimerAndCntrs(FlowInfo& flow,
 void PacketDissector::initProtosCnt(uint num)
 {
     this->captured_stats.protos_cnt = new uint16_t[num + 1] ();
+}
+
+/* ********************************** */
+
+void PacketDissector::printFlow(Reader* reader, 
+                                FlowInfo * &pkt_infos)
+{
+    char src_addr_str[INET6_ADDRSTRLEN+1];
+    char dst_addr_str[INET6_ADDRSTRLEN+1];
+    char *tmp = ndpi_get_proto_breed_name(reader->getNdpiStruct(), 
+                                            ndpi_get_proto_breed(reader->getNdpiStruct(), 
+                                            pkt_infos.flow_to_process->detected_l7_protocol.master_protocol));
+    pkt_infos.flow_to_process->ipTupleToString(src_addr_str, sizeof(src_addr_str), dst_addr_str, sizeof(dst_addr_str));
+
+
+    tracer->traceEvent(2, "\tFlow Summary:\r\n");
+    tracer->traceEvent(2, "\t\tFlow id:                    %-20lu\r\n", pkt_infos->flow_id);
+    tracer->traceEvent(2, "\t\tPackets processed:          %-20lu\r\n", pkt_infos->packets_processed);
+    tracer->traceEvent(2, "\t\tBytes processed:            %-20lu\r\n", pkt_infos->bytes_processed);
+    tracer->traceEvent(2, "\t\tSrc ip:    %-20s |    Src port %-20s\r\n", src_addr_str, pkt_infos->src_port);
+    tracer->traceEvent(2, "\t\tDst ip:    %-20s |    Dst port %-20s\r\n", dst_addr_str, pkt_infos->dst_port);
 }
 
 /* ********************************** */

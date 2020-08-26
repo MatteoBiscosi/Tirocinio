@@ -14,6 +14,7 @@ class FlowInfo {
 public:
     uint32_t flow_id;
     unsigned long long int packets_processed;
+    unsigned long long int bytes_processed;
     uint64_t first_seen;
     uint64_t last_seen;
     uint64_t hashval;

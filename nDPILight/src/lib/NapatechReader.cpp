@@ -158,10 +158,6 @@ int NapatechReader::initConfig(NtFlowAttr_t& flowAttr,
         return 1;
     if(ntplCall(hCfgStream, "Assign[StreamId=" STR(STREAM_ID_UNHA) "] = LearnFilterCheck(1,ipv6) and Key(kd6, KeyID=" STR(KEY_ID_IPV6) ", FieldAction=Swap)==UNHANDLED") != 0)
         return 1;
-ntplCall(hCfgStream, "Assign[StreamId=Drop] = LearnFilterCheck(0,ipv4) and Key(kd4, KeyID=" STR(KEY_ID_IPV4) ", CounterSet=CSA)==3");
-ntplCall(hCfgStream, "Assign[StreamId=Drop] = LearnFilterCheck(0,ipv6) and Key(kd6, KeyID=" STR(KEY_ID_IPV6) ", CounterSet=CSA)==3");
-ntplCall(hCfgStream, "Assign[StreamId=Drop] = LearnFilterCheck(1,ipv4) and Key(kd4, KeyID=" STR(KEY_ID_IPV4) ", CounterSet=CSB, FieldAction=Swap)==3");
-ntplCall(hCfgStream, "Assign[StreamId=Drop] = LearnFilterCheck(1,ipv6) and Key(kd6, KeyID=" STR(KEY_ID_IPV6) ", CounterSet=CSB, FieldAction=Swap)==3");
 
     // Initialize flow stream attributes and set adapter number attribute.
     NT_FlowOpenAttrInit(&(flowAttr));
@@ -295,6 +291,8 @@ void NapatechReader::checkForIdleFlows()
 					tracer->traceEvent(4, "[%4u] Freeing idle flow\n", tmp_f->flow_id);
 				}
 				
+                pkt_parser->printFlow(this, tmp_f);
+
 				/*  Removes it from the active flows    */
 				ndpi_tdelete(tmp_f, &this->ndpi_flows_active[this->idle_scan_index],
 						ndpi_workflow_node_cmp);
