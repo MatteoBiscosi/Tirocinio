@@ -33,7 +33,11 @@ void PacketDissector::updateTimerAndCntrs(FlowInfo& flow,
     if (pkt_infos.flow_to_process->first_seen == 0) {
         pkt_infos.flow_to_process->first_seen = pkt_infos.time_ms;
     }
-    pkt_infos.flow_to_process->last_seen = pkt_infos.time_ms; 
+    pkt_infos.flow_to_process->last_seen = pkt_infos.time_ms;
+    if (pkt_infos.flow_to_process->l4_protocol == IPPROTO_UDP)
+	this->captured_stats.udp_pkts++;
+    else
+	this->captured_stats.tcp_pkts++; 
 }
 
 /* ********************************** */
@@ -330,7 +334,7 @@ void PacketDissector::processPacket(void * const args,
 
     if(pkt_infos.flow_to_process->ended_dpi)
         return;
-    
+
     this->printFlowInfos((Reader *) reader, pkt_infos);
 }
 

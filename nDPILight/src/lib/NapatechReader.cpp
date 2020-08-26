@@ -141,13 +141,13 @@ int NapatechReader::initConfig(NtFlowAttr_t& flowAttr,
     if(ntplCall(hCfgStream, "DefineMacro(\"LearnFilterCheck\", \"Port==$1 and Layer2Protocol==EtherII and Layer3Protocol==$2\")") != 0)
         return 1;
 	
-	if(ntplCall(hCfgStream, "Assign[StreamId=" STR(STREAM_ID_ANY) "; Descriptor=DYN1, ColorBits=FlowID, Offset0=Layer3Header[12]; ColorMask=" STR(COLOR_IPV4) "] = LearnFilterCheck(0,ipv4) and Key(kd4, KeyID=" STR(KEY_ID_IPV4) ")==ANY") != 0)
+	if(ntplCall(hCfgStream, "Assign[StreamId=" STR(STREAM_ID_ANY) "; Descriptor=DYN1, ColorBits=FlowID, Offset0=Layer3Header[12]; ColorMask=" STR(COLOR_IPV4) "] = LearnFilterCheck(0,ipv4) and Key(kd4, KeyID=" STR(KEY_ID_IPV4) ")==MISS") != 0)
         return 1;
-    if(ntplCall(hCfgStream, "Assign[StreamId=" STR(STREAM_ID_ANY) "; Descriptor=DYN1, ColorBits=FlowID, Offset0=Layer3Header[8];  ColorMask=" STR(COLOR_IPV6) "] = LearnFilterCheck(0,ipv6) and Key(kd6, KeyID=" STR(KEY_ID_IPV6) ")==ANY") != 0)
+    if(ntplCall(hCfgStream, "Assign[StreamId=" STR(STREAM_ID_ANY) "; Descriptor=DYN1, ColorBits=FlowID, Offset0=Layer3Header[8];  ColorMask=" STR(COLOR_IPV6) "] = LearnFilterCheck(0,ipv6) and Key(kd6, KeyID=" STR(KEY_ID_IPV6) ")==MISS") != 0)
         return 1;
-    if(ntplCall(hCfgStream, "Assign[StreamId=" STR(STREAM_ID_ANY) "; Descriptor=DYN1, ColorBits=FlowID, Offset0=Layer3Header[12]; ColorMask=" STR(COLOR_IPV4) "] = LearnFilterCheck(1,ipv4) and Key(kd4, KeyID=" STR(KEY_ID_IPV4) ", FieldAction=Swap)==ANY") != 0)
+    if(ntplCall(hCfgStream, "Assign[StreamId=" STR(STREAM_ID_ANY) "; Descriptor=DYN1, ColorBits=FlowID, Offset0=Layer3Header[12]; ColorMask=" STR(COLOR_IPV4) "] = LearnFilterCheck(1,ipv4) and Key(kd4, KeyID=" STR(KEY_ID_IPV4) ", FieldAction=Swap)==MISS") != 0)
         return 1;
-    if(ntplCall(hCfgStream, "Assign[StreamId=" STR(STREAM_ID_ANY) "; Descriptor=DYN1, ColorBits=FlowID, Offset0=Layer3Header[8];  ColorMask=" STR(COLOR_IPV6) "] = LearnFilterCheck(1,ipv6) and Key(kd6, KeyID=" STR(KEY_ID_IPV6) ", FieldAction=Swap)==ANY") != 0)
+    if(ntplCall(hCfgStream, "Assign[StreamId=" STR(STREAM_ID_ANY) "; Descriptor=DYN1, ColorBits=FlowID, Offset0=Layer3Header[8];  ColorMask=" STR(COLOR_IPV6) "] = LearnFilterCheck(1,ipv6) and Key(kd6, KeyID=" STR(KEY_ID_IPV6) ", FieldAction=Swap)==MISS") != 0)
         return 1;
 
     if(ntplCall(hCfgStream, "Assign[StreamId=" STR(STREAM_ID_UNHA) "] = LearnFilterCheck(0,ipv4) and Key(kd4, KeyID=" STR(KEY_ID_IPV4) ")==UNHANDLED") != 0)
@@ -158,6 +158,10 @@ int NapatechReader::initConfig(NtFlowAttr_t& flowAttr,
         return 1;
     if(ntplCall(hCfgStream, "Assign[StreamId=" STR(STREAM_ID_UNHA) "] = LearnFilterCheck(1,ipv6) and Key(kd6, KeyID=" STR(KEY_ID_IPV6) ", FieldAction=Swap)==UNHANDLED") != 0)
         return 1;
+ntplCall(hCfgStream, "Assign[StreamId=Drop] = LearnFilterCheck(0,ipv4) and Key(kd4, KeyID=" STR(KEY_ID_IPV4) ", CounterSet=CSA)==3");
+ntplCall(hCfgStream, "Assign[StreamId=Drop] = LearnFilterCheck(0,ipv6) and Key(kd6, KeyID=" STR(KEY_ID_IPV6) ", CounterSet=CSA)==3");
+ntplCall(hCfgStream, "Assign[StreamId=Drop] = LearnFilterCheck(1,ipv4) and Key(kd4, KeyID=" STR(KEY_ID_IPV4) ", CounterSet=CSB, FieldAction=Swap)==3");
+ntplCall(hCfgStream, "Assign[StreamId=Drop] = LearnFilterCheck(1,ipv6) and Key(kd6, KeyID=" STR(KEY_ID_IPV6) ", CounterSet=CSB, FieldAction=Swap)==3");
 
     // Initialize flow stream attributes and set adapter number attribute.
     NT_FlowOpenAttrInit(&(flowAttr));
@@ -332,7 +336,6 @@ void NapatechReader::taskReceiverAny(const char* streamName, NtFlowStream_t& flo
         pkt_parser->processPacket(this, &(this->hNetBufferAny), nullptr);
 	
         if(this->newFlowCheck == true) {
-            printf("New flow\n");
             status = createNewFlow(flowStream);
             if(status != 0)
                 tracer->traceEvent(0, "\tError while adding new flow\r\n");
@@ -430,7 +433,7 @@ int NapatechReader::createNewFlow(NtFlowStream_t& flowStream)
         flow->color           = 0;            		// Flow color
         flow->overwrite       = 0;            		// Overwrite filter action (1: enable, 0: disable)
         flow->streamId        = 0;            		// Marks the stream id if overwrite filter action is enabled
-        flow->ipProtocolField = pDyn1->ipProtocol;  // IP protocol number of next header (6: TCP, 17: UDP)
+        flow->ipProtocolField = pDyn1->ipProtocol;      // IP protocol number of next header (6: TCP, 17: UDP)
         flow->keySetId        = 4;   	      		// Key Set ID as used in the NTPL filter
         flow->op              = 1;            		// Flow programming operation (1: learn, 0: un-learn)
         flow->gfi             = 1;            		// Generate flow info record (1: generate, 0: do not generate)
