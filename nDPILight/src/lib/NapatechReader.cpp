@@ -389,10 +389,18 @@ int NapatechReader::startRead()
     NtStatistics_t hStat;
 
     // Open the stat stream.
-    status = NT_StatOpen(&(this->hStatStream), "Learn_example_flowstats");
+    status = NT_StatOpen(&hStatStream, "ExampleStatUsage") != NT_SUCCESS;
+    
     if(handleErrorStatus(status, "NT_StatOpen() failed") != 0)
         return -1;
 
+    hStat.cmd = NT_STATISTICS_READ_CMD_QUERY_V3;
+
+    hStat.u.query_v3.poll = 0;
+    hStat.u.query_v3.clear = 1;
+    NT_StatRead(this->getStatStream(), &hStat);
+                    
+/*
     hStat.cmd=NT_STATISTICS_READ_CMD_USAGE_DATA_V0;
     hStat.u.usageData_v0.streamid = (uint8_t) STREAM_ID_MISS;
 
