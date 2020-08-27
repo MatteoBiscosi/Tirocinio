@@ -231,7 +231,7 @@ void PacketDissector::printFlowInfos(Reader * reader,
                             pkt_infos.flow_to_process->ndpi_flow,
                             1, &protocol_was_guessed);
         pkt_infos.flow_to_process->ended_dpi = 1;
-	//reader->setNewFlow(true);
+	reader->setNewFlow(true);
         if (protocol_was_guessed != 0) {
             /*  Protocol guessed    */
             tracer->traceEvent(3, "\t[%8llu, %4d][GUESSED] protocol: %s | app protocol: %s | category: %s\n",
@@ -281,7 +281,7 @@ void PacketDissector::printFlowInfos(Reader * reader,
 		    pkt_infos.flow_to_process->detection_completed = 1;
 		    this->captured_stats.detected_flow_protocols++;
             pkt_infos.flow_to_process->ended_dpi = 1;
-//	    reader->setNewFlow(true);
+	    reader->setNewFlow(true);
 		    tracer->traceEvent(3, "\t[%8llu, %4d][DETECTED] protocol: %s | app protocol: %s | category: %s\n",
 					    this->captured_stats.packets_captured,
                                     pkt_infos.flow_to_process->flow_id,

@@ -242,17 +242,9 @@ void NapatechReader::taskReceiverAny(const char* streamName, NtFlowStream_t& flo
     int status;
     uint64_t idCounter = 0U;
     std::vector<std::unique_ptr<NtFlow_t>> learnedFlowList;   
-int i = 0;
-
-    NT_NetRxOpen(&(this->hNetRxMiss), "Miss packets stream", NT_NET_INTERFACE_PACKET, STREAM_ID_MISS, -1);
-    if(handleErrorStatus(status, "NT_NetRxOpen() failed") != 0)
-	    return;
-
-
     while(this->error_or_eof == 0) {
 	    // Get package from rx stream.
 	    status = NT_NetRxGet(this->hNetRxMiss, &(this->hNetBufferMiss), -1);
-printf("Counter %d\n", ++i);
 	    if(status == NT_STATUS_TIMEOUT || status == NT_STATUS_TRYAGAIN) 
 		    continue;
 
@@ -262,11 +254,9 @@ printf("Counter %d\n", ++i);
 	    if(handleErrorStatus(status, "Error while sniffing next packet") != 0)
 		    continue;
 
-/*	    pkt_parser->processPacket(this, &(this->hNetBufferMiss), nullptr);
-/*
-	    if(this->newFlowCheck == true) {
-		printf("flow check %b\n", this->newFlowCheck);            
-//std::cout << "New flow\n";
+	    pkt_parser->processPacket(this, &(this->hNetBufferMiss), nullptr);
+
+	    if(this->newFlowCheck == true) {            
             // Here a package has successfully been received, and the parameters for the
             // next flow to be learned will be set up.
             auto flow = std::unique_ptr<NtFlow_t>(new NtFlow_t);
@@ -333,7 +323,7 @@ printf("Counter %d\n", ++i);
             learnedFlowList.push_back(std::move(flow));
 	    this->setNewFlow(false);
         }
-*/	
+	
         status = NT_NetRxRelease(this->hNetRxMiss, this->hNetBufferMiss);
         if(handleErrorStatus(status, "Error while releasing packet") != 0)
             continue;
