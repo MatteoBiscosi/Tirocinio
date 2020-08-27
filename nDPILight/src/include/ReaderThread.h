@@ -69,6 +69,8 @@ class ReaderThread {
         pthread_t getThreadId() { return this->thread_id; };
 
         uint8_t getEof() { if(this->rdr != nullptr) return this->rdr->getErrorOfEof(); return 1; };
+
+        Reader* getReader() { return this->rdr; };
 };
 
 

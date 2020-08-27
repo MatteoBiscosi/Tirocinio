@@ -2,6 +2,26 @@
 
 
 
+/* ********************************** */
+
+void PacketDissector::printBriefInfos()
+{
+    NtStatistics_t hStat;
+
+    NapatechReader *reader = (NapatechReader *) this->reader;
+    NT_StatRead(reader->getStat(), &hStat);
+
+    uint64_t tot_pkts = hStat.u.usageData_v0.data.hb.stat.rx.frames;
+    uint64_t tot_bytes = hStat.u.usageData_v0.data.hb.stat.rx.bytes;
+    uint64_t act_packets = tot_pkts;
+    uint64_t delta = act_packets - this->captured_stats.previous_packets;
+    this->captured_stats.previous_packets = act_packets;
+    tracer->traceEvent(2, "\tCapture brief summary: Tot. packets: %llu | Tot. bytes: %llu | 
+                            Pkts. captured: %llu | Bytes captured: %llu | pps: %llu\r\n", 
+			tot_pkts, tot_bytes, this->captured_stats.packets_processed, this->captured_stats.total_wire_bytes,
+			delta);
+}
+
 
 /* ********************************** */
 
@@ -35,33 +55,6 @@ int NtDissector::setupFlowToSearch(Reader * & reader,
 
     this->captured_stats.ip_pkts++;
     this->captured_stats.ip_bytes += pkt_infos.ip_size;
-
-    return 0;
-}
-
-/* ********************************** */
-
-int NtDissector::DumpL4(FlowInfo& flow,
-                        PacketInfo& pkt_infos)
-{
-    if (flow.l4_protocol == IPPROTO_TCP) {
-        /*  TCP   */
-        const struct ndpi_tcphdr * tcp;
-
-        tcp = (struct ndpi_tcphdr *)pkt_infos.l4_ptr;
-
-        /*  Checks the state of the flow */
-        flow.is_midstream_flow = (tcp->syn == 0 ? 1 : 0);
-        flow.flow_fin_ack_seen = (tcp->fin == 1 && tcp->ack == 1 ? 1 : 0);
-        flow.flow_ack_seen = tcp->ack;
-
-    } else if (flow.l4_protocol == IPPROTO_UDP) {
-        /*  UDP   */
-        const struct ndpi_udphdr * udp;
-
-        udp = (struct ndpi_udphdr *)pkt_infos.l4_ptr;
-
-    }
 
     return 0;
 }
@@ -107,7 +100,25 @@ int NtDissector::DumpIPv4(Reader * & reader,
     this->captured_stats.ip_pkts++;
     this->captured_stats.ip_bytes += pkt_infos.ip_size;
 
-    if(DumpL4(flow, pkt_infos) != 0)
+    /* Analyse lvl 4 */
+    if (flow.l4_protocol == IPPROTO_TCP) {
+        /*  TCP   */
+        const struct ndpi_tcphdr * tcp;
+
+        tcp = (struct ndpi_tcphdr *)pkt_infos.l4_ptr;
+
+        /*  Checks the state of the flow */
+        flow.is_midstream_flow = (tcp->syn == 0 ? 1 : 0);
+        flow.flow_fin_ack_seen = (tcp->fin == 1 && tcp->ack == 1 ? 1 : 0);
+        flow.flow_ack_seen = tcp->ack;
+
+    } else if (flow.l4_protocol == IPPROTO_UDP) {
+        /*  UDP   */
+        const struct ndpi_udphdr * udp;
+
+        udp = (struct ndpi_udphdr *)pkt_infos.l4_ptr;
+
+    } else 
         return -1;
     
     return 1;
@@ -152,7 +163,25 @@ int NtDissector::DumpIPv6(Reader * & reader,
     this->captured_stats.ip_pkts++;
     this->captured_stats.ip_bytes += pkt_infos.ip_size;
 
-    if(DumpL4(flow, pkt_infos) != 0)
+    /* Analyse lvl 4 */
+    if (flow.l4_protocol == IPPROTO_TCP) {
+        /*  TCP   */
+        const struct ndpi_tcphdr * tcp;
+
+        tcp = (struct ndpi_tcphdr *)pkt_infos.l4_ptr;
+
+        /*  Checks the state of the flow */
+        flow.is_midstream_flow = (tcp->syn == 0 ? 1 : 0);
+        flow.flow_fin_ack_seen = (tcp->fin == 1 && tcp->ack == 1 ? 1 : 0);
+        flow.flow_ack_seen = tcp->ack;
+
+    } else if (flow.l4_protocol == IPPROTO_UDP) {
+        /*  UDP   */
+        const struct ndpi_udphdr * udp;
+
+        udp = (struct ndpi_udphdr *)pkt_infos.l4_ptr;
+
+    } else 
         return -1;
 
     return 1;
@@ -214,7 +243,7 @@ int NtDissector::parsePacket(FlowInfo & flow,
     reader->newPacket((void *)hNetBuffer);
 
     // Parsing packets
-    return this->getDyn(args, * hNetBuffer, flow, pDyn1, pkt_infos);
+    this->getDyn(args, * hNetBuffer, flow, pDyn1, pkt_infos);
 }
 
 /* ********************************** */

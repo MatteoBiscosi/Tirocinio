@@ -183,14 +183,8 @@ void NapatechReader::newPacket(void * header)
 
     /*  Scan done every 15000 ms more or less   */    
     pkt_parser->incrWireBytes(NT_NET_GET_PKT_CAP_LENGTH(* hNetBuffer) - NT_NET_GET_PKT_DESCR_LENGTH(* hNetBuffer));
-    this->checkForIdleFlows();
-}
-
-/* ********************************** */
-
-void NapatechReader::checkForIdleFlows()
-{
-	/*  Check if at least IDLE_SCAN_PERIOD passed since last scan   */
+    
+    /*  Check if at least IDLE_SCAN_PERIOD passed since last scan   */
 	if (this->last_idle_scan_time + IDLE_SCAN_PERIOD * 10000 < this->last_time) { 
 		for (this->idle_scan_index; this->idle_scan_index < this->max_idle_scan_index; ++this->idle_scan_index) {
 			if(this->ndpi_flows_active[this->idle_scan_index] == nullptr)
@@ -238,10 +232,9 @@ void NapatechReader::checkForIdleFlows()
 
 void NapatechReader::taskReceiverAny(const char* streamName, NtFlowStream_t& flowStream)
 {
-    uint64_t counter = 0;
     int status;
-    uint64_t idCounter = 0U;
     std::vector<std::unique_ptr<NtFlow_t>> learnedFlowList;   
+
     while(this->error_or_eof == 0) {
 	    // Get package from rx stream.
 	    status = NT_NetRxGet(this->hNetRxMiss, &(this->hNetBufferMiss), -1);
@@ -265,19 +258,15 @@ void NapatechReader::taskReceiverAny(const char* streamName, NtFlowStream_t& flo
             // In this example, the ID is a simple incremental value that can be used
             // for lookup in the std::vector learnedFlowList. However, any value can be used,
             // including the raw value of pointers.
-            flow->id              = idCounter++;  // User defined ID
-            flow->color           = 0;            // Flow color
-            flow->overwrite       = 0;            // Overwrite filter action (1: enable, 0: disable)
-            flow->streamId        = 0;            // Marks the stream id if overwrite filter action is enabled
-            flow->ipProtocolField = 17;            // IP protocol number of next header (6: TCP)
-            flow->keySetId        = KEY_SET_ID;   // Key Set ID as used in the NTPL filter
-            flow->op              = 1;            // Flow programming operation (1: learn, 0: un-learn)
-            flow->gfi             = 1;            // Generate flow info record (1: generate, 0: do not generate)
-            flow->tau             = 0;            // TCP auto unlearn (1: auto unlearn enable, 0: auto unlearn disable)
-
-            // For this example the descriptor DYN3 is used, which is set up by NTPL.
-            //        NtDyn1Descr_t* dyn4 = _NT_NET_GET_PKT_DESCR_PTR_DYN1(hNetBuffer);
-            //      uint8_t* packet = reinterpret_cast<uint8_t*>(dyn4) + dyn4->descrLength;
+            flow->id              = idCounter++;        // User defined ID
+            flow->color           = 0;                  // Flow color
+            flow->overwrite       = 0;                  // Overwrite filter action (1: enable, 0: disable)
+            flow->streamId        = 0;                  // Marks the stream id if overwrite filter action is enabled
+            flow->ipProtocolField = pDyn1->ipProtocol;  // IP protocol number of next header (6: TCP)
+            flow->keySetId        = KEY_SET_ID;         // Key Set ID as used in the NTPL filter
+            flow->op              = 1;                  // Flow programming operation (1: learn, 0: un-learn)
+            flow->gfi             = 1;                  // Generate flow info record (1: generate, 0: do not generate)
+            flow->tau             = 0;                  // TCP auto unlearn (1: auto unlearn enable, 0: auto unlearn disable)
 
             // Because colormask was used in the filters, it is very easy to check for
             // the IP type.
@@ -321,7 +310,7 @@ void NapatechReader::taskReceiverAny(const char* streamName, NtFlowStream_t& flo
             handleErrorStatus(status, "NT_FlowWrite() failed");
 
             learnedFlowList.push_back(std::move(flow));
-	    this->setNewFlow(false);
+	        this->setNewFlow(false);
         }
 	
         status = NT_NetRxRelease(this->hNetRxMiss, this->hNetBufferMiss);
@@ -346,6 +335,18 @@ int NapatechReader::startRead()
         delete(this);
         return 1;
     }
+
+    NtStatistics_t hStat;
+
+    // Open the stat stream.
+    status = NT_StatOpen(&this->hStatStream, "Learn_example_flowstats");
+    if(handleErrorStatus(status, "NT_StatOpen() failed") != 0)
+        return -1;
+
+    // Read the statistics counters in order to clear them.
+    this->hStat.cmd = NT_STATISTICS_READ_CMD_USAGE_DATA_V0;
+    status = NT_StatRead(this->hStatStream, &(this->hStat));
+    handleErrorStatus(status, "NT_StatRead() failed");
     
     // Open a configuration stream to assign a filter to a stream ID.
     status = NT_ConfigOpen(&hCfgStream, "Learn_example_config");
@@ -399,10 +400,10 @@ int NapatechReader::startRead()
     /* Analysis starts */
     tracer->traceEvent(2, "\tAnalysis started\r\n\r\n");
 
-    //std::thread receiverThread2(taskReceiverUnh, "flowmatch_example_receiver_net_rx_unhandled", this);
+    std::thread receiverThread2(taskReceiverUnh, "flowmatch_example_receiver_net_rx_unhandled", this);
     this->taskReceiverAny("flowmatch_example_receiver_net_rx_miss", flowStream);
 
-   // receiverThread2.join();
+    receiverThread2.join();
 
     return 0;
 }

@@ -26,6 +26,9 @@ class NapatechReader : public Reader {
 
         NtFlowStream_t * flowStream;
 
+        NtStatistics_t hStat;
+        NtStatStream_t hStatStream;
+
         unsigned long long int idCounter;
 
     public:
@@ -53,11 +56,8 @@ class NapatechReader : public Reader {
         
         NtNetBuf_t * getUnhBuffer() { return &hNetBufferUnh; };
 
+        NtStatStream_t getStat() { return this->hStatStream; };
     private:
-        /**
-         * Check if idle flows are present into this->ndpi_flows_active
-         */
-        void checkForIdleFlows();
 
         /**
          * Initialize various infos

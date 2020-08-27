@@ -8,6 +8,7 @@
 class PacketDissector {
     protected:
 	    unsigned long long int flow_id;
+        Reader *reader;
 
         class CaptureStats {
             public:
@@ -36,12 +37,6 @@ class PacketDissector {
         } captured_stats; 
 
     private:
-        /**
-         * Function used to print stats collected until now
-         *
-         */            
-        void printFlowInfos(Reader * reader,
-                            PacketInfo & pkt_infos);
 
         /**
          * Function used to add flow to the hashtable 
@@ -51,14 +46,6 @@ class PacketDissector {
 	    int addVal(Reader * & reader,
                     FlowInfo& flow,
                     PacketInfo & pkt_infos);
-
-        /**
-         * Function used to update timer and counters
-         * of flows
-         *
-         */ 
-        void updateTimerAndCntrs(FlowInfo& flow,
-                                    PacketInfo & pkt_infos);
 
     protected:
         /**
@@ -75,6 +62,12 @@ class PacketDissector {
 	    int searchVal(Reader * & reader,
                       FlowInfo& flow,
                       PacketInfo & pkt_infos);
+
+        /**
+         * Print packets and bytes received
+         * 
+         */
+        void printBriefInfos();
 
     public:
         PacketDissector();
@@ -142,7 +135,6 @@ class PacketDissector {
         void printFlow(Reader* reader, 
                         FlowInfo * pkt_infos);
 
-	void printBriefInfos();
         /**
          * Various setters and getters
          * 

@@ -14,15 +14,21 @@ class NtDissector : public PacketDissector{
                             PacketInfo & pkt_infos) override;    
 	
     private:
-	/**
-  	 * Functions used to search flow inside the hashtable
-  	 */
-	int setupFlowToSearch(Reader * & reader,
-                                uint8_t * packet,
-            	             	FlowInfo& flow,
-                                NtDyn1Descr_t* & pDyn1,
-                                PacketInfo& pkt_infos,
-                                int l3Type);
+        /**
+         * Print packets and bytes received
+         * 
+         */
+        void printBriefInfos() override;
+
+        /**
+         * Functions used to search flow inside the hashtable
+         */
+        int setupFlowToSearch(Reader * & reader,
+                                    uint8_t * packet,
+                                    FlowInfo& flow,
+                                    NtDyn1Descr_t* & pDyn1,
+                                    PacketInfo& pkt_infos,
+                                    int l3Type);
 
         /**
          * Function used to parse and update l4 infos

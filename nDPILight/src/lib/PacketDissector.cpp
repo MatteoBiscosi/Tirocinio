@@ -26,24 +26,6 @@ PacketDissector::~PacketDissector()
 
 /* ********************************** */
 
-void PacketDissector::updateTimerAndCntrs(FlowInfo& flow,
-                      			            PacketInfo & pkt_infos)
-{
-    pkt_infos.flow_to_process->packets_processed++;
-    pkt_infos.flow_to_process->bytes_processed += pkt_infos.ip_size;
-    /* update timestamps, important for timeout handling */
-    if (pkt_infos.flow_to_process->first_seen == 0) {
-        pkt_infos.flow_to_process->first_seen = pkt_infos.time_ms;
-    }
-    pkt_infos.flow_to_process->last_seen = pkt_infos.time_ms;
-    if (pkt_infos.flow_to_process->l4_protocol == IPPROTO_UDP)
-	    this->captured_stats.udp_pkts++;
-    else
-	    this->captured_stats.tcp_pkts++; 
-}
-
-/* ********************************** */
-
 void PacketDissector::initProtosCnt(uint num)
 {
     this->captured_stats.protos_cnt = new uint16_t[num + 1] ();
@@ -70,7 +52,6 @@ void PacketDissector::printFlow(Reader* reader,
     char dst_addr_str[INET6_ADDRSTRLEN+1];
     
     pkt_infos->ipTupleToString(src_addr_str, sizeof(src_addr_str), dst_addr_str, sizeof(dst_addr_str));
-
 
     tracer->traceEvent(2, "\tFlow Summary:\r\n");
     tracer->traceEvent(2, "\t\tFlow id: %lu | Packets received: %lu | Bytes received: %lu | Src ip: %s | Src port %d | Dst ip: %s | Dst port %d\r\n", 
@@ -218,9 +199,72 @@ int PacketDissector::addVal(Reader * & reader,
 
 /* ********************************** */
 
-void PacketDissector::printFlowInfos(Reader * reader,
-                                        PacketInfo & pkt_infos)
+void PacketDissector::processPacket(void * const args,
+                                    void * header_tmp,
+                                    void * packet_tmp)
 {
+    int status;
+    FlowInfo flow = FlowInfo();
+    Reader * reader = (Reader *) args;
+    PacketInfo pkt_infos = PacketInfo();
+    this->reader = reader;
+
+    this->captured_stats.packets_captured++;
+
+    /* Parsing the packet */
+    status = this->parsePacket(flow, reader, header_tmp, packet_tmp, pkt_infos);
+
+    /* Switch the status received from parsePacket */
+    switch(status) {
+    case -1: /* Error case */
+        return;
+
+    case 0: /* No search inside the hashtable done */
+        if(this->searchVal(reader, flow, pkt_infos) != 0) {
+            if(this->addVal(reader, flow, pkt_infos) != 0) {
+                this->captured_stats.discarded_bytes += pkt_infos.ip_offset + pkt_infos.eth_offset;
+                return;
+            }
+            reader->setNewFlow(true);
+            this->captured_stats.total_flows_captured++;
+        } else {
+            reader->setNewFlow(false);
+            pkt_infos.flow_to_process = *(FlowInfo **)pkt_infos.tree_result;
+        }
+        break;
+
+    case 1: /* Already done some search and value was not found */
+        if(this->addVal(reader, flow, pkt_infos) != 0) {
+            this->captured_stats.discarded_bytes += pkt_infos.ip_offset + pkt_infos.eth_offset;
+            return;
+        }
+        this->captured_stats.total_flows_captured++;
+        break;
+        
+    case 2: /* Already done some search and value was found */
+        pkt_infos.flow_to_process = *(FlowInfo **)pkt_infos.tree_result;
+        break;
+    }
+
+    /* Updates timers and counters */
+    this->captured_stats.packets_processed++;
+    pkt_infos.flow_to_process->packets_processed++;
+    pkt_infos.flow_to_process->bytes_processed += pkt_infos.ip_size;
+    /* update timestamps, important for timeout handling */
+    if (pkt_infos.flow_to_process->first_seen == 0) {
+        pkt_infos.flow_to_process->first_seen = pkt_infos.time_ms;
+    }
+    pkt_infos.flow_to_process->last_seen = pkt_infos.time_ms;
+    if (pkt_infos.flow_to_process->l4_protocol == IPPROTO_UDP)
+	    this->captured_stats.udp_pkts++;
+    else
+	    this->captured_stats.tcp_pkts++;
+
+    if(pkt_infos.flow_to_process->ended_dpi)
+        return;
+
+
+    /* Try to detect the protocol */
     if (pkt_infos.flow_to_process->ndpi_flow->num_processed_pkts == 0xFF) {
         return;
     } else if (pkt_infos.flow_to_process->ndpi_flow->num_processed_pkts == 0xFE) {
@@ -231,7 +275,7 @@ void PacketDissector::printFlowInfos(Reader * reader,
                             pkt_infos.flow_to_process->ndpi_flow,
                             1, &protocol_was_guessed);
         pkt_infos.flow_to_process->ended_dpi = 1;
-	reader->setNewFlow(true);
+	    reader->setNewFlow(true);
         if (protocol_was_guessed != 0) {
             /*  Protocol guessed    */
             tracer->traceEvent(3, "\t[%8llu, %4d][GUESSED] protocol: %s | app protocol: %s | category: %s\n",
@@ -281,7 +325,7 @@ void PacketDissector::printFlowInfos(Reader * reader,
 		    pkt_infos.flow_to_process->detection_completed = 1;
 		    this->captured_stats.detected_flow_protocols++;
             pkt_infos.flow_to_process->ended_dpi = 1;
-	    reader->setNewFlow(true);
+	        reader->setNewFlow(true);
 		    tracer->traceEvent(3, "\t[%8llu, %4d][DETECTED] protocol: %s | app protocol: %s | category: %s\n",
 					    this->captured_stats.packets_captured,
                                     pkt_infos.flow_to_process->flow_id,
@@ -306,64 +350,5 @@ void PacketDissector::printFlowInfos(Reader * reader,
                                         pkt_infos.flow_to_process->src_port, pkt_infos.flow_to_process->dst_port);
         }
     }
-}
-
-/* ********************************** */
-
-void PacketDissector::processPacket(void * const args,
-                                    void * header_tmp,
-                                    void * packet_tmp)
-{
-    int status;
-    FlowInfo flow = FlowInfo();
-    Reader * reader = (Reader *) args;
-    PacketInfo pkt_infos = PacketInfo();
-
-
-    this->captured_stats.packets_captured++;
-
-    /* Parsing the packet */
-    status = this->parsePacket(flow, reader, header_tmp, packet_tmp, pkt_infos);
-
-    /* Switch the status received from parsePacket */
-    switch(status) {
-    case -1: /* Error case */
-        return;
-
-    case 0: /* No search inside the hashtable done */
-        if(this->searchVal(reader, flow, pkt_infos) != 0) {
-            if(this->addVal(reader, flow, pkt_infos) != 0) {
-                this->captured_stats.discarded_bytes += pkt_infos.ip_offset + pkt_infos.eth_offset;
-                return;
-            }
-            reader->setNewFlow(true);
-            this->captured_stats.total_flows_captured++;
-        } else {
-            reader->setNewFlow(false);
-            pkt_infos.flow_to_process = *(FlowInfo **)pkt_infos.tree_result;
-        }
-        break;
-
-    case 1: /* Already done some search and value was not found */
-        if(this->addVal(reader, flow, pkt_infos) != 0) {
-            this->captured_stats.discarded_bytes += pkt_infos.ip_offset + pkt_infos.eth_offset;
-            return;
-        }
-        this->captured_stats.total_flows_captured++;
-        break;
-        
-    case 2: /* Already done some search and value was found */
-        pkt_infos.flow_to_process = *(FlowInfo **)pkt_infos.tree_result;
-        break;
-    }
-
-    this->captured_stats.packets_processed++;
-
-    this->updateTimerAndCntrs(flow, pkt_infos);
-
-    if(pkt_infos.flow_to_process->ended_dpi)
-        return;
-
-    this->printFlowInfos((Reader *) reader, pkt_infos);
 }
 

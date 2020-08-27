@@ -277,7 +277,7 @@ int main(int argc, char * argv[])
     /*  have to find a better way of doing this job */
     while (terminate_thread == 0 && check_error_or_eof() == 0) {
         pkt_parser->printBriefInfos();
-	sleep(1);
+	    sleep(1);
     }
 
     if (terminate_thread == 0 && stop_reader() != 0) {
