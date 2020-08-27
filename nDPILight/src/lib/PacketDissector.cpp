@@ -33,18 +33,6 @@ void PacketDissector::initProtosCnt(uint num)
 
 /* ********************************** */
 
-void PacketDissector::printBriefInfos()
-{
-    uint64_t act_packets = this->captured_stats.packets_processed;
-    uint64_t delta = act_packets - this->captured_stats.previous_packets;
-    this->captured_stats.previous_packets = act_packets;
-    tracer->traceEvent(2, "\tCapture brief summary: Tot. packets: %llu | Tot. bytes: %llu | pps: %llu\r\n", 
-			this->captured_stats.packets_processed, this->captured_stats.total_wire_bytes,
-			delta);
-}
-
-/* ********************************** */
-
 void PacketDissector::printFlow(Reader* reader, 
                                 FlowInfo * pkt_infos)
 {
@@ -207,7 +195,6 @@ void PacketDissector::processPacket(void * const args,
     FlowInfo flow = FlowInfo();
     Reader * reader = (Reader *) args;
     PacketInfo pkt_infos = PacketInfo();
-    this->reader = reader;
 
     this->captured_stats.packets_captured++;
 
@@ -215,12 +202,12 @@ void PacketDissector::processPacket(void * const args,
     status = this->parsePacket(flow, reader, header_tmp, packet_tmp, pkt_infos);
 
     /* Switch the status received from parsePacket */
-    switch(status) {
+/*    switch(status) {
     case -1: /* Error case */
-        return;
+ //       return;
 
-    case 0: /* No search inside the hashtable done */
-        if(this->searchVal(reader, flow, pkt_infos) != 0) {
+  //  case 0: /* No search inside the hashtable done */
+    /*    if(this->searchVal(reader, flow, pkt_infos) != 0) {
             if(this->addVal(reader, flow, pkt_infos) != 0) {
                 this->captured_stats.discarded_bytes += pkt_infos.ip_offset + pkt_infos.eth_offset;
                 return;
@@ -234,7 +221,7 @@ void PacketDissector::processPacket(void * const args,
         break;
 
     case 1: /* Already done some search and value was not found */
-        if(this->addVal(reader, flow, pkt_infos) != 0) {
+  /*      if(this->addVal(reader, flow, pkt_infos) != 0) {
             this->captured_stats.discarded_bytes += pkt_infos.ip_offset + pkt_infos.eth_offset;
             return;
         }
@@ -242,16 +229,16 @@ void PacketDissector::processPacket(void * const args,
         break;
         
     case 2: /* Already done some search and value was found */
-        pkt_infos.flow_to_process = *(FlowInfo **)pkt_infos.tree_result;
+ /*       pkt_infos.flow_to_process = *(FlowInfo **)pkt_infos.tree_result;
         break;
     }
 
     /* Updates timers and counters */
-    this->captured_stats.packets_processed++;
+/*    this->captured_stats.packets_processed++;
     pkt_infos.flow_to_process->packets_processed++;
     pkt_infos.flow_to_process->bytes_processed += pkt_infos.ip_size;
     /* update timestamps, important for timeout handling */
-    if (pkt_infos.flow_to_process->first_seen == 0) {
+/*    if (pkt_infos.flow_to_process->first_seen == 0) {
         pkt_infos.flow_to_process->first_seen = pkt_infos.time_ms;
     }
     pkt_infos.flow_to_process->last_seen = pkt_infos.time_ms;
@@ -265,11 +252,11 @@ void PacketDissector::processPacket(void * const args,
 
 
     /* Try to detect the protocol */
-    if (pkt_infos.flow_to_process->ndpi_flow->num_processed_pkts == 0xFF) {
+/*    if (pkt_infos.flow_to_process->ndpi_flow->num_processed_pkts == 0xFF) {
         return;
     } else if (pkt_infos.flow_to_process->ndpi_flow->num_processed_pkts == 0xFE) {
         /* last chance to guess something, better then nothing */
-        uint8_t protocol_was_guessed = 0;
+  /*      uint8_t protocol_was_guessed = 0;
         pkt_infos.flow_to_process->guessed_protocol =
             ndpi_detection_giveup(reader->getNdpiStruct(),
                             pkt_infos.flow_to_process->ndpi_flow,
@@ -278,7 +265,7 @@ void PacketDissector::processPacket(void * const args,
 	    reader->setNewFlow(true);
         if (protocol_was_guessed != 0) {
             /*  Protocol guessed    */
-            tracer->traceEvent(3, "\t[%8llu, %4d][GUESSED] protocol: %s | app protocol: %s | category: %s\n",
+    /*        tracer->traceEvent(3, "\t[%8llu, %4d][GUESSED] protocol: %s | app protocol: %s | category: %s\n",
                 this->captured_stats.packets_captured,
                 pkt_infos.flow_to_process->flow_id,
                 ndpi_get_proto_name(reader->getNdpiStruct(), pkt_infos.flow_to_process->guessed_protocol.master_protocol),
@@ -349,6 +336,6 @@ void PacketDissector::processPacket(void * const args,
                                         tmp, src_addr_str, dst_addr_str, 
                                         pkt_infos.flow_to_process->src_port, pkt_infos.flow_to_process->dst_port);
         }
-    }
+    }*/
 }
 

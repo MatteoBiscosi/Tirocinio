@@ -13,12 +13,11 @@ class NtDissector : public PacketDissector{
                             void * packet_tmp,
                             PacketInfo & pkt_infos) override;    
 	
-    private:
-        /**
+	/**
          * Print packets and bytes received
-         * 
          */
-        void printBriefInfos() override;
+        void printBriefInfos(Reader *reader) override;
+    private:
 
         /**
          * Functions used to search flow inside the hashtable

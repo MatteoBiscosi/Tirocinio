@@ -4,22 +4,39 @@
 
 /* ********************************** */
 
-void PacketDissector::printBriefInfos()
+void NtDissector::printBriefInfos(Reader *reader)
 {
+ /*   NtStatStream_t hStatStream;
     NtStatistics_t hStat;
+    uint32_t hbCount;
+    uint64_t tot_pkts = 0, tot_bytes = 0;
+    NapatechReader *reader_tmp = (NapatechReader *) reader;
+    //printf("%llu, %llu\n", reader_tmp->getInitPkts(), reader_tmp->getInitBytes()); 
+    NT_StatOpen(&hStatStream, "ExampleStatUsage");
+//    hStat.cmd = NT_STATISTICS_READ_CMD_QUERY_V3;
+    hStat.cmd=NT_STATISTICS_READ_CMD_USAGE_DATA_V0;
+//    hStat.u.usageData_v0.streamid = (uint8_t) STREAM_ID_MISS; 
+    //printf("%llu, %llu\n", reader_tmp->getInitPkts(), reader_tmp->getInitBytes());
+//	hStat.u.query_v3.poll = 0;
+//  hStat.u.query_v3.clear = 1;
+    NT_StatRead(hStatStream, &hStat);
 
-    NapatechReader *reader = (NapatechReader *) this->reader;
-    NT_StatRead(reader->getStat(), &hStat);
-
-    uint64_t tot_pkts = hStat.u.usageData_v0.data.hb.stat.rx.frames;
-    uint64_t tot_bytes = hStat.u.usageData_v0.data.hb.stat.rx.bytes;
+    for (hbCount = 0; hbCount < hStat.u.usageData_v0.data.numHostBufferUsed; hbCount++) {
+        tot_pkts += hStat.u.usageData_v0.data.hb[hbCount].stat.drop.frames;
+        tot_bytes += hStat.u.usageData_v0.data.hb[hbCount].stat.drop.bytes;
+    }
+    tot_pkts = tot_pkts - reader_tmp->getInitPkts();
+    tot_bytes = tot_bytes - reader_tmp->getInitBytes();
+/*    uint64_t totDropsPkts = hStat.u.query_v3.data.stream.streamid[STREAM_ID_MISS].drop.pkts;
+    uint64_t totDropsBytes = hStat.u.query_v3.data.stream.streamid[STREAM_ID_MISS].drop.octets;
+printf("%llu, %llu\n", totDropsPkts, totDropsBytes);
     uint64_t act_packets = tot_pkts;
     uint64_t delta = act_packets - this->captured_stats.previous_packets;
     this->captured_stats.previous_packets = act_packets;
-    tracer->traceEvent(2, "\tCapture brief summary: Tot. packets: %llu | Tot. bytes: %llu | 
-                            Pkts. captured: %llu | Bytes captured: %llu | pps: %llu\r\n", 
+    tracer->traceEvent(2, "\tCapture brief summary: Tot. packets: %llu | Tot. bytes: %llu | Pkts. captured: %llu | Bytes captured: %llu | pps: %llu\r\n", 
 			tot_pkts, tot_bytes, this->captured_stats.packets_processed, this->captured_stats.total_wire_bytes,
 			delta);
+*/
 }
 
 
@@ -232,7 +249,7 @@ int NtDissector::parsePacket(FlowInfo & flow,
                                 void * packet_tmp,
                                 PacketInfo & pkt_infos)
 {
-    NapatechReader * reader = (NapatechReader *) args;
+/*    NapatechReader * reader = (NapatechReader *) args;
     NtNetBuf_t * hNetBuffer = ((NtNetBuf_t *) header_tmp);
     NtDyn1Descr_t* pDyn1;
 
@@ -240,10 +257,10 @@ int NtDissector::parsePacket(FlowInfo & flow,
     pkt_infos.time_ms = NT_NET_GET_PKT_TIMESTAMP(* hNetBuffer);
     pkt_infos.eth_offset = 0;
     // Checking idle flows
-    reader->newPacket((void *)hNetBuffer);
-
+//    reader->newPacket((void *)hNetBuffer);
+*/
     // Parsing packets
-    this->getDyn(args, * hNetBuffer, flow, pDyn1, pkt_infos);
+    //return this->getDyn(args, * hNetBuffer, flow, pDyn1, pkt_infos);
 }
 
 /* ********************************** */

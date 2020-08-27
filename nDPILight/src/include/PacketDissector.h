@@ -8,8 +8,7 @@
 class PacketDissector {
     protected:
 	    unsigned long long int flow_id;
-        Reader *reader;
-
+        
         class CaptureStats {
             public:
                 unsigned long long int unhandled_packets;
@@ -63,16 +62,17 @@ class PacketDissector {
                       FlowInfo& flow,
                       PacketInfo & pkt_infos);
 
-        /**
-         * Print packets and bytes received
-         * 
-         */
-        void printBriefInfos();
-
     public:
         PacketDissector();
         PacketDissector(uint num);
         ~PacketDissector();
+
+	/**
+         * Print packets and bytes received
+         * 
+         */
+        virtual void printBriefInfos(Reader *reader) = 0;
+
 
         /**
          * Function used to parse a packet, called

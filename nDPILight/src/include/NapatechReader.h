@@ -30,7 +30,8 @@ class NapatechReader : public Reader {
         NtStatStream_t hStatStream;
 
         unsigned long long int idCounter;
-
+	unsigned long long int init_pkts;
+        unsigned long long int init_bytes;
     public:
 	    ~NapatechReader();
 
@@ -56,7 +57,11 @@ class NapatechReader : public Reader {
         
         NtNetBuf_t * getUnhBuffer() { return &hNetBufferUnh; };
 
-        NtStatStream_t getStat() { return this->hStatStream; };
+	NtStatStream_t getStatStream() { return this->hStatStream; };
+
+        unsigned long long int getInitPkts() { return this->init_pkts; };
+
+	unsigned long long int getInitBytes() { return this->init_bytes; };
     private:
 
         /**

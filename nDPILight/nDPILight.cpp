@@ -273,10 +273,10 @@ int main(int argc, char * argv[])
     signal(SIGTERM, sighandler);
 
 
-    sleep(5);
+    sleep(2);
     /*  have to find a better way of doing this job */
     while (terminate_thread == 0 && check_error_or_eof() == 0) {
-        pkt_parser->printBriefInfos();
+            pkt_parser->printBriefInfos(reader_thread.getReader());
 	    sleep(1);
     }
 

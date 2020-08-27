@@ -12,6 +12,10 @@ class PcapDissector : public PacketDissector {
                             void * header_tmp,
                             void * packet_tmp,
                             PacketInfo & pkt_infos) override;
+	/**
+         * Print packets and bytes received
+         */
+        void printBriefInfos(Reader *reader) override;	
     private:
         /**  
          * Process datalink layer  

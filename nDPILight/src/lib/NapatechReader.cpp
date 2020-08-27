@@ -254,6 +254,8 @@ void NapatechReader::taskReceiverAny(const char* streamName, NtFlowStream_t& flo
             // next flow to be learned will be set up.
             auto flow = std::unique_ptr<NtFlow_t>(new NtFlow_t);
             std::memset(flow.get(), 0x0, sizeof(NtFlow_t));
+	    
+	    NtDyn1Descr_t* pDyn1 = _NT_NET_GET_PKT_DESCR_PTR_DYN1(this->hNetBufferMiss);
 
             // In this example, the ID is a simple incremental value that can be used
             // for lookup in the std::vector learnedFlowList. However, any value can be used,
@@ -272,7 +274,6 @@ void NapatechReader::taskReceiverAny(const char* streamName, NtFlowStream_t& flo
             // the IP type.
             // The filters also set up an alternative offset0, such that it points
             // directly to the IP source address.
-            NtDyn1Descr_t* pDyn1 = _NT_NET_GET_PKT_DESCR_PTR_DYN1(this->hNetBufferMiss);
             uint8_t* packet = reinterpret_cast<uint8_t*>(pDyn1) + pDyn1->descrLength;
 
             switch (pDyn1->color >> 2) {
@@ -328,6 +329,7 @@ int NapatechReader::startRead()
     NtConfigStream_t hCfgStream;
 
     int status;
+    uint64_t tot_pkts = 0, tot_bytes = 0;
     unsigned long long int idCounter = 0;
 
     status = NT_Init(NTAPI_VERSION);
@@ -335,19 +337,7 @@ int NapatechReader::startRead()
         delete(this);
         return 1;
     }
-
-    NtStatistics_t hStat;
-
-    // Open the stat stream.
-    status = NT_StatOpen(&this->hStatStream, "Learn_example_flowstats");
-    if(handleErrorStatus(status, "NT_StatOpen() failed") != 0)
-        return -1;
-
-    // Read the statistics counters in order to clear them.
-    this->hStat.cmd = NT_STATISTICS_READ_CMD_USAGE_DATA_V0;
-    status = NT_StatRead(this->hStatStream, &(this->hStat));
-    handleErrorStatus(status, "NT_StatRead() failed");
-    
+         
     // Open a configuration stream to assign a filter to a stream ID.
     status = NT_ConfigOpen(&hCfgStream, "Learn_example_config");
 
@@ -395,8 +385,27 @@ int NapatechReader::startRead()
     status = NT_NetRxOpen(&(this->hNetRxUnh), "Unhandled packets stream", NT_NET_INTERFACE_PACKET, STREAM_ID_UNHA, -1);
     if(handleErrorStatus(status, "NT_NetRxOpen() failed") != 0)
         return -1;
+    
+    NtStatistics_t hStat;
 
+    // Open the stat stream.
+    status = NT_StatOpen(&(this->hStatStream), "Learn_example_flowstats");
+    if(handleErrorStatus(status, "NT_StatOpen() failed") != 0)
+        return -1;
 
+    hStat.cmd=NT_STATISTICS_READ_CMD_USAGE_DATA_V0;
+    hStat.u.usageData_v0.streamid = (uint8_t) STREAM_ID_MISS;
+
+    NT_StatRead(this->hStatStream, &hStat);
+    
+    for (int hbCount = 0; hbCount < hStat.u.usageData_v0.data.numHostBufferUsed; hbCount++) {
+        tot_pkts += hStat.u.usageData_v0.data.hb[hbCount].stat.rx.frames;
+        tot_bytes += hStat.u.usageData_v0.data.hb[hbCount].stat.rx.bytes;
+    }
+    this->init_pkts = tot_pkts;
+    this->init_bytes = tot_bytes;
+   
+    
     /* Analysis starts */
     tracer->traceEvent(2, "\tAnalysis started\r\n\r\n");
 

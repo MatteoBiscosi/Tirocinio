@@ -6,6 +6,18 @@ static uint32_t flow_id = 0;
 
 /* ********************************** */
 
+void PcapDissector::printBriefInfos(Reader *reader)
+{
+    uint64_t act_packets = this->captured_stats.packets_processed;
+    uint64_t delta = act_packets - this->captured_stats.previous_packets;
+    this->captured_stats.previous_packets = act_packets;
+    tracer->traceEvent(2, "\tCapture brief summary: Tot. packets: %llu | Tot. bytes: %llu | pps: %llu\r\n",
+                        this->captured_stats.packets_processed, this->captured_stats.total_wire_bytes,
+                        delta);
+}
+
+/* ********************************** */
+
 int PcapDissector::processL2(PcapReader * const reader,
                                 pcap_pkthdr const * const header,
                                 uint8_t const * const packet,
