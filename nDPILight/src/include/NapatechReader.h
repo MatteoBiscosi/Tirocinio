@@ -16,8 +16,8 @@ class NapatechReader : public Reader {
         uint8_t adapterNo;
         NtFlowAttr_t flowAttr;
 
-        NtNetStreamRx_t hNetRxAny;
-        NtNetBuf_t hNetBufferAny;
+        NtNetStreamRx_t hNetRxMiss;
+        NtNetBuf_t hNetBufferMiss;
 
         NtNetStreamRx_t hNetRxUnh;
         NtNetBuf_t hNetBufferUnh;
@@ -68,29 +68,12 @@ class NapatechReader : public Reader {
          * Initialize ndpi modules
          */
         int initModule();
-
-        /**
-         * Configure napatech library
-         */
-        int initConfig(NtFlowAttr_t& flowAttr,
-                        NtFlowStream_t& flowStream,
-                        NtConfigStream_t& hCfgStream);
-
-        /**
-         * Open streams configured in initConfig
-         */
-        int openStreams();
         
         /**
          * Analyze each type of packet
          */
         void taskReceiverAny(const char* streamName, 
                     NtFlowStream_t& flowStream);
-
-        /**
-         * Add a new flow to the nt_flow_table
-         */
-        int createNewFlow(NtFlowStream_t& flowStream);
 };
 
 
