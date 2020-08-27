@@ -90,16 +90,6 @@ class Reader {
         virtual int checkEnd() = 0;
 
         /**
-         * Function used everytime a new flow is found
-         * ()
-         *
-         * @return 1 if eof is reached or if the 
-         *         analysis needs to be stopped, 0 otherwise
-         *
-         */
-        int newFlow(FlowInfo * & flow_to_process);
-
-        /**
          * Various getters and setters
          *
          */
@@ -123,13 +113,17 @@ class Reader {
 
         void incrCurIdleFlows() { this->cur_idle_flows++; };
 
+        void incrTotalActiveFlows() { this->total_active_flows++; };
+
+        void incrCurActiveFlows() { this->cur_active_flows++; };
+
         uint64_t getLastTime() { return this->last_time; };
 
         void **getNdpiFlowsIdle() { return this->ndpi_flows_idle; };    
 
         unsigned long long int getCurIdleFlows() { return this->cur_idle_flows; };
 
-        unsigned long long int getTotalIdleFlows() { return this->cur_active_flows; };
+        unsigned long long int getCurActiveFlows() { return this->cur_active_flows; };
 };
 
 

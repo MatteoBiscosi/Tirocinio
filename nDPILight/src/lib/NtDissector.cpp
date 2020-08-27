@@ -39,43 +39,6 @@ printf("%llu, %llu\n", totDropsPkts, totDropsBytes);
 */
 }
 
-
-/* ********************************** */
-
-int NtDissector::setupFlowToSearch(Reader * & reader,
-				    uint8_t * packet,
-                                    FlowInfo& flow,
-                                    NtDyn1Descr_t* & pDyn1,
-                                    PacketInfo& pkt_infos,
-                                    int l3Type)
-{
-    if (l3Type == 4) {
-        /*  IPv4    */
-        flow.ip_tuple.v4.src = pkt_infos.ip->saddr;
-        flow.ip_tuple.v4.dst = pkt_infos.ip->daddr;
-
-    } else if (l3Type == 6) {
-        /*  IPv6    */
-        flow.ip_tuple.v6.src[0] = pkt_infos.ip6->ip6_src.u6_addr.u6_addr64[0];
-        flow.ip_tuple.v6.src[1] = pkt_infos.ip6->ip6_src.u6_addr.u6_addr64[1];
-        flow.ip_tuple.v6.dst[0] = pkt_infos.ip6->ip6_dst.u6_addr.u6_addr64[0];
-        flow.ip_tuple.v6.dst[1] = pkt_infos.ip6->ip6_dst.u6_addr.u6_addr64[1];
-    }
-
-    struct ports * pktPorts = (struct ports *) &packet[pDyn1->offset1];
-
-    flow.src_port = ntohs(pktPorts->srcPort);
-    flow.dst_port = ntohs(pktPorts->dstPort);
-
-    if(this->searchVal(reader, flow, pkt_infos) != 0)
-        return -1;
-
-    this->captured_stats.ip_pkts++;
-    this->captured_stats.ip_bytes += pkt_infos.ip_size;
-
-    return 0;
-}
-
 /* ********************************** */
 
 int NtDissector::DumpIPv4(Reader * & reader,
@@ -84,6 +47,8 @@ int NtDissector::DumpIPv4(Reader * & reader,
                             uint8_t* & packet,
                             PacketInfo& pkt_infos)
 {
+    struct ports * pktPorts = (struct ports *) &packet[pDyn1->offset1];
+
     /*  Lvl 2   */
     pkt_infos.ethernet = (struct ndpi_ethhdr *) &packet[pkt_infos.eth_offset];
     pkt_infos.ip_offset = sizeof(struct ndpi_ethhdr) + pkt_infos.eth_offset;
@@ -91,9 +56,19 @@ int NtDissector::DumpIPv4(Reader * & reader,
     pkt_infos.ip6 = nullptr;
     
     pkt_infos.ip_size = pDyn1->capLength - pDyn1->descrLength - pkt_infos.ip_offset;
-    
-    if(setupFlowToSearch(reader, packet, flow, pDyn1, pkt_infos, 4) == 0)
+
+    /* Search if the record is already inside the structure */
+    flow.ip_tuple.v4.src = pkt_infos.ip->saddr;
+    flow.ip_tuple.v4.dst = pkt_infos.ip->daddr;
+
+    flow.src_port = ntohs(pktPorts->srcPort);
+    flow.dst_port = ntohs(pktPorts->dstPort);
+
+    if(this->searchVal(reader, flow, pkt_infos) == 0)
         return 2;
+
+    this->captured_stats.ip_pkts++;
+    this->captured_stats.ip_bytes += pkt_infos.ip_size;
 
     /*  Lvl 3   */
     if (pkt_infos.ip_size < sizeof(*pkt_infos.ip)) {
@@ -113,9 +88,6 @@ int NtDissector::DumpIPv4(Reader * & reader,
                                 this->captured_stats.packets_captured, pkt_infos.ip_size - sizeof(*pkt_infos.ip));
         return -1;
     }
-
-    this->captured_stats.ip_pkts++;
-    this->captured_stats.ip_bytes += pkt_infos.ip_size;
 
     /* Analyse lvl 4 */
     if (flow.l4_protocol == IPPROTO_TCP) {
@@ -156,9 +128,21 @@ int NtDissector::DumpIPv6(Reader * & reader,
     pkt_infos.ip6 = (struct ndpi_ipv6hdr *)&packet[pkt_infos.ip_offset];
 
     pkt_infos.ip_size = pDyn1->capLength - pDyn1->descrLength - pkt_infos.ip_offset;
-   
-    if(setupFlowToSearch(reader, packet, flow, pDyn1, pkt_infos, 4) == 0)
+
+    flow.ip_tuple.v6.src[0] = pkt_infos.ip6->ip6_src.u6_addr.u6_addr64[0];
+    flow.ip_tuple.v6.src[1] = pkt_infos.ip6->ip6_src.u6_addr.u6_addr64[1];
+    flow.ip_tuple.v6.dst[0] = pkt_infos.ip6->ip6_dst.u6_addr.u6_addr64[0];
+    flow.ip_tuple.v6.dst[1] = pkt_infos.ip6->ip6_dst.u6_addr.u6_addr64[1];
+    
+
+    flow.src_port = ntohs(pktPorts->srcPort);
+    flow.dst_port = ntohs(pktPorts->dstPort);
+
+    if(this->searchVal(reader, flow, pkt_infos) == 0)
         return 2;
+
+    this->captured_stats.ip_pkts++;
+    this->captured_stats.ip_bytes += pkt_infos.ip_size;
 
     /*  Lvl 3   */
     if (pkt_infos.ip_size < sizeof(pkt_infos.ip6->ip6_hdr)) {
@@ -176,9 +160,6 @@ int NtDissector::DumpIPv6(Reader * & reader,
                                 this->captured_stats.packets_captured, pkt_infos.ip_size - sizeof(*pkt_infos.ip));
         return -1;
     }
-
-    this->captured_stats.ip_pkts++;
-    this->captured_stats.ip_bytes += pkt_infos.ip_size;
 
     /* Analyse lvl 4 */
     if (flow.l4_protocol == IPPROTO_TCP) {
@@ -206,13 +187,23 @@ int NtDissector::DumpIPv6(Reader * & reader,
 
 /* ********************************** */
 
-
-int NtDissector::getDyn(Reader * & reader,
-                        NtNetBuf_t& hNetBuffer,
-                        FlowInfo& flow,
-                        NtDyn1Descr_t* & pDyn1,
-                        PacketInfo& pkt_infos)
+int NtDissector::parsePacket(FlowInfo & flow,
+                                Reader * & args,
+                                void * header_tmp,
+                                void * packet_tmp,
+                                PacketInfo & pkt_infos)
 {
+    NapatechReader * reader = (NapatechReader *) args;
+    NtNetBuf_t * hNetBuffer = ((NtNetBuf_t *) header_tmp);
+    NtDyn1Descr_t* pDyn1;
+
+    // Updating time counters
+    pkt_infos.time_ms = NT_NET_GET_PKT_TIMESTAMP(* hNetBuffer);
+    pkt_infos.eth_offset = 0;
+    // Checking idle flows
+    reader->newPacket((void *)hNetBuffer);
+
+    // Parsing packets
     // descriptor DYN1 is used, which is set up via NTPL.
     pDyn1 = NT_NET_DESCR_PTR_DYN1(hNetBuffer);
     uint8_t* packet = (uint8_t *) NT_NET_GET_PKT_L2_PTR(hNetBuffer);
@@ -237,30 +228,6 @@ int NtDissector::getDyn(Reader * & reader,
             }
         }
     }
-
-    return 0;
-}
-
-/* ********************************** */
-
-int NtDissector::parsePacket(FlowInfo & flow,
-                                Reader * & args,
-                                void * header_tmp,
-                                void * packet_tmp,
-                                PacketInfo & pkt_infos)
-{
-/*    NapatechReader * reader = (NapatechReader *) args;
-    NtNetBuf_t * hNetBuffer = ((NtNetBuf_t *) header_tmp);
-    NtDyn1Descr_t* pDyn1;
-
-    // Updating time counters
-    pkt_infos.time_ms = NT_NET_GET_PKT_TIMESTAMP(* hNetBuffer);
-    pkt_infos.eth_offset = 0;
-    // Checking idle flows
-//    reader->newPacket((void *)hNetBuffer);
-*/
-    // Parsing packets
-    //return this->getDyn(args, * hNetBuffer, flow, pDyn1, pkt_infos);
 }
 
 /* ********************************** */
