@@ -61,8 +61,10 @@
 #define ETH_P_ARP  0x0806
 #endif
 
-#define STREAM_ID_ANY  1
+#define STREAM_ID_MISS  1
 #define STREAM_ID_UNHA  2
+
+#define KEY_SET_ID      4
 
 #define KEY_ID_IPV4     1
 #define KEY_ID_IPV6     2
