@@ -55,10 +55,10 @@ int ndpi_workflow_node_cmp(void const * const A, void const * const B)
               flow_info_a->ip_tuple.v4.dst == flow_info_b->ip_tuple.v4.dst) || 
              (flow_info_a->ip_tuple.v4.dst == flow_info_b->ip_tuple.v4.src &&  /* Check if A->dst == flow_info_b->src */
               flow_info_a->ip_tuple.v4.src == flow_info_b->ip_tuple.v4.dst)) &&
-             (flow_info_a->src_port == flow_info_b->src_port &&  /* Check if A->src.port == flow_info_b->src.port */
+            ((flow_info_a->src_port == flow_info_b->src_port &&  /* Check if A->src.port == flow_info_b->src.port */
               flow_info_a->dst_port == flow_info_b->dst_port) ||
              (flow_info_a->dst_port == flow_info_b->src_port &&  /* Check if A->dst.port == flow_info_b->src.port */
-              flow_info_a->src_port == flow_info_b->dst_port)
+              flow_info_a->src_port == flow_info_b->dst_port)))
             
             return 0;
 
@@ -71,10 +71,10 @@ int ndpi_workflow_node_cmp(void const * const A, void const * const B)
               flow_info_a->ip_tuple.v6.dst[1] == flow_info_b->ip_tuple.v6.src[1] &&
               flow_info_a->ip_tuple.v6.src[0] == flow_info_b->ip_tuple.v6.dst[0] &&
               flow_info_a->ip_tuple.v6.src[1] == flow_info_b->ip_tuple.v6.dst[1])) &&
-             (flow_info_a->src_port == flow_info_b->src_port &&  /* Check if A->src.port == flow_info_b->src.port */
+            ((flow_info_a->src_port == flow_info_b->src_port &&  /* Check if A->src.port == flow_info_b->src.port */
               flow_info_a->dst_port == flow_info_b->dst_port) ||
              (flow_info_a->dst_port == flow_info_b->src_port &&  /* Check if A->dst.port == flow_info_b->src.port */
-              flow_info_a->src_port == flow_info_b->dst_port))
+              flow_info_a->src_port == flow_info_b->dst_port)))
             
             return 0;
     }
@@ -156,5 +156,27 @@ Reader::~Reader()
     if(this->ndpi_flows_idle != nullptr)
         ndpi_free(this->ndpi_flows_idle);
 }   
+
+/* ********************************** */
+
+int Reader::newFlow(FlowInfo * & flow_to_process) {
+    if (this->cur_active_flows == this->max_active_flows) {
+        tracer->traceEvent(0, "[%8llu] max flows to track reached: %llu, idle: %llu\n",
+                                pkt_parser->getPktsCaptured(), this->max_active_flows, this->cur_idle_flows);
+        return -1;
+    }
+
+    flow_to_process = (FlowInfo *)ndpi_malloc(sizeof(*flow_to_process));
+    if (flow_to_process == nullptr) {
+        tracer->traceEvent(0, "[%8llu] Not enough memory for flow info\n",
+                                pkt_parser->getPktsCaptured());
+        return -1;
+    }
+
+    this->cur_active_flows++;
+    this->total_active_flows++;
+
+    return 0;
+}
 
 /* ********************************** */

@@ -121,6 +121,8 @@ int NtDissector::DumpIPv6(Reader * & reader,
                             uint8_t* & packet,
                             PacketInfo& pkt_infos)
 {
+    struct ports * pktPorts = (struct ports *) &packet[pDyn1->offset1];
+
     /*  Lvl 2   */
     pkt_infos.ethernet = (struct ndpi_ethhdr *) &packet[pkt_infos.eth_offset];
     pkt_infos.ip_offset = sizeof(struct ndpi_ethhdr) + pkt_infos.eth_offset;
@@ -129,6 +131,7 @@ int NtDissector::DumpIPv6(Reader * & reader,
 
     pkt_infos.ip_size = pDyn1->capLength - pDyn1->descrLength - pkt_infos.ip_offset;
 
+    
     flow.ip_tuple.v6.src[0] = pkt_infos.ip6->ip6_src.u6_addr.u6_addr64[0];
     flow.ip_tuple.v6.src[1] = pkt_infos.ip6->ip6_src.u6_addr.u6_addr64[1];
     flow.ip_tuple.v6.dst[0] = pkt_infos.ip6->ip6_dst.u6_addr.u6_addr64[0];
@@ -205,8 +208,8 @@ int NtDissector::parsePacket(FlowInfo & flow,
 
     // Parsing packets
     // descriptor DYN1 is used, which is set up via NTPL.
-    pDyn1 = NT_NET_DESCR_PTR_DYN1(hNetBuffer);
-    uint8_t* packet = (uint8_t *) NT_NET_GET_PKT_L2_PTR(hNetBuffer);
+    pDyn1 = NT_NET_GET_PKT_DESCR_PTR_DYN1(* hNetBuffer);
+    uint8_t* packet = (uint8_t *) NT_NET_GET_PKT_L2_PTR(* hNetBuffer);
 
     if (pDyn1->color & (1 << 6)) {
         tracer->traceEvent(1, "Packet contain an error and decoding cannot be trusted\n");
@@ -218,13 +221,13 @@ int NtDissector::parsePacket(FlowInfo & flow,
         } else {
             switch (pDyn1->color >> 2) {
             case 0:  // IPv4
-                    return DumpIPv4(reader, flow, pDyn1, packet, pkt_infos);
+                    return DumpIPv4(args, flow, pDyn1, packet, pkt_infos);
             case 1:  // IPv6
-                    return DumpIPv6(reader, flow, pDyn1, packet, pkt_infos);
+                    return DumpIPv6(args, flow, pDyn1, packet, pkt_infos);
             case 2:  // Tunneled IPv4
-                    return DumpIPv4(reader, flow, pDyn1, packet, pkt_infos);
+                    return DumpIPv4(args, flow, pDyn1, packet, pkt_infos);
             case 3:  // Tunneled IPv6
-                    return DumpIPv6(reader, flow, pDyn1, packet, pkt_infos);
+                    return DumpIPv6(args, flow, pDyn1, packet, pkt_infos);
             }
         }
     }

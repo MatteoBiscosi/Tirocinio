@@ -43,7 +43,7 @@ class PacketDissector {
          *
          */ 
 	    int addVal(Reader * & reader,
-                    FlowInfo& flow,
+                    FlowInfo & flow,
                     PacketInfo & pkt_infos);
 
     protected:

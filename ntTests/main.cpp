@@ -121,17 +121,17 @@ ntplCall(hCfgStream, "Assign[StreamId=Drop] = LearnFilterCheck(1,ipv6) and Key(k
     status = NT_NetRxOpen(&(hNetRx), "test stream", NT_NET_INTERFACE_PACKET, 1, -1);
     handleErrorStatus(status, "NT_NetRxOpen() failed");
     
-
+int i = 0;
     while(true) {
         // Get package from rx stream.
         status = NT_NetRxGetNextPacket(hNetRx, &(hNetBuffer), -1);
-        
+	printf("counter %d\n", ++i);        
         if(status == NT_STATUS_TIMEOUT || status == NT_STATUS_TRYAGAIN) 
             continue;
 
         if(status == NT_ERROR_NT_TERMINATING)
 	    break;
-
+/*
         handleErrorStatus(status, "Error while sniffing next packet");
 	std::cout << "New flow\n";
         // Here a package has successfully been received, and the parameters for the
@@ -218,7 +218,7 @@ flow->keySetId        = KEY_SET_ID;   // Key Set ID as used in the NTPL filter
             }	
         }
 */
-        // Program the flow into the adapter.
+  /*      // Program the flow into the adapter.
         status = NT_FlowWrite(flowStream, flow.get(), -1);
         handleErrorStatus(status, "NT_FlowWrite() failed");
 
@@ -257,7 +257,7 @@ NtFlowInfo_t flowInfo;
 
  	for(auto&& flow :learnedFlowList) {
     printf("Id: %d, ipProto: %d, keySetId: %d\n", flow->id, flow->ipProtocolField, flow->keySetId);
-  }
+  }*/
 
     }
 

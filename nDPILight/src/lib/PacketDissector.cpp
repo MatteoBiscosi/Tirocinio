@@ -135,25 +135,11 @@ int PacketDissector::searchVal(Reader * & reader,
 /* ********************************** */
 
 int PacketDissector::addVal(Reader * & reader,
-                            FlowInfo& flow,
+                            FlowInfo & flow,
                             PacketInfo & pkt_infos)
-    {
-    if (reader->getCurActiveFlows() == reader->getMaxActiveFlows()) {
-        tracer->traceEvent(0, "[%8llu] max flows to track reached: %llu, idle: %llu\n",
-                                pkt_parser->getPktsCaptured(), this->max_active_flows, this->cur_idle_flows);
-        return -1;
-    }
-
-    flow = (FlowInfo *)ndpi_malloc(sizeof(*flow));
-
-    if (flow == nullptr) {
-        tracer->traceEvent(0, "[%8llu] Not enough memory for flow info\n",
-                                pkt_parser->getPktsCaptured());
-        return -1;
-    }
-
-    reader->incrTotalActiveFlows();
-    reader->incrCurActiveFlows();   
+{
+    if(reader->newFlow(pkt_infos.flow_to_process) != 0) 
+        return -1;   
 
     memcpy(pkt_infos.flow_to_process, &flow, sizeof(*pkt_infos.flow_to_process));
     pkt_infos.flow_to_process->flow_id = flow_id++;
@@ -241,7 +227,7 @@ void PacketDissector::processPacket(void * const args,
         pkt_infos.flow_to_process = *(FlowInfo **)pkt_infos.tree_result;
         break;
     }
-
+    
     /* Updates timers and counters */
     this->captured_stats.packets_processed++;
     pkt_infos.flow_to_process->packets_processed++;
@@ -258,7 +244,6 @@ void PacketDissector::processPacket(void * const args,
 
     if(pkt_infos.flow_to_process->ended_dpi)
         return;
-
 
     /* Try to detect the protocol */
     if (pkt_infos.flow_to_process->ndpi_flow->num_processed_pkts == 0xFF) {

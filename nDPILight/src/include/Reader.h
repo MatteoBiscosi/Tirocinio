@@ -34,6 +34,17 @@ class Reader {
     public:
         Reader();
         ~Reader();
+       
+         /**
+          * Function used everytime a new flow is found
+          * ()
+          *
+          * @return 1 if eof is reached or if the 
+          *         analysis needs to be stopped, 0 otherwise
+          *
+          */
+        int newFlow(FlowInfo * & flow_to_process);
+        
 
         /**
          * Function used to print stats collected until now

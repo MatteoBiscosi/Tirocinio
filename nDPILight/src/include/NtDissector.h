@@ -20,22 +20,6 @@ class NtDissector : public PacketDissector{
     private:
 
         /**
-         * Functions used to search flow inside the hashtable
-         */
-        int setupFlowToSearch(Reader * & reader,
-                                    uint8_t * packet,
-                                    FlowInfo& flow,
-                                    NtDyn1Descr_t* & pDyn1,
-                                    PacketInfo& pkt_infos,
-                                    int l3Type);
-
-        /**
-         * Function used to parse and update l4 infos
-         */
-        int DumpL4(FlowInfo& flow,
-                    PacketInfo& pkt_infos);
-
-        /**
          * Parse ipv4 packets
          */
         int DumpIPv4(Reader * & reader,
@@ -53,15 +37,6 @@ class NtDissector : public PacketDissector{
                         uint8_t* & packet,
                         PacketInfo& pkt_infos);
 
-        /**
-         * Get the dynamic descriptor of the packet
-         * and parse packets using DumpIPv6 and DumpIPv4
-         */
-        int getDyn(Reader * & reader,
-                    NtNetBuf_t& hNetBuffer,
-                    FlowInfo& flow,
-                    NtDyn1Descr_t* & pDyn1,
-                    PacketInfo& pkt_infos);
 };
 
 #endif
