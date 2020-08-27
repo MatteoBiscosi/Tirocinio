@@ -231,7 +231,7 @@ void PacketDissector::printFlowInfos(Reader * reader,
                             pkt_infos.flow_to_process->ndpi_flow,
                             1, &protocol_was_guessed);
         pkt_infos.flow_to_process->ended_dpi = 1;
-
+	//reader->setNewFlow(true);
         if (protocol_was_guessed != 0) {
             /*  Protocol guessed    */
             tracer->traceEvent(3, "\t[%8llu, %4d][GUESSED] protocol: %s | app protocol: %s | category: %s\n",
@@ -281,7 +281,7 @@ void PacketDissector::printFlowInfos(Reader * reader,
 		    pkt_infos.flow_to_process->detection_completed = 1;
 		    this->captured_stats.detected_flow_protocols++;
             pkt_infos.flow_to_process->ended_dpi = 1;
-
+//	    reader->setNewFlow(true);
 		    tracer->traceEvent(3, "\t[%8llu, %4d][DETECTED] protocol: %s | app protocol: %s | category: %s\n",
 					    this->captured_stats.packets_captured,
                                     pkt_infos.flow_to_process->flow_id,
@@ -349,12 +349,10 @@ void PacketDissector::processPacket(void * const args,
             this->captured_stats.discarded_bytes += pkt_infos.ip_offset + pkt_infos.eth_offset;
             return;
         }
-        reader->setNewFlow(true);
         this->captured_stats.total_flows_captured++;
         break;
         
     case 2: /* Already done some search and value was found */
-        reader->setNewFlow(false);
         pkt_infos.flow_to_process = *(FlowInfo **)pkt_infos.tree_result;
         break;
     }

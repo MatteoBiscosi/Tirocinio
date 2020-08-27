@@ -102,11 +102,8 @@ NapatechReader::~NapatechReader()
 {
     this->error_or_eof = 1;
 
-    // Closes the configuration
-    NT_ConfigClose(hCfgStream);
-
     // Closes rx stream.
-    NT_NetRxClose(hNetRxAny);
+    NT_NetRxClose(hNetRxMiss);
     NT_NetRxClose(hNetRxUnh); 
 }  
 
@@ -247,9 +244,9 @@ void NapatechReader::taskReceiverAny(const char* streamName, NtFlowStream_t& flo
     std::vector<std::unique_ptr<NtFlow_t>> learnedFlowList;   
     
     
-    int status = NT_NetRxOpen(&(this->hNetRxMiss), "Miss packets stream", NT_NET_INTERFACE_PACKET, STREAM_ID_MISS, -1);
+    NT_NetRxOpen(&(this->hNetRxMiss), "Miss packets stream", NT_NET_INTERFACE_PACKET, STREAM_ID_MISS, -1);
     if(handleErrorStatus(status, "NT_NetRxOpen() failed") != 0)
-        return 1;
+        return;
 
 
     while(this->error_or_eof == 0) {
@@ -268,7 +265,7 @@ void NapatechReader::taskReceiverAny(const char* streamName, NtFlowStream_t& flo
         pkt_parser->processPacket(this, &(this->hNetBufferMiss), nullptr);
 	
         if(this->newFlowCheck == true) {
-            std::cout << "New flow\n";
+            //std::cout << "New flow\n";
             // Here a package has successfully been received, and the parameters for the
             // next flow to be learned will be set up.
             auto flow = std::unique_ptr<NtFlow_t>(new NtFlow_t);
@@ -333,6 +330,7 @@ void NapatechReader::taskReceiverAny(const char* streamName, NtFlowStream_t& flo
             handleErrorStatus(status, "NT_FlowWrite() failed");
 
             learnedFlowList.push_back(std::move(flow));
+	    this->setNewFlow(false);
         }
 	
         status = NT_NetRxRelease(this->hNetRxMiss, this->hNetBufferMiss);
@@ -398,7 +396,7 @@ int NapatechReader::startRead()
     if(handleErrorStatus(status, "Error while opening the flow stream") != 0)
         return -1;
 
-    status = NT_NetRxOpen(&(this->hNetRxAny), "Miss packets stream", NT_NET_INTERFACE_PACKET, STREAM_ID_MISS, -1);
+    status = NT_NetRxOpen(&(this->hNetRxMiss), "Miss packets stream", NT_NET_INTERFACE_PACKET, STREAM_ID_MISS, -1);
     if(handleErrorStatus(status, "NT_NetRxOpen() failed") != 0)
         return -1;
 
@@ -426,7 +424,7 @@ void NapatechReader::stopRead()
     sleep(5);    
 
     // Closes rx stream.
-    NT_NetRxClose(hNetRxAny);
+    NT_NetRxClose(hNetRxMiss);
     NT_NetRxClose(hNetRxUnh);    
 }
 
