@@ -8,38 +8,21 @@ void NtDissector::printBriefInfos(Reader *reader)
 {
     NtStatistics_t hStat;
     uint32_t hbCount;
-    uint64_t tot_pkts = 0, tot_bytes = 0;
+    uint64_t tot_pkts = 0, tot_bytes = 0, delta = 0;
     NapatechReader *reader_tmp = (NapatechReader *) reader;
 
     hStat.cmd = NT_STATISTICS_READ_CMD_QUERY_V3;
-//    hStat.cmd=NT_STATISTICS_READ_CMD_USAGE_DATA_V0;
-//    hStat.u.usageData_v0.streamid = (uint8_t) 0; 
-//    printf("%llu, %llu\n", reader_tmp->getInitPkts(), reader_tmp->getInitBytes());
 	hStat.u.query_v3.poll = 1;
     hStat.u.query_v3.clear = 0;
     NT_StatRead(reader_tmp->getStatStream(), &hStat);
-    for(int i = 0; i < 64; i++) {
-	if( (long long unsigned int)hStat.u.query_v3.data.port.aPorts[i].rx.extDrop.pktsFilterDrop != 0)
-    		printf("Received packets: %8llu, Dropped packets: %8llu, stream %8d\n", (long long unsigned int)hStat.u.query_v3.data.port.aPorts[i].rx.extDrop.pktsFilterDrop, (long long unsigned int)hStat.u.query_v3.data.port.aPorts[i].rx.extDrop.octetsFilterDrop, i);
-	}
-/*    for (hbCount = 0; hbCount < hStat.u.usageData_v0.data.numHostBufferUsed; hbCount++) {
-        tot_pkts += hStat.u.usageData_v0.data.hb[hbCount].stat.drop.frames;
-        tot_bytes += hStat.u.usageData_v0.data.hb[hbCount].stat.drop.bytes;
-	printf("Received packets: %8llu, Dropped packets: %8llu\n", (long long unsigned int)hStat.u.usageData_v0.data.hb[hbCount].stat.rx.frames, 
-                                                                  (long long unsigned int)hStat.u.usageData_v0.data.hb[hbCount].stat.drop.frames);  
-    }
-    tot_pkts = tot_pkts - reader_tmp->getInitPkts();
-    tot_bytes = tot_bytes - reader_tmp->getInitBytes();
-    uint64_t totDropsPkts = hStat.u.query_v3.data.stream.streamid[STREAM_ID_MISS].drop.pkts;
-    uint64_t totDropsBytes = hStat.u.query_v3.data.stream.streamid[STREAM_ID_MISS].drop.octets;
-printf("%llu, %llu\n", totDropsPkts, totDropsBytes);
-    uint64_t act_packets = tot_pkts;
-    uint64_t delta = act_packets - this->captured_stats.previous_packets;
-    this->captured_stats.previous_packets = act_packets;
-    tracer->traceEvent(2, "\tCapture brief summary: Tot. packets: %llu | Tot. bytes: %llu | Pkts. captured: %llu | Bytes captured: %llu | pps: %llu\r\n", 
-			tot_pkts, tot_bytes, this->captured_stats.packets_processed, this->captured_stats.total_wire_bytes,
-			delta);
-*/
+
+    tot_pkts = (long long unsigned int)hStat.u.query_v3.data.port.aPorts[i].rx.extDrop.pktsFilterDrop + this->captured_stats.packets_captured;
+    tot_bytes = (long long unsigned int)hStat.u.query_v3.data.port.aPorts[i].rx.extDrop.octetsFilterDrop + this->captured_stats.total_wire_bytes;
+    delta = tot_pkts - this->captured_stats.previous_packets;
+    this->captured_stats.previous_packets = tot_pkts;
+
+    tracer->traceEvent(2, "\tCapture brief summary: Tot. packets: %llu | Tot. bytes: %llu | pps: %llu\r\n",
+                                tot_pkts, tot_bytes, delta);
 }
 
 /* ********************************** */
@@ -67,11 +50,11 @@ int NtDissector::DumpIPv4(Reader * & reader,
     flow.src_port = ntohs(pktPorts->srcPort);
     flow.dst_port = ntohs(pktPorts->dstPort);
 
-    if(this->searchVal(reader, flow, pkt_infos) == 0)
-        return 2;
-
     this->captured_stats.ip_pkts++;
     this->captured_stats.ip_bytes += pkt_infos.ip_size;
+
+    if(this->searchVal(reader, flow, pkt_infos) == 0)
+        return 2;    
 
     /*  Lvl 3   */
     if (pkt_infos.ip_size < sizeof(*pkt_infos.ip)) {
@@ -144,11 +127,11 @@ int NtDissector::DumpIPv6(Reader * & reader,
     flow.src_port = ntohs(pktPorts->srcPort);
     flow.dst_port = ntohs(pktPorts->dstPort);
 
-    if(this->searchVal(reader, flow, pkt_infos) == 0)
-        return 2;
-
     this->captured_stats.ip_pkts++;
     this->captured_stats.ip_bytes += pkt_infos.ip_size;
+
+    if(this->searchVal(reader, flow, pkt_infos) == 0)
+        return 2;
 
     /*  Lvl 3   */
     if (pkt_infos.ip_size < sizeof(pkt_infos.ip6->ip6_hdr)) {

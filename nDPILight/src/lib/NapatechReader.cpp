@@ -398,21 +398,7 @@ int NapatechReader::startRead()
 
     hStat.u.query_v3.poll = 0;
     hStat.u.query_v3.clear = 1;
-    NT_StatRead(this->getStatStream(), &hStat);
-                    
-/*
-    hStat.cmd=NT_STATISTICS_READ_CMD_USAGE_DATA_V0;
-    hStat.u.usageData_v0.streamid = (uint8_t) STREAM_ID_MISS;
-
-    NT_StatRead(this->hStatStream, &hStat);
-    
-    for (int hbCount = 0; hbCount < hStat.u.usageData_v0.data.numHostBufferUsed; hbCount++) {
-        tot_pkts += hStat.u.usageData_v0.data.hb[hbCount].stat.rx.frames;
-        tot_bytes += hStat.u.usageData_v0.data.hb[hbCount].stat.rx.bytes;
-    }
-    this->init_pkts = tot_pkts;
-    this->init_bytes = tot_bytes;
-   
+    NT_StatRead(this->getStatStream(), &hStat);   
     
     /* Analysis starts */
     tracer->traceEvent(2, "\tAnalysis started\r\n\r\n");
