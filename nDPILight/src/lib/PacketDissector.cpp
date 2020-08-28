@@ -227,6 +227,16 @@ void PacketDissector::processPacket(void * const args,
         pkt_infos.flow_to_process = *(FlowInfo **)pkt_infos.tree_result;
         break;
     }
+
+    if (pkt_infos.flow_to_process->l4_protocol == IPPROTO_UDP)
+            this->captured_stats.udp_pkts++;
+    else
+            this->captured_stats.tcp_pkts++;
+
+    if(pkt_infos.flow_to_process->ended_dpi) {
+        pkt_infos.flow_to_process->last_seen = 0;
+	return;
+    }
     
     /* Updates timers and counters */
     this->captured_stats.packets_processed++;
@@ -237,14 +247,11 @@ void PacketDissector::processPacket(void * const args,
         pkt_infos.flow_to_process->first_seen = pkt_infos.time_ms;
     }
     pkt_infos.flow_to_process->last_seen = pkt_infos.time_ms;
-    if (pkt_infos.flow_to_process->l4_protocol == IPPROTO_UDP)
-	    this->captured_stats.udp_pkts++;
-    else
-	    this->captured_stats.tcp_pkts++;
+    
+    char src_addr_str[INET6_ADDRSTRLEN+1];
+    char dst_addr_str[INET6_ADDRSTRLEN+1];
 
-    if(pkt_infos.flow_to_process->ended_dpi)
-        return;
-
+    pkt_infos.flow_to_process->ipTupleToString(src_addr_str, sizeof(src_addr_str), dst_addr_str, sizeof(dst_addr_str));	
     /* Try to detect the protocol */
     if (pkt_infos.flow_to_process->ndpi_flow->num_processed_pkts == 0xFF) {
         return;
@@ -269,37 +276,34 @@ void PacketDissector::processPacket(void * const args,
             this->captured_stats.protos_cnt[pkt_infos.flow_to_process->guessed_protocol.master_protocol]++;
             this->captured_stats.guessed_flow_protocols++;
 
-            char src_addr_str[INET6_ADDRSTRLEN+1];
-            char dst_addr_str[INET6_ADDRSTRLEN+1];
-
-            pkt_infos.flow_to_process->ipTupleToString(src_addr_str, sizeof(src_addr_str), dst_addr_str, sizeof(dst_addr_str));
             
-            if(flow->risk) {
-                u_int i;
-                tracer->traceEvent(1, "[%s flow] src ip: %s | dst ip: %s | src port: %u | dst port: %u\n", 
-                                        tmp, src_addr_str, dst_addr_str, 
+            if(pkt_infos.flow_to_process->ndpi_flow->risk) {
+                
+                std::string risk_string = "Risk: ";
+
+                for(int i=NDPI_NO_RISK; i<NDPI_MAX_RISK; i++)
+                if(NDPI_ISSET_BIT(pkt_infos.flow_to_process->ndpi_flow->risk, i))
+                    risk_string = risk_string + "**" + ndpi_risk2str((ndpi_risk_enum) i) + "**";
+
+		char arr[risk_string.length() + 1];
+
+                strcpy(arr, risk_string.c_str());
+                tracer->traceEvent(1, "[%s | flow %lu ] src ip: %s | dst ip: %s | src port: %u | dst port: %u\n",
+                                        arr, pkt_infos.flow_to_process->flow_id, src_addr_str, dst_addr_str,
                                         pkt_infos.flow_to_process->src_port, pkt_infos.flow_to_process->dst_port);
-                string risk_string = "[Risk: ";
-
-                for(i=0; i<NDPI_MAX_RISK; i++)
-                if(NDPI_ISSET_BIT(flow->risk, i))
-                    risk_string = risk_string + "**" + ndpi_risk2str(i)) + "**";
-
-                risk_string = risk_string + "]");
-
-                tracer->traceEvent(1, "%10s\n", risk_string);
             }
-        }
+        
                 
             else
-                tracer->traceEvent(3, "[%s flow] src ip: %s | dst ip: %s | src port: %u | dst port: %u\n", 
-                                        tmp, src_addr_str, dst_addr_str, 
+                tracer->traceEvent(3, "[ flow %lu ] src ip: %s | dst ip: %s | src port: %u | dst port: %u\n", 
+                                        pkt_infos.flow_to_process->flow_id, src_addr_str, dst_addr_str, 
                                         pkt_infos.flow_to_process->src_port, pkt_infos.flow_to_process->dst_port);
         } else {
             tracer->traceEvent(3, "\t[%8llu, %d, %4d][FLOW NOT CLASSIFIED]\n",
                         this->captured_stats.packets_captured, pkt_infos.flow_to_process->flow_id);
             this->captured_stats.unclassified_flow_protocols++;
         }
+	
     }
 
     pkt_infos.flow_to_process->detected_l7_protocol =
@@ -325,28 +329,24 @@ void PacketDissector::processPacket(void * const args,
                                     ndpi_get_proto_name(reader->getNdpiStruct(), pkt_infos.flow_to_process->detected_l7_protocol.app_protocol),
                                     ndpi_category_get_name(reader->getNdpiStruct(), pkt_infos.flow_to_process->detected_l7_protocol.category));
 
-            char src_addr_str[INET6_ADDRSTRLEN+1];
-            char dst_addr_str[INET6_ADDRSTRLEN+1];
-            char *tmp = ndpi_get_proto_breed_name(reader->getNdpiStruct(), 
-                                                    ndpi_get_proto_breed(reader->getNdpiStruct(), 
-                                                    pkt_infos.flow_to_process->detected_l7_protocol.master_protocol));
-            pkt_infos.flow_to_process->ipTupleToString(src_addr_str, sizeof(src_addr_str), dst_addr_str, sizeof(dst_addr_str));
-            
-            if(flow->risk) {
-                u_int i;
-                tracer->traceEvent(1, "[%s flow] src ip: %s | dst ip: %s | src port: %u | dst port: %u\n", 
-                                        tmp, src_addr_str, dst_addr_str, 
+            if(pkt_infos.flow_to_process->ndpi_flow->risk) {
+
+                std::string risk_string = " Risk: ";
+
+                for(int i=NDPI_NO_RISK; i<NDPI_MAX_RISK; i++)
+                if(NDPI_ISSET_BIT(pkt_infos.flow_to_process->ndpi_flow->risk, i))
+                    risk_string = risk_string + "** " + ndpi_risk2str((ndpi_risk_enum) i) + " **";
+
+		char arr[risk_string.length() + 1]; 
+ 
+    		strcpy(arr, risk_string.c_str());
+                tracer->traceEvent(1, "[ %s | flow %lu ] src ip: %s | dst ip: %s | src port: %u | dst port: %u\r\n",
+                                        arr, pkt_infos.flow_to_process->flow_id, src_addr_str, dst_addr_str,
                                         pkt_infos.flow_to_process->src_port, pkt_infos.flow_to_process->dst_port);
-                string risk_string = "[Risk: ";
-
-                for(i=0; i<NDPI_MAX_RISK; i++)
-                if(NDPI_ISSET_BIT(flow->risk, i))
-                    risk_string = risk_string + "**" + ndpi_risk2str(i)) + "**";
-
-                risk_string = risk_string + "]");
-
-                tracer->traceEvent(1, "%10s\n", risk_string);
-            }
+            } else
+                tracer->traceEvent(3, "[ flow %lu ] src ip: %s | dst ip: %s | src port: %u | dst port: %u\n",
+                                        pkt_infos.flow_to_process->flow_id, src_addr_str, dst_addr_str,
+                                        pkt_infos.flow_to_process->src_port, pkt_infos.flow_to_process->dst_port);
         }
     }
 }
