@@ -30,7 +30,7 @@ class NapatechReader : public Reader {
         NtStatStream_t hStatStream;
 
         unsigned long long int idCounter;
-	unsigned long long int init_pkts;
+	    unsigned long long int init_pkts;
         unsigned long long int init_bytes;
     public:
 	    ~NapatechReader();

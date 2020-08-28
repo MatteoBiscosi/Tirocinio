@@ -233,7 +233,7 @@ void NapatechReader::newPacket(void * header)
 void NapatechReader::taskReceiverAny(const char* streamName, NtFlowStream_t& flowStream)
 {
     int status;
-    std::vector<std::unique_ptr<NtFlow_t>> learnedFlowList;   
+    std::vector<NtFlow_t> learnedFlowList;   
 
     while(this->error_or_eof == 0) {
 	    // Get package from rx stream.
@@ -252,11 +252,11 @@ void NapatechReader::taskReceiverAny(const char* streamName, NtFlowStream_t& flo
 	    if(this->newFlowCheck == true) {            
             // Here a package has successfully been received, and the parameters for the
             // next flow to be learned will be set up.
-	    NtFlow_t flow = NtFlow_t();
+	        NtFlow_t flow = NtFlow_t();
            // auto flow = std::unique_ptr<NtFlow_t>(new NtFlow_t);
 //            std::memset(flow, 0x0, sizeof(NtFlow_t));
 	    
-	    NtDyn1Descr_t* pDyn1 = _NT_NET_GET_PKT_DESCR_PTR_DYN1(this->hNetBufferMiss);
+	        NtDyn1Descr_t* pDyn1 = _NT_NET_GET_PKT_DESCR_PTR_DYN1(this->hNetBufferMiss);
 
             // In this example, the ID is a simple incremental value that can be used
             // for lookup in the std::vector learnedFlowList. However, any value can be used,
@@ -311,7 +311,7 @@ void NapatechReader::taskReceiverAny(const char* streamName, NtFlowStream_t& flo
             status = NT_FlowWrite(flowStream, &flow, -1);
             handleErrorStatus(status, "NT_FlowWrite() failed");
 
-           // learnedFlowList.push_back(std::move(flow));
+            learnedFlowList.push_back(std::move(flow));
 	        this->setNewFlow(false);
         }
 	
@@ -443,3 +443,32 @@ void NapatechReader::printStats()
 
 /* ********************************** */
 
+void printFlowStreamInfo(NtFlowStream_t& flowStream, std::vector<NtFlow_t>& learnedFlowList)
+{
+    const char* ip;
+    NtFlowInfo_t flowInfo;
+    NtFlowStatus_t flowStatus;
+
+
+    // For each element in internal flow stream queue print the flow info record.
+    // The flow info record is only available when NtFlow_t.gfi is set to 1.
+    // Maintaining the flow info record has a performance overhead, so if the
+    // info record is not need, it is recommended to set NtFlow_t.gfi to 0.
+    while(NT_FlowRead(flowStream, &flowInfo, 0) == NT_SUCCESS) {
+        uint64_t tot_pkts = 0, tot_bytes = 0;
+        
+        tot_pkts = (flowInfo.packetsA + flowInfo.packetsB);
+        tot_bytes = (flowInfo.octetsA + flowInfo.octetsB);
+
+        std::cout << "NT_FlowRead of flow ID " << flowInfo.id << ip << std::endl
+        << "Tot. packets: "  << tot_pkts
+        << "Tot. octets: "   << tot_octets << std::endl
+        switch(flowInfo.cause) {
+            case 0:  std::cout << "Unlearn cause: Software" << std::endl; break;
+            case 1:  std::cout << "Unlearn cause: Timeout" << std::endl; break;
+            case 2:  std::cout << "Unlearn cause: TCP flow termination" << std::endl; break;
+            default: std::cout << "Unlearn cause: Not supported" << std::endl; break;
+        }
+        std::cout << std::endl;
+  }
+}
