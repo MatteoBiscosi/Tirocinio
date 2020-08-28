@@ -66,8 +66,8 @@ void PacketDissector::printStats(Reader *reader)
     tracer->traceEvent(2, "\t\tUnhandled IP packets:       %-20llu\n",
                             this->captured_stats.unhandled_packets);
     /* In order to prevent Floating point exception in case of no traffic*/
-    if(this->captured_stats.ip_bytes && this->captured_stats.packets_captured)
-        avg_pkt_size = this->captured_stats.ip_bytes/this->captured_stats.packets_captured;
+    if(this->captured_stats.ip_pkts != 0)
+        avg_pkt_size = this->captured_stats.ip_bytes/this->captured_stats.ip_pkts;
 
     tracer->traceEvent(2, "\t\tIP bytes:                   %-20llu (avg pkt size %u bytes)\n",
                             this->captured_stats.ip_bytes, avg_pkt_size);
@@ -93,7 +93,7 @@ void PacketDissector::printStats(Reader *reader)
                 ndpi_get_proto_name((reader->getNdpiStruct()), i), this->captured_stats.protos_cnt[i]);
         }
     }
-
+/*
     tracer->traceEvent(2, "\tProtocol statistics:\n");
 
     for(u_int32_t i = 0; i < NUM_BREEDS; i++) {
@@ -102,7 +102,7 @@ void PacketDissector::printStats(Reader *reader)
         ndpi_get_proto_breed_name(reader->getNdpiStruct(), ndpi_get_proto_breed(reader->getNdpiStruct(), i)),
         breed_stats[i]);
         }
-    }
+    }*/
 }
 
 /* ********************************** */
@@ -123,7 +123,7 @@ int PacketDissector::searchVal(Reader * & reader,
 
     pkt_infos.hashed_index = (uint64_t) flow.hashval % reader->getMaxActiveFlows();
     pkt_infos.tree_result = ndpi_tfind(&flow, &reader->getActiveFlows()[pkt_infos.hashed_index], ndpi_workflow_node_cmp);
-
+    
     if(pkt_infos.tree_result == nullptr)
         /*  Not Found   */
         return -1;

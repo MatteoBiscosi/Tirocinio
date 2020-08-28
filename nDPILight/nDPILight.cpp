@@ -196,13 +196,10 @@ static int stop_reader()
     if (pthread_timedjoin_np(reader_thread.getThreadId(), nullptr, &abstime) != 0) {
         tracer->traceEvent(0, "Error in pthread_join: %d; Forcing termination\n", strerror(errno));
         reader_thread.printStats();
-        //reader_thread.forceClose();
         return -1;
     }
 
     reader_thread.printStats();
-
-    //reader_thread.close();
 
     return 0;
 }

@@ -252,23 +252,24 @@ void NapatechReader::taskReceiverAny(const char* streamName, NtFlowStream_t& flo
 	    if(this->newFlowCheck == true) {            
             // Here a package has successfully been received, and the parameters for the
             // next flow to be learned will be set up.
-            auto flow = std::unique_ptr<NtFlow_t>(new NtFlow_t);
-            std::memset(flow.get(), 0x0, sizeof(NtFlow_t));
+	    NtFlow_t flow = NtFlow_t();
+           // auto flow = std::unique_ptr<NtFlow_t>(new NtFlow_t);
+//            std::memset(flow, 0x0, sizeof(NtFlow_t));
 	    
 	    NtDyn1Descr_t* pDyn1 = _NT_NET_GET_PKT_DESCR_PTR_DYN1(this->hNetBufferMiss);
 
             // In this example, the ID is a simple incremental value that can be used
             // for lookup in the std::vector learnedFlowList. However, any value can be used,
             // including the raw value of pointers.
-            flow->id              = idCounter++;        // User defined ID
-            flow->color           = 0;                  // Flow color
-            flow->overwrite       = 0;                  // Overwrite filter action (1: enable, 0: disable)
-            flow->streamId        = 0;                  // Marks the stream id if overwrite filter action is enabled
-            flow->ipProtocolField = pDyn1->ipProtocol;  // IP protocol number of next header (6: TCP)
-            flow->keySetId        = KEY_SET_ID;         // Key Set ID as used in the NTPL filter
-            flow->op              = 1;                  // Flow programming operation (1: learn, 0: un-learn)
-            flow->gfi             = 1;                  // Generate flow info record (1: generate, 0: do not generate)
-            flow->tau             = 0;                  // TCP auto unlearn (1: auto unlearn enable, 0: auto unlearn disable)
+            flow.id              = idCounter++;        // User defined ID
+            flow.color           = 0;                  // Flow color
+            flow.overwrite       = 0;                  // Overwrite filter action (1: enable, 0: disable)
+            flow.streamId        = 0;                  // Marks the stream id if overwrite filter action is enabled
+            flow.ipProtocolField = pDyn1->ipProtocol;  // IP protocol number of next header (6: TCP)
+            flow.keySetId        = KEY_SET_ID;         // Key Set ID as used in the NTPL filter
+            flow.op              = 1;                  // Flow programming operation (1: learn, 0: un-learn)
+            flow.gfi             = 1;                  // Generate flow info record (1: generate, 0: do not generate)
+            flow.tau             = 0;                  // TCP auto unlearn (1: auto unlearn enable, 0: auto unlearn disable)
 
             // Because colormask was used in the filters, it is very easy to check for
             // the IP type.
@@ -278,39 +279,39 @@ void NapatechReader::taskReceiverAny(const char* streamName, NtFlowStream_t& flo
 
             switch (pDyn1->color >> 2) {
                 case 0:  // IPv4
-                        std::memcpy(flow->keyData,      packet + pDyn1->offset0,     4);  // IPv4 src
-                        std::memcpy(flow->keyData + 4,  packet + pDyn1->offset0 + 4, 4);  // IPv4 dst
-                        std::memcpy(flow->keyData + 8,  packet + pDyn1->offset1,     2);  // TCP port src
-                        std::memcpy(flow->keyData + 10, packet + pDyn1->offset1 + 2, 2);  // TCP port dst
-                        flow->keyId = KEY_ID_IPV4;  // Key ID as used in the NTPL Key Test
+                        std::memcpy(flow.keyData,      packet + pDyn1->offset0,     4);  // IPv4 src
+                        std::memcpy(flow.keyData + 4,  packet + pDyn1->offset0 + 4, 4);  // IPv4 dst
+                        std::memcpy(flow.keyData + 8,  packet + pDyn1->offset1,     2);  // TCP port src
+                        std::memcpy(flow.keyData + 10, packet + pDyn1->offset1 + 2, 2);  // TCP port dst
+                        flow.keyId = KEY_ID_IPV4;  // Key ID as used in the NTPL Key Test
                         break;
                 case 1:  // IPv6
-                        std::memcpy(flow->keyData,      packet + pDyn1->offset0,      16);  // IPv6 src
-                        std::memcpy(flow->keyData + 16, packet + pDyn1->offset0 + 16, 16);  // IPv6 dst
-                        std::memcpy(flow->keyData + 32, packet + pDyn1->offset1,      2);   // TCP port src
-                        std::memcpy(flow->keyData + 34, packet + pDyn1->offset1 + 2,  2);   // TCP port dst
-                        flow->keyId = KEY_ID_IPV6;  // Key ID as used in the NTPL Key Test
+                        std::memcpy(flow.keyData,      packet + pDyn1->offset0,      16);  // IPv6 src
+                        std::memcpy(flow.keyData + 16, packet + pDyn1->offset0 + 16, 16);  // IPv6 dst
+                        std::memcpy(flow.keyData + 32, packet + pDyn1->offset1,      2);   // TCP port src
+                        std::memcpy(flow.keyData + 34, packet + pDyn1->offset1 + 2,  2);   // TCP port dst
+                        flow.keyId = KEY_ID_IPV6;  // Key ID as used in the NTPL Key Test
                         break;
                 case 2:  // Tunneled IPv4
-                        std::memcpy(flow->keyData,      packet + pDyn1->offset0,     4);  // IPv4 src
-                        std::memcpy(flow->keyData + 4,  packet + pDyn1->offset0 + 4, 4);  // IPv4 dst
-                        std::memcpy(flow->keyData + 8,  packet + pDyn1->offset1,     2);  // TCP port src
-                        std::memcpy(flow->keyData + 10, packet + pDyn1->offset1 + 2, 2);  // TCP port dst
-                        flow->keyId = KEY_ID_IPV4;  // Key ID as used in the NTPL Key Test
+                        std::memcpy(flow.keyData,      packet + pDyn1->offset0,     4);  // IPv4 src
+                        std::memcpy(flow.keyData + 4,  packet + pDyn1->offset0 + 4, 4);  // IPv4 dst
+                        std::memcpy(flow.keyData + 8,  packet + pDyn1->offset1,     2);  // TCP port src
+                        std::memcpy(flow.keyData + 10, packet + pDyn1->offset1 + 2, 2);  // TCP port dst
+                        flow.keyId = KEY_ID_IPV4;  // Key ID as used in the NTPL Key Test
                         break;
                 case 3:  // Tunneled IPv6
-                        std::memcpy(flow->keyData,      packet + pDyn1->offset0,      16);  // IPv6 src
-                        std::memcpy(flow->keyData + 16, packet + pDyn1->offset0 + 16, 16);  // IPv6 dst
-                        std::memcpy(flow->keyData + 32, packet + pDyn1->offset1,      2);   // TCP port src
-                        std::memcpy(flow->keyData + 34, packet + pDyn1->offset1 + 2,  2);   // TCP port dst
-                        flow->keyId = KEY_ID_IPV6;  // Key ID as used in the NTPL Key Test
+                        std::memcpy(flow.keyData,      packet + pDyn1->offset0,      16);  // IPv6 src
+                        std::memcpy(flow.keyData + 16, packet + pDyn1->offset0 + 16, 16);  // IPv6 dst
+                        std::memcpy(flow.keyData + 32, packet + pDyn1->offset1,      2);   // TCP port src
+                        std::memcpy(flow.keyData + 34, packet + pDyn1->offset1 + 2,  2);   // TCP port dst
+                        flow.keyId = KEY_ID_IPV6;  // Key ID as used in the NTPL Key Test
                         break;
             }
             // Program the flow into the adapter.
-            status = NT_FlowWrite(flowStream, flow.get(), -1);
+            status = NT_FlowWrite(flowStream, &flow, -1);
             handleErrorStatus(status, "NT_FlowWrite() failed");
 
-            learnedFlowList.push_back(std::move(flow));
+           // learnedFlowList.push_back(std::move(flow));
 	        this->setNewFlow(false);
         }
 	
