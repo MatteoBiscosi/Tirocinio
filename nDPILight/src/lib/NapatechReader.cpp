@@ -313,6 +313,8 @@ void NapatechReader::taskReceiverAny(const char* streamName, NtFlowStream_t& flo
 
             learnedFlowList.push_back(std::move(flow));
 	        this->setNewFlow(false);
+
+            printFlowStreamInfo(flowStream, learnedFlowList);
         }
 	
         status = NT_NetRxRelease(this->hNetRxMiss, this->hNetBufferMiss);
