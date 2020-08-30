@@ -67,7 +67,7 @@ void nt_idle_scan_walker(void const * const A, ndpi_VISIT which, int depth, void
     }
 }
 
-void printFlowStreamInfo(NtFlowStream_t& flowStream, std::vector<NtFlow_t>& learnedFlowList)
+void printFlowStreamInfo(NtFlowStream_t& flowStream)
 {
     const char* ip;
     NtFlowInfo_t flowInfo;
@@ -89,8 +89,6 @@ void printFlowStreamInfo(NtFlowStream_t& flowStream, std::vector<NtFlow_t>& lear
                 case 2:  tracer->traceEvent(2, "[flow %llu unlearned] Tot. packets: %llu | Tot. octets: %llu | Unlearn cause: Termination", flowInfo.id, tot_pkts, tot_bytes); break;
                 default: tracer->traceEvent(2, "[flow %llu unlearned] Tot. packets: %llu | Tot. octets: %llu | Unlearn cause: Not Supported", flowInfo.id, tot_pkts, tot_bytes); break;
         }
-	
-	learnedFlowList.
     }
 }   
                                                                                                                
@@ -254,7 +252,7 @@ void NapatechReader::newPacket(void * header)
 		/* Updating next max_idle_scan_index */
 		this->max_idle_scan_index = ((this->idle_scan_index + this->max_idle_scan_index) % this->max_active_flows) + 1;
 	}
-	printFlowStreamInfo(flowStream, learnedFlowList);
+	printFlowStreamInfo(flowStream);
 }
 
 /* ********************************** */
@@ -262,13 +260,12 @@ void NapatechReader::newPacket(void * header)
 void NapatechReader::taskReceiverAny(const char* streamName, NtFlowStream_t& flowStream)
 {
     int status;
-    std::vector<NtFlow_t> learnedFlowList;   
 
     while(this->error_or_eof == 0) {
 	    // Get package from rx stream.
 	    status = NT_NetRxGet(this->hNetRxMiss, &(this->hNetBufferMiss), 10000);
 	    if(status == NT_STATUS_TIMEOUT || status == NT_STATUS_TRYAGAIN) {
-		    printFlowStreamInfo(flowStream, learnedFlowList);
+		    printFlowStreamInfo(flowStream);
 		    continue;
 	    }
 	    if(status == NT_ERROR_NT_TERMINATING)
@@ -283,15 +280,10 @@ void NapatechReader::taskReceiverAny(const char* streamName, NtFlowStream_t& flo
             // Here a package has successfully been received, and the parameters for the
             // next flow to be learned will be set up.
 	        NtFlow_t flow = NtFlow_t();
-           // auto flow = std::unique_ptr<NtFlow_t>(new NtFlow_t);
-//            std::memset(flow, 0x0, sizeof(NtFlow_t));
 	    
-	    NtDyn1Descr_t* pDyn1 = _NT_NET_GET_PKT_DESCR_PTR_DYN1(this->hNetBufferMiss);
+	        NtDyn1Descr_t* pDyn1 = _NT_NET_GET_PKT_DESCR_PTR_DYN1(this->hNetBufferMiss);
 
-            // In this example, the ID is a simple incremental value that can be used
-            // for lookup in the std::vector learnedFlowList. However, any value can be used,
-            // including the raw value of pointers.
-            flow.id              = idCounter++;        // User defined ID
+            flow.id              = this->idFlow;        // User defined ID
             flow.color           = 0;                  // Flow color
             flow.overwrite       = 0;                  // Overwrite filter action (1: enable, 0: disable)
             flow.streamId        = 0;                  // Marks the stream id if overwrite filter action is enabled
@@ -340,9 +332,7 @@ void NapatechReader::taskReceiverAny(const char* streamName, NtFlowStream_t& flo
             // Program the flow into the adapter.
             status = NT_FlowWrite(flowStream, &flow, -1);
             handleErrorStatus(status, "NT_FlowWrite() failed");
-
-            learnedFlowList.push_back(std::move(flow));
-	    this->setNewFlow(false);            
+	        this->setNewFlow(false);            
         }
 	
         status = NT_NetRxRelease(this->hNetRxMiss, this->hNetBufferMiss);

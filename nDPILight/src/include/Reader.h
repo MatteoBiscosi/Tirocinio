@@ -30,6 +30,8 @@ class Reader {
 
         unsigned long long int last_packets_scan;
 
+        unsigned long long int idFlow;
+
         struct ndpi_detection_module_struct * ndpi_struct;
     public:
         Reader();
@@ -135,6 +137,8 @@ class Reader {
         unsigned long long int getCurIdleFlows() { return this->cur_idle_flows; };
 
         unsigned long long int getCurActiveFlows() { return this->cur_active_flows; };
+
+        void setIdFlow(unsigned long long int idFlow) { this->idFlow = idFlow; };
 };
 
 

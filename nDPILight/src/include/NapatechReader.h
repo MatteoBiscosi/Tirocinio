@@ -29,7 +29,6 @@ class NapatechReader : public Reader {
         NtStatistics_t hStat;
         NtStatStream_t hStatStream;
 
-        unsigned long long int idCounter;
 	    unsigned long long int init_pkts;
         unsigned long long int init_bytes;
     public:

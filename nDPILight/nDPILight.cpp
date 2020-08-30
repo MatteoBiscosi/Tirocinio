@@ -10,6 +10,7 @@ Trace *tracer;
 ReaderThread reader_thread;
 int terminate_thread {0};
 PacketDissector * pkt_parser;
+uint32_t mask;
 
 
 
@@ -30,23 +31,97 @@ static bool starts_with(const char *file_or_device, const char *marker)
 
 /* ********************************** */
 
+static int parseMask(char * stringMask)
+/*  Parsing option for setting risk mask's bits */
+{
+    char *tmp;
+
+    tmp = strtok(stringMask, " ");
+
+    if (tmp != nullptr) {
+        NDPI_BITMASK_RESET(mask);
+    }
+    else
+        return -1;
+    
+
+    while(tmp != nullptr) {
+        if(!strcmp(tmp, "URL_POSSIBLE_XSS"))
+            NDPI_SET_BIT(mask, 0);
+        else if(!strcmp(tmp, "URL_POSSIBLE_SQL_INJECTION"))
+            NDPI_SET_BIT(mask, 1);
+        else if(!strcmp(tmp, "URL_POSSIBLE_RCE_INJECTION"))
+            NDPI_SET_BIT(mask, 2);
+        else if(!strcmp(tmp, "BINARY_APPLICATION_TRANSFER"))
+            NDPI_SET_BIT(mask, 3);
+        else if(!strcmp(tmp, "KNOWN_PROTOCOL_ON_NON_STANDARD_PORT"))
+            NDPI_SET_BIT(mask, 4);
+        else if(!strcmp(tmp, "TLS_SELFSIGNED_CERTIFICATE"))
+            NDPI_SET_BIT(mask, 5);
+        else if(!strcmp(tmp, "TLS_WEAK_CIPHER"))
+            NDPI_SET_BIT(mask, 6);
+        else if(!strcmp(tmp, "TLS_CERTIFICATE_EXPIRED"))
+            NDPI_SET_BIT(mask, 7);
+        else if(!strcmp(tmp, "TLS_CERTIFICATE_MISMATCH"))
+            NDPI_SET_BIT(mask, 8);
+        else if(!strcmp(tmp, "HTTP_SUSPICIOUS_USER_AGENT"))
+            NDPI_SET_BIT(mask, 9);
+        else if(!strcmp(tmp, "HTTP_NUMERIC_IP_HOST"))
+            NDPI_SET_BIT(mask, 10);
+        else if(!strcmp(tmp, "HTTP_SUSPICIOUS_URL"))
+            NDPI_SET_BIT(mask, 11);
+        else if(!strcmp(tmp, "HTTP_SUSPICIOUS_HEADER"))
+            NDPI_SET_BIT(mask, 12);
+        else if(!strcmp(tmp, "TLS_NOT_CARRYING_HTTPS"))
+            NDPI_SET_BIT(mask, 13);
+        else if(!strcmp(tmp, "SUSPICIOUS_DGA_DOMAIN"))
+            NDPI_SET_BIT(mask, 14);
+        else if(!strcmp(tmp, "MALFORMED_PACKET"))
+            NDPI_SET_BIT(mask, 15);
+        else if(!strcmp(tmp, "SSH_OBSOLETE_CLIENT_VERSION_OR_CIPHER"))
+            NDPI_SET_BIT(mask, 16);
+        else if(!strcmp(tmp, "SSH_OBSOLETE_SERVER_VERSION_OR_CIPHER"))
+            NDPI_SET_BIT(mask, 17);
+        else if(!strcmp(tmp, "SMB_INSECURE_VERSION"))
+            NDPI_SET_BIT(mask, 18);
+        else if(!strcmp(tmp, "TLS_SUSPICIOUS_ESNI_USAGE"))
+            NDPI_SET_BIT(mask, 19);
+        else if(!strcmp(tmp, "BLACKLISTED_HOST"))
+            NDPI_SET_BIT(mask, 20);
+        else
+            return -1;
+    }
+}
+
+/* ********************************** */
+
 static char * check_args(int &argc, char ** argv)
 /*  Parsing of input args   */
 {
     int opt, tracelvl;
     char * dst = nullptr;
+    char * stringMask = nullptr; 
 
     /*  In case of -h arg, print infos and terminate    */
     if(find_help(argv, argv + argc, "-h")) {
         cout << "nDPILight -i <file|device> [-t <tracelevel>]\n"
              << "Usage:\n"
-             << "  -i <file.pcap|device>     | Specify a pcap file/playlist to read packets from or a\n"
-             << "                            | device for live capture (comma-separated list)\n"
-             << "  -t <tracelevel>           | Specify a trace level between 1 ad 6 (standard trace level is 2)\n";
+             << "  -i <file.pcap|device>       | Specify a pcap file/playlist to read packets from or a\n"
+             << "                              | device for live capture (comma-separated list)\n"
+             << "  -t <tracelevel>             | Specify a trace level between 1 ad 6 (standard trace level is 2)\n"
+             << "  -r none|risk1|risk2[,...]   | Specify which situation is a risk (default is, each situation is a risk).\n"
+             << "                              | Possible risks are: URL_POSSIBLE_XSS | URL_POSSIBLE_SQL_INJECTION | URL_POSSIBLE_RCE_INJECTION |\n"
+             << "                              |                     BINARY_APPLICATION_TRANSFER | KNOWN_PROTOCOL_ON_NON_STANDARD_PORT |\n"
+             << "                              |                     TLS_SELFSIGNED_CERTIFICATE | TLS_OBSOLETE_VERSION | TLS_WEAK_CIPHER |\n"
+             << "                              |                     TLS_CERTIFICATE_EXPIRED | TLS_CERTIFICATE_MISMATCH | HTTP_SUSPICIOUS_USER_AGENT |\n"
+             << "                              |                     HTTP_NUMERIC_IP_HOST | HTTP_SUSPICIOUS_URL | HTTP_SUSPICIOUS_HEADER |\n"
+             << "                              |                     TLS_NOT_CARRYING_HTTPS | SUSPICIOUS_DGA_DOMAIN | MALFORMED_PACKET |\n"
+             << "                              |                     SSH_OBSOLETE_CLIENT_VERSION_OR_CIPHER | SSH_OBSOLETE_SERVER_VERSION_OR_CIPHER |\n"
+             << "                              |                     SMB_INSECURE_VERSION | TLS_SUSPICIOUS_ESNI_USAGE | BLACKLISTED_HOST\n";
         return nullptr;
     }
 
-    while((opt = getopt(argc, argv, "i:t:")) != -1) {
+    while((opt = getopt(argc, argv, "i:t:u:")) != -1) {
         switch (opt) {
             case 't':
                 tracelvl = atoi(optarg);
@@ -70,7 +145,15 @@ static char * check_args(int &argc, char ** argv)
 
             case 'i':
                 dst = optarg;
-                break;            
+                break;  
+
+            case 'u':
+                stringMask = optarg;
+                if(parseMask(stringMask) != 0) {
+                    tracer->traceEvent(0, "Invalid risk, please check risk list with -h option\n", argv[0]);
+                    return nullptr;
+                }
+                break; 
 
             default:
                 tracer->traceEvent(0, "Option not valid, to check usage: %s\n", argv[0]);

@@ -5,6 +5,8 @@
 #include "ndpi_light_includes.h"
 
 
+extern uint32_t mask;
+
 class PacketDissector {
     protected:
 	    unsigned long long int flow_id;
