@@ -9,6 +9,7 @@ using namespace std;
 Trace *tracer;
 ReaderThread reader_thread;
 int terminate_thread {0};
+int generate_logs {0};
 PacketDissector * pkt_parser;
 uint32_t mask;
 
@@ -27,6 +28,21 @@ static bool starts_with(const char *file_or_device, const char *marker)
         return true;
     else
         return false;
+}
+
+static int dirExists(const char* const path)
+{
+    struct stat info;
+
+    int statRC = stat( path, &info );
+    if( statRC != 0 )
+    {
+        if (errno == ENOENT)  { return 0; } // something along the path does not exist
+        if (errno == ENOTDIR) { return 0; } // something in path prefix is not a dir
+        return -1;
+    }
+
+    return ( info.st_mode & S_IFDIR ) ? 1 : 0;
 }
 
 /* ********************************** */
@@ -76,7 +92,7 @@ static int parseMask(char * tmp)
             NDPI_SET_BIT(mask, 20);
         else if(!strcmp(tmp, "TLS_SUSPICIOUS_ESNI_USAGE"))
             NDPI_SET_BIT(mask, 21);
-        else if(!strcmp(tmp, "BLACKLISTED_HOST"))
+        else if(!strcmp(tmp, "UNSAFE_PROTOCOL"))
             NDPI_SET_BIT(mask, 22);
         else if(!strcmp(tmp, "none")) {
             NDPI_BITMASK_RESET(mask);
@@ -112,11 +128,13 @@ static char * check_args(int &argc, char ** argv)
              << "                              |                     HTTP_NUMERIC_IP_HOST | HTTP_SUSPICIOUS_URL | HTTP_SUSPICIOUS_HEADER |\n"
              << "                              |                     TLS_NOT_CARRYING_HTTPS | SUSPICIOUS_DGA_DOMAIN | MALFORMED_PACKET |\n"
              << "                              |                     SSH_OBSOLETE_CLIENT_VERSION_OR_CIPHER | SSH_OBSOLETE_SERVER_VERSION_OR_CIPHER |\n"
-             << "                              |                     SMB_INSECURE_VERSION | TLS_SUSPICIOUS_ESNI_USAGE | BLACKLISTED_HOST\n";
+             << "                              |                     SMB_INSECURE_VERSION | TLS_SUSPICIOUS_ESNI_USAGE | UNSAFE_PROTOCOL\n"
+             << "  -v                          | Creates a log file about every flow after detecting level 7 protocol (by default\n"
+             << "                              | it's created when a flow hits a risk specified with -r option)\n";
         return nullptr;
     }
 
-    while((opt = getopt(argc, argv, "i:t:r:")) != -1) {
+    while((opt = getopt(argc, argv, "i:t:r:v")) != -1) {
         switch (opt) {
             case 't':
                 tracelvl = atoi(optarg);
@@ -140,32 +158,36 @@ static char * check_args(int &argc, char ** argv)
 
             case 'i':
                 dst = optarg;
-                break;  
+                break;
+
+            case 'v':
+                generate_logs = 1;
+                break;
 
             case 'r': {
-		if(optarg != nullptr) {
-        	    NDPI_BITMASK_RESET(mask);
-    		}
-		char *next;
-		int index = optind - 1;
-            	while(index < argc) {
-                    next = strdup(argv[index]);
-                    index++;
-                    if(next[0] != '-') {
-			int status = parseMask(next);
-                    	if(status == -1) {
-			    tracer->traceEvent(0, "Risk parameter not valid, to check risk list: %s - h\n", argv[0]);
-			    return nullptr;
-			} else if(status == 1) {
-			    break;
-			}
+                if(optarg != nullptr) {
+                        NDPI_BITMASK_RESET(mask);
                     }
-                    else 
-			break;
+                char *next;
+                int index = optind - 1;
+                    while(index < argc) {
+                        next = strdup(argv[index]);
+                        index++;
+                        if(next[0] != '-') {
+                int status = parseMask(next);
+                            if(status == -1) {
+                    tracer->traceEvent(0, "Risk parameter not valid, to check risk list: %s - h\n", argv[0]);
+                    return nullptr;
+                } else if(status == 1) {
+                    break;
                 }
-		optind = index - 1;
+                        }
+                        else 
+                            break;
+                    }
+		        optind = index - 1;
                 break; 
-	    }
+	        }
             default:
                 tracer->traceEvent(0, "Option not valid, to check usage: %s\n", argv[0]);
                 return nullptr;
@@ -342,6 +364,16 @@ int main(int argc, char * argv[])
     char *dst;
     NDPI_BITMASK_SET_ALL(mask);
     tracer = new Trace();
+
+    if(dirExists("./logs") != 0) {
+        tracer->traceEvent(0, "Couldn't find necessary directories, please do `make clean` and then do `make`\n", argv[0]);
+        return -1;
+    }
+
+    if(dirExists("./logs/allarms") != 0) {
+        tracer->traceEvent(0, "Couldn't find necessary directories, please do `make clean` and then do `make`\n", argv[0]);
+        return -1;
+    }
 
     /*  Args check  */
     if((dst = check_args(argc, argv)) == nullptr) {

@@ -10,6 +10,8 @@ extern uint32_t mask;
 class PacketDissector {
     protected:
 	    unsigned long long int flow_id;
+        ndpi_serializer serializer;
+        ndpi_serialization_format fmt;
         
         class CaptureStats {
             public:
