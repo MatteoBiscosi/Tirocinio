@@ -279,23 +279,12 @@ void PacketDissector::processPacket(void * const args,
 
             
             if(pkt_infos.flow_to_process->ndpi_flow->risk) {
-                uint32_t i = mask & pkt_infos.flow_to_process->ndpi_flow->risk;
-
-                if(i != 0)
-                    tracer->traceEvent(1, "[** %s ** | flow %lu ] src ip: %s | dst ip: %s | src port: %u | dst port: %u\n",
+                uint32_t j = mask & pkt_infos.flow_to_process->ndpi_flow->risk;
+		for(int i=NDPI_NO_RISK; i<NDPI_MAX_RISK; i++)
+                    if(NDPI_ISSET_BIT(j, i) != 0)
+                    	tracer->traceEvent(1, "[** %s ** | flow %lu ] src ip: %s | dst ip: %s | src port: %u | dst port: %u\n",
                                             ndpi_risk2str((ndpi_risk_enum) i), pkt_infos.flow_to_process->flow_id, src_addr_str, 
                                             dst_addr_str, pkt_infos.flow_to_process->src_port, pkt_infos.flow_to_process->dst_port);
-                                        /*
-                std::string risk_string = "Risk: ";
-                ndpi_risk2str((ndpi_risk_enum) i)
-                for(int i=NDPI_NO_RISK; i<NDPI_MAX_RISK; i++)
-                if(NDPI_ISSET_BIT(pkt_infos.flow_to_process->ndpi_flow->risk, i))
-                    risk_string = risk_string + "**" + ndpi_risk2str((ndpi_risk_enum) i) + "**";
-
-		        char arr[risk_string.length() + 1];
-
-                strcpy(arr, risk_string.c_str());
-                */
             }
         
                 
@@ -336,23 +325,12 @@ void PacketDissector::processPacket(void * const args,
                                     ndpi_category_get_name(reader->getNdpiStruct(), pkt_infos.flow_to_process->detected_l7_protocol.category));
 
             if(pkt_infos.flow_to_process->ndpi_flow->risk) {
-                uint32_t i = mask & pkt_infos.flow_to_process->ndpi_flow->risk;
-
-                if(i != 0)
-                    tracer->traceEvent(1, "[** %s ** | flow %lu ] src ip: %s | dst ip: %s | src port: %u | dst port: %u\n",
-                                            ndpi_risk2str((ndpi_risk_enum) i), pkt_infos.flow_to_process->flow_id, src_addr_str, 
+                uint32_t j = mask & pkt_infos.flow_to_process->ndpi_flow->risk;
+ 		for(int i=NDPI_NO_RISK; i<NDPI_MAX_RISK; i++)               
+		    if(NDPI_ISSET_BIT(j, i) != 0)
+                        tracer->traceEvent(1, "[** %s ** | flow %lu ] src ip: %s | dst ip: %s | src port: %u | dst port: %u\n",
+                                            ndpi_risk2str((ndpi_risk_enum) i), pkt_infos.flow_to_process->flow_id, src_addr_str,
                                             dst_addr_str, pkt_infos.flow_to_process->src_port, pkt_infos.flow_to_process->dst_port);
-                                        /*
-                std::string risk_string = "Risk: ";
-                ndpi_risk2str((ndpi_risk_enum) i)
-                for(int i=NDPI_NO_RISK; i<NDPI_MAX_RISK; i++)
-                if(NDPI_ISSET_BIT(pkt_infos.flow_to_process->ndpi_flow->risk, i))
-                    risk_string = risk_string + "**" + ndpi_risk2str((ndpi_risk_enum) i) + "**";
-
-		        char arr[risk_string.length() + 1];
-
-                strcpy(arr, risk_string.c_str());
-                */
             } else
                 tracer->traceEvent(3, "[ flow %lu ] src ip: %s | dst ip: %s | src port: %u | dst port: %u\n",
                                         pkt_infos.flow_to_process->flow_id, src_addr_str, dst_addr_str,

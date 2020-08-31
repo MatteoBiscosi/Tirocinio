@@ -11,6 +11,7 @@
 #include <algorithm>
 #include <memory>
 #include <thread>
+#include <bitset>
 #include <pcap/pcap.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>

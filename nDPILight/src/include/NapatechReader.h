@@ -24,7 +24,7 @@ class NapatechReader : public Reader {
 
         NtConfigStream_t hCfgStream;
 
-        NtFlowStream_t * flowStream;
+        NtFlowStream_t flowStream;
 
         NtStatistics_t hStat;
         NtStatStream_t hStatStream;

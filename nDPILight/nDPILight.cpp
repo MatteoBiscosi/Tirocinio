@@ -31,66 +31,61 @@ static bool starts_with(const char *file_or_device, const char *marker)
 
 /* ********************************** */
 
-static int parseMask(char * stringMask)
+static int parseMask(char * tmp)
 /*  Parsing option for setting risk mask's bits */
-{
-    char *tmp;
-
-    tmp = strtok(stringMask, " ");
-
-    if (tmp != nullptr) {
-        NDPI_BITMASK_RESET(mask);
-    }
-    else
-        return -1;
-    
-
-    while(tmp != nullptr) {
+{    
         if(!strcmp(tmp, "URL_POSSIBLE_XSS"))
-            NDPI_SET_BIT(mask, 0);
-        else if(!strcmp(tmp, "URL_POSSIBLE_SQL_INJECTION"))
             NDPI_SET_BIT(mask, 1);
-        else if(!strcmp(tmp, "URL_POSSIBLE_RCE_INJECTION"))
+        else if(!strcmp(tmp, "URL_POSSIBLE_SQL_INJECTION"))
             NDPI_SET_BIT(mask, 2);
-        else if(!strcmp(tmp, "BINARY_APPLICATION_TRANSFER"))
+        else if(!strcmp(tmp, "URL_POSSIBLE_RCE_INJECTION"))
             NDPI_SET_BIT(mask, 3);
-        else if(!strcmp(tmp, "KNOWN_PROTOCOL_ON_NON_STANDARD_PORT"))
+        else if(!strcmp(tmp, "BINARY_APPLICATION_TRANSFER"))
             NDPI_SET_BIT(mask, 4);
-        else if(!strcmp(tmp, "TLS_SELFSIGNED_CERTIFICATE"))
+        else if(!strcmp(tmp, "KNOWN_PROTOCOL_ON_NON_STANDARD_PORT"))
             NDPI_SET_BIT(mask, 5);
-        else if(!strcmp(tmp, "TLS_WEAK_CIPHER"))
+        else if(!strcmp(tmp, "TLS_SELFSIGNED_CERTIFICATE"))
             NDPI_SET_BIT(mask, 6);
-        else if(!strcmp(tmp, "TLS_CERTIFICATE_EXPIRED"))
+        else if(!strcmp(tmp, "NDPI_TLS_OBSOLETE_VERSION"))
             NDPI_SET_BIT(mask, 7);
-        else if(!strcmp(tmp, "TLS_CERTIFICATE_MISMATCH"))
+	else if(!strcmp(tmp, "TLS_WEAK_CIPHER"))
             NDPI_SET_BIT(mask, 8);
-        else if(!strcmp(tmp, "HTTP_SUSPICIOUS_USER_AGENT"))
+        else if(!strcmp(tmp, "TLS_CERTIFICATE_EXPIRED"))
             NDPI_SET_BIT(mask, 9);
-        else if(!strcmp(tmp, "HTTP_NUMERIC_IP_HOST"))
+        else if(!strcmp(tmp, "TLS_CERTIFICATE_MISMATCH"))
             NDPI_SET_BIT(mask, 10);
-        else if(!strcmp(tmp, "HTTP_SUSPICIOUS_URL"))
+        else if(!strcmp(tmp, "HTTP_SUSPICIOUS_USER_AGENT"))
             NDPI_SET_BIT(mask, 11);
-        else if(!strcmp(tmp, "HTTP_SUSPICIOUS_HEADER"))
+        else if(!strcmp(tmp, "HTTP_NUMERIC_IP_HOST"))
             NDPI_SET_BIT(mask, 12);
-        else if(!strcmp(tmp, "TLS_NOT_CARRYING_HTTPS"))
+        else if(!strcmp(tmp, "HTTP_SUSPICIOUS_URL"))
             NDPI_SET_BIT(mask, 13);
-        else if(!strcmp(tmp, "SUSPICIOUS_DGA_DOMAIN"))
+        else if(!strcmp(tmp, "HTTP_SUSPICIOUS_HEADER"))
             NDPI_SET_BIT(mask, 14);
-        else if(!strcmp(tmp, "MALFORMED_PACKET"))
+        else if(!strcmp(tmp, "TLS_NOT_CARRYING_HTTPS"))
             NDPI_SET_BIT(mask, 15);
-        else if(!strcmp(tmp, "SSH_OBSOLETE_CLIENT_VERSION_OR_CIPHER"))
+        else if(!strcmp(tmp, "SUSPICIOUS_DGA_DOMAIN"))
             NDPI_SET_BIT(mask, 16);
-        else if(!strcmp(tmp, "SSH_OBSOLETE_SERVER_VERSION_OR_CIPHER"))
+        else if(!strcmp(tmp, "MALFORMED_PACKET"))
             NDPI_SET_BIT(mask, 17);
-        else if(!strcmp(tmp, "SMB_INSECURE_VERSION"))
+        else if(!strcmp(tmp, "SSH_OBSOLETE_CLIENT_VERSION_OR_CIPHER"))
             NDPI_SET_BIT(mask, 18);
-        else if(!strcmp(tmp, "TLS_SUSPICIOUS_ESNI_USAGE"))
+        else if(!strcmp(tmp, "SSH_OBSOLETE_SERVER_VERSION_OR_CIPHER"))
             NDPI_SET_BIT(mask, 19);
-        else if(!strcmp(tmp, "BLACKLISTED_HOST"))
+        else if(!strcmp(tmp, "SMB_INSECURE_VERSION"))
             NDPI_SET_BIT(mask, 20);
-        else
-            return -1;
-    }
+        else if(!strcmp(tmp, "TLS_SUSPICIOUS_ESNI_USAGE"))
+            NDPI_SET_BIT(mask, 21);
+        else if(!strcmp(tmp, "BLACKLISTED_HOST"))
+            NDPI_SET_BIT(mask, 22);
+        else if(!strcmp(tmp, "none")) {
+            NDPI_BITMASK_RESET(mask);
+	    return 1;
+	}
+	else
+            return -1;	    
+
+    return 0;
 }
 
 /* ********************************** */
@@ -121,7 +116,7 @@ static char * check_args(int &argc, char ** argv)
         return nullptr;
     }
 
-    while((opt = getopt(argc, argv, "i:t:u:")) != -1) {
+    while((opt = getopt(argc, argv, "i:t:r:")) != -1) {
         switch (opt) {
             case 't':
                 tracelvl = atoi(optarg);
@@ -147,14 +142,30 @@ static char * check_args(int &argc, char ** argv)
                 dst = optarg;
                 break;  
 
-            case 'u':
-                stringMask = optarg;
-                if(parseMask(stringMask) != 0) {
-                    tracer->traceEvent(0, "Invalid risk, please check risk list with -h option\n", argv[0]);
-                    return nullptr;
+            case 'r': {
+		if(optarg != nullptr) {
+        	    NDPI_BITMASK_RESET(mask);
+    		}
+		char *next;
+		int index = optind - 1;
+            	while(index < argc) {
+                    next = strdup(argv[index]);
+                    index++;
+                    if(next[0] != '-') {
+			int status = parseMask(next);
+                    	if(status == -1) {
+			    tracer->traceEvent(0, "Risk parameter not valid, to check risk list: %s - h\n", argv[0]);
+			    return nullptr;
+			} else if(status == 1) {
+			    break;
+			}
+                    }
+                    else 
+			break;
                 }
+		optind = index - 1;
                 break; 
-
+	    }
             default:
                 tracer->traceEvent(0, "Option not valid, to check usage: %s\n", argv[0]);
                 return nullptr;
@@ -329,6 +340,7 @@ int main(int argc, char * argv[])
 
 
     char *dst;
+    NDPI_BITMASK_SET_ALL(mask);
     tracer = new Trace();
 
     /*  Args check  */
@@ -352,7 +364,6 @@ int main(int argc, char * argv[])
     signal(SIGINT, sighandler);
     signal(SIGTERM, sighandler);
 
-
     sleep(2);
     /*  have to find a better way of doing this job */
     while (terminate_thread == 0 && check_error_or_eof() == 0) {
@@ -364,8 +375,7 @@ int main(int argc, char * argv[])
         tracer->traceEvent(2, "\tnDPILight: stop_reader\n");
         return 1;
     }
-
     delete(tracer);
-
+	
     return 0;
 }

@@ -102,12 +102,13 @@ void taskReceiverUnh(const char* streamName, NapatechReader *reader)
 {
     int status;
 
-    while(reader->getErrorOfEof() == 0) {
-        // Get package from rx stream.
-        status = NT_NetRxGetNextPacket(* reader->getUnhStream(), reader->getUnhBuffer(), -1);
-        
-        if(status == NT_STATUS_TIMEOUT || status == NT_STATUS_TRYAGAIN) 
-            continue;
+    while(reader->getErrorOfEof() == 0) { 
+	status = NT_NetRxGetNextPacket(* reader->getUnhStream(), reader->getUnhBuffer(), 5000);      
+        if(status == NT_STATUS_TIMEOUT || status == NT_STATUS_TRYAGAIN) {
+            if(reader->getErrorOfEof()) {
+		return;
+	    }
+	}
 
         if(status == NT_ERROR_NT_TERMINATING)
 	        break;
@@ -126,8 +127,6 @@ void taskReceiverUnh(const char* streamName, NapatechReader *reader)
 
 NapatechReader::~NapatechReader()
 {
-    this->error_or_eof = 1;
-
     // Closes rx stream.
     NT_NetRxClose(hNetRxMiss);
     NT_NetRxClose(hNetRxUnh); 
@@ -252,7 +251,7 @@ void NapatechReader::newPacket(void * header)
 		/* Updating next max_idle_scan_index */
 		this->max_idle_scan_index = ((this->idle_scan_index + this->max_idle_scan_index) % this->max_active_flows) + 1;
 	}
-	printFlowStreamInfo(flowStream);
+	printFlowStreamInfo(this->flowStream);
 }
 
 /* ********************************** */
@@ -260,11 +259,14 @@ void NapatechReader::newPacket(void * header)
 void NapatechReader::taskReceiverAny(const char* streamName, NtFlowStream_t& flowStream)
 {
     int status;
+    this->flowStream = flowStream;
 
     while(this->error_or_eof == 0) {
 	    // Get package from rx stream.
-	    status = NT_NetRxGet(this->hNetRxMiss, &(this->hNetBufferMiss), 10000);
+	    status = NT_NetRxGet(this->hNetRxMiss, &(this->hNetBufferMiss), 5000);
 	    if(status == NT_STATUS_TIMEOUT || status == NT_STATUS_TRYAGAIN) {
+		    if(this->error_or_eof != 0)
+			return;	
 		    printFlowStreamInfo(flowStream);
 		    continue;
 	    }
@@ -426,7 +428,7 @@ int NapatechReader::startRead()
 
     std::thread receiverThread2(taskReceiverUnh, "flowmatch_example_receiver_net_rx_unhandled", this);
     this->taskReceiverAny("flowmatch_example_receiver_net_rx_miss", flowStream);
-
+    printf("Prova\n");
     receiverThread2.join();
 
     return 0;
@@ -436,12 +438,11 @@ int NapatechReader::startRead()
 
 void NapatechReader::stopRead()
 {
-    this->error_or_eof = 1;
-    sleep(5);    
-
+    this->error_or_eof = 1;    
+   
     // Closes rx stream.
-    NT_NetRxClose(hNetRxMiss);
-    NT_NetRxClose(hNetRxUnh);    
+    //NT_NetRxClose(hNetRxMiss);
+    //NT_NetRxClose(hNetRxUnh);    
 }
 
 /* ********************************** */
