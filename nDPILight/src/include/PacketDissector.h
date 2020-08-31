@@ -6,6 +6,7 @@
 
 
 extern uint32_t mask;
+extern int generate_logs;
 
 class PacketDissector {
     protected:
@@ -138,6 +139,16 @@ class PacketDissector {
          */
         void printFlow(Reader* reader, 
                         FlowInfo * pkt_infos);
+
+        /**
+         * Function used to save flow's infos on a JSON file 
+         *
+         * @par    reader    = pointer to a Reader
+         * @par    pkt_infos = pointer to a FlowInfo
+         * 
+         */
+        int flowToJson(Reader* reader,
+                        FlowInfo * flow_infos);
 
         /**
          * Various setters and getters

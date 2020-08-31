@@ -48,6 +48,64 @@ void PacketDissector::printFlow(Reader* reader,
 				src_addr_str, pkt_infos->src_port, dst_addr_str, pkt_infos->dst_port);
 }
 
+int flowToJson(Reader* reader,
+                FlowInfo * flow_infos,
+                int guessed_or_detected)
+{
+    char src_addr_str[INET6_ADDRSTRLEN+1];
+    char dst_addr_str[INET6_ADDRSTRLEN+1];
+    
+    flow_infos->ipTupleToString(src_addr_str, sizeof(src_addr_str), dst_addr_str, sizeof(dst_addr_str));
+
+    ndpi_serialize_string_string(&this->serializer, "src_ip", src_addr_str);
+    ndpi_serialize_string_string(&this->serializer, "dest_ip", dst_addr_str);
+    ndpi_serialize_string_uint32(&this->serializer, "src_port", pkt_infos->src_port);
+    ndpi_serialize_string_uint32(&this->serializer, "dst_port", pkt_infos->dst_port);
+
+    switch(flow_infos->l4_protocol) {
+    case IPPROTO_TCP:
+        ndpi_serialize_string_string(&this->serializer, "proto", "TCP");
+        break;
+
+    case IPPROTO_UDP:
+        ndpi_serialize_string_string(&this->serializer, "proto", "UDP");
+        break;
+
+    case IPPROTO_ICMP:
+        ndpi_serialize_string_string(&this->serializer, "proto", "ICMP");
+        break;
+
+    default:
+        ndpi_serialize_string_uint32(&this->serializer, "proto", flow_infos->l4_protocol);
+        break;
+    }
+
+    switch(guessed_or_detected) {
+    case 0:
+        if( (reader->getNdpiStruct(), flow_infos->ndpi_flow, flow_infos->guessed_protocol, &this->serializer) != 0)
+            return -1;
+
+    case 1:
+        if( (reader->getNdpiStruct(), flow_infos->ndpi_flow, flow_infos->detected_l7_protocol, &this->serializer) != 0)
+            return -1;
+    }
+    
+    u_int32_t buffer_len = 0;
+    time_t rawtime;
+    time (&rawtime);
+
+    std::string fileName = "./logs/allarms/flow_" + flow_infos->flow_id + "_" + ctime(&rawtime);
+
+    std::ofstream fs(fileName.c_str()); 
+
+    if(!fs)
+        return -1;
+    fs << ndpi_serializer_get_buffer(&this->serializer, &buffer_len);
+
+    fs.close();
+    return 0;
+}
+
 /* ********************************** */
 
 void PacketDissector::printStats(Reader *reader)
@@ -286,10 +344,9 @@ void PacketDissector::processPacket(void * const args,
                     	tracer->traceEvent(1, "[** %s ** | flow %lu ] src ip: %s | dst ip: %s | src port: %u | dst port: %u\n",
                                             ndpi_risk2str((ndpi_risk_enum) i), pkt_infos.flow_to_process->flow_id, src_addr_str, 
                                             dst_addr_str, pkt_infos.flow_to_process->src_port, pkt_infos.flow_to_process->dst_port);
-                        if(ndpi_dpi2json(reader->getNdpiStruct(), pkt_infos.flow_to_process->ndpi_flow,
-                                         pkt_infos.flow_to_process->detected_l7_protocol, &this->serializer) != 0)
+                        if(this->flowToJson(reader->getNdpiStruct(), pkt_infos.flow_to_process, 0) != 0) 
                             tracer->traceEvent(0, "Error while creating the record of flow %lu\n",
-                                                pkt_infos.flow_to_process->flow_id);
+                                                    pkt_infos.flow_to_process->flow_id);
                         
                         return;
                     }
@@ -305,8 +362,7 @@ void PacketDissector::processPacket(void * const args,
         }
 
         if(generate_logs != 0) 
-            if(ndpi_dpi2json(reader->getNdpiStruct(), pkt_infos.flow_to_process->ndpi_flow,
-                                    pkt_infos.flow_to_process->detected_l7_protocol, &this->serializer) != 0) {
+            if(this->flowToJson(reader->getNdpiStruct(), pkt_infos.flow_to_process, 0) != 0) {
                 tracer->traceEvent(0, "Error while creating the record of flow %lu\n",
                                         pkt_infos.flow_to_process->flow_id);
                 return;
@@ -344,11 +400,10 @@ void PacketDissector::processPacket(void * const args,
                 tracer->traceEvent(1, "[** %s ** | flow %lu ] src ip: %s | dst ip: %s | src port: %u | dst port: %u\n",
                                     ndpi_risk2str((ndpi_risk_enum) i), pkt_infos.flow_to_process->flow_id, src_addr_str, 
                                     dst_addr_str, pkt_infos.flow_to_process->src_port, pkt_infos.flow_to_process->dst_port);
-                if(ndpi_dpi2json(reader->getNdpiStruct(), pkt_infos.flow_to_process->ndpi_flow,
-                                    pkt_infos.flow_to_process->detected_l7_protocol, &this->serializer) != 0)
+                if(this->flowToJson(reader->getNdpiStruct(), pkt_infos.flow_to_process, 1) != 0) 
                     tracer->traceEvent(0, "Error while creating the record of flow %lu\n",
-                                        pkt_infos.flow_to_process->flow_id);
-
+                                            pkt_infos.flow_to_process->flow_id);
+                
                 return;
             } else
                 tracer->traceEvent(3, "[ flow %lu ] src ip: %s | dst ip: %s | src port: %u | dst port: %u\n",
@@ -357,12 +412,12 @@ void PacketDissector::processPacket(void * const args,
         }
 
         if(generate_logs != 0) 
-            if(ndpi_dpi2json(reader->getNdpiStruct(), pkt_infos.flow_to_process->ndpi_flow,
-                                    pkt_infos.flow_to_process->detected_l7_protocol, &this->serializer) != 0) {
+            if(this->flowToJson(reader->getNdpiStruct(), pkt_infos.flow_to_process, 1) != 0) {
                 tracer->traceEvent(0, "Error while creating the record of flow %lu\n",
                                         pkt_infos.flow_to_process->flow_id);
                 return;
             }
+        }
     }
 }
 
