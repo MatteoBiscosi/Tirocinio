@@ -10,6 +10,7 @@ extern int generate_logs;
 
 class PacketDissector {
     protected:
+        std::vector<char *> allarm_list;
 	    unsigned long long int flow_id;
         ndpi_serializer serializer;
         ndpi_serialization_format fmt;
@@ -158,6 +159,7 @@ class PacketDissector {
         void incrPktsCaptured() { this->captured_stats.packets_captured++; };
         void incrUnhaPkts() { this->captured_stats.unhandled_packets++; };
 	    void incrWireBytes(unsigned long long int bytes) { this->captured_stats.total_wire_bytes += bytes; };
+        vector<char *> getAllarmList() { return &this->allarm_list; };
 };
 
 

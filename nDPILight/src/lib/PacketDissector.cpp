@@ -1,10 +1,30 @@
 #include "ndpi_light_includes.h"
 
 
+void allarmManager(PacketDissector * pkt_dissector)
+{
+    Trace trace_allarm = new Trace();
+    trace_allarm.set_log_file("./logs/allarms/allarm.json");
+    std::vector<char *> *list = pkt_dissector->getAllarmList();
+
+    while(true) {
+        sleep(5);
+
+        while(list.size() != 0) {
+            trace_allarm.traceAllarm(*list->begin());
+            list->erase(list->begin());
+        }
+    }
+
+    delete(trace_allarm);
+}
+
+
 PacketDissector::PacketDissector()
 {
     this->captured_stats.protos_cnt = nullptr;
     ndpi_init_serializer(&this->serializer, this->fmt = ndpi_serialization_format_json);
+    std::thread allarmThread(allarmManager, "allarm manager thread", this);
 }
 
 /* ********************************** */
@@ -48,9 +68,9 @@ void PacketDissector::printFlow(Reader* reader,
 				src_addr_str, pkt_infos->src_port, dst_addr_str, pkt_infos->dst_port);
 }
 
-int flowToJson(Reader* reader,
-                FlowInfo * flow_infos,
-                int guessed_or_detected)
+int PacketDissector::flowToJson(Reader* reader,
+                                FlowInfo * flow_infos,
+                                int guessed_or_detected)
 {
     char src_addr_str[INET6_ADDRSTRLEN+1];
     char dst_addr_str[INET6_ADDRSTRLEN+1];
@@ -89,20 +109,11 @@ int flowToJson(Reader* reader,
         if( (reader->getNdpiStruct(), flow_infos->ndpi_flow, flow_infos->detected_l7_protocol, &this->serializer) != 0)
             return -1;
     }
+
+    uint32_t buffer_len = 0;
+
+    this->allarm_list.push_back(ndpi_serializer_get_buffer(&this->serializer, &buffer_len));
     
-    u_int32_t buffer_len = 0;
-    time_t rawtime;
-    time (&rawtime);
-
-    std::string fileName = "./logs/allarms/flow_" + flow_infos->flow_id + "_" + ctime(&rawtime);
-
-    std::ofstream fs(fileName.c_str()); 
-
-    if(!fs)
-        return -1;
-    fs << ndpi_serializer_get_buffer(&this->serializer, &buffer_len);
-
-    fs.close();
     return 0;
 }
 

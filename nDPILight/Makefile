@@ -38,6 +38,7 @@ build:
 	@mkdir -p $(OBJ_DIR)
 	@mkdir -p logs
 	@mkdir -p logs/allarms
+	@touch logs/allarms/allarm.json
 
 clean:
 	/bin/rm -f nDPILight

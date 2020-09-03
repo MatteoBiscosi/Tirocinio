@@ -187,6 +187,69 @@ void Trace::traceEvent(int eventTraceLevel, const char * format, ...) {
 
 /* ******************************* */
 
+void Trace::traceAllarm(const char * format, ...) {
+  va_list va_ap;
+#ifndef WIN32
+  struct tm result;
+#endif
+
+  this->traceLevel;
+  int line = this->numLogLines;
+
+  char buf[8100], out_buf[8192];
+  char theDate[32], *file = this->allarmFile;
+  const char *extra_msg = "";
+  time_t theTime = time(NULL);
+#ifndef WIN32
+  char *syslogMsg;
+#endif
+  char filebuf[MAX_PATH];
+  const char *backslash = strrchr(this->allarmFile,
+#ifdef WIN32
+				    '\\'
+#else
+				    '/'
+#endif
+				    );
+
+  if(backslash != NULL) {
+    snprintf(filebuf, sizeof(filebuf), "%s", &backslash[1]);
+    file = (char*)filebuf;
+  }
+
+  va_start (va_ap, format);
+
+  /* We have two paths - one if we're logging, one if we aren't
+    *   Note that the no-log case is those systems which don't support it (WIN32),
+    *                                those without the headers !defined(USE_SYSLOG)
+    *                                those where it's parametrically off...
+    */
+
+  memset(buf, 0, sizeof(buf));
+  strftime(theDate, 32, "%d/%b/%Y %H:%M:%S", localtime_r(&theTime, &result));
+
+  vsnprintf(buf, sizeof(buf)-1, format, va_ap);
+
+  while(buf[strlen(buf)-1] == '\n') buf[strlen(buf)-1] = '\0';
+
+  snprintf(out_buf, sizeof(out_buf), "%s [%s:%d] %s%s", theDate, file, line, extra_msg, buf) < 0 ? abort() : (void)0;
+
+  if(logFd) {
+    pthread_mutex_lock(&the_mutex);
+    numLogLines++;
+    fprintf(logFd, "%s\n", out_buf);
+    fflush(logFd);
+    rotate_logs(false);
+    pthread_mutex_unlock(&the_mutex);
+  }
+
+  fflush(stdout);
+
+  va_end(va_ap);
+}
+
+/* ******************************* */
+
 #ifdef WIN32
 
 /* service_win32.cpp */
