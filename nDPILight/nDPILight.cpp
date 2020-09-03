@@ -365,12 +365,12 @@ int main(int argc, char * argv[])
     NDPI_BITMASK_SET_ALL(mask);
     tracer = new Trace();
 
-    if(dirExists("./logs") != 0) {
+    if(dirExists("./logs") != 1) {
         tracer->traceEvent(0, "Couldn't find necessary directories, please do `make clean` and then do `make`\n", argv[0]);
         return -1;
     }
 
-    if(dirExists("./logs/allarms") != 0) {
+    if(dirExists("./logs/allarms") != 1) {
         tracer->traceEvent(0, "Couldn't find necessary directories, please do `make clean` and then do `make`\n", argv[0]);
         return -1;
     }
@@ -407,7 +407,7 @@ int main(int argc, char * argv[])
         tracer->traceEvent(2, "\tnDPILight: stop_reader\n");
         return 1;
     }
-    delete(tracer);
+    //delete(tracer);
 	
     return 0;
 }

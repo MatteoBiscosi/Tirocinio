@@ -10,7 +10,7 @@ extern int generate_logs;
 
 class PacketDissector {
     protected:
-        std::vector<char *> allarm_list;
+        std::queue<std::string> allarm_list;
 	    unsigned long long int flow_id;
         ndpi_serializer serializer;
         ndpi_serialization_format fmt;
@@ -144,12 +144,16 @@ class PacketDissector {
         /**
          * Function used to save flow's infos on a JSON file 
          *
-         * @par    reader    = pointer to a Reader
-         * @par    pkt_infos = pointer to a FlowInfo
-         * 
+         * @par    reader    	       = pointer to a Reader
+         * @par    pkt_infos 	       = pointer to a FlowInfo
+         * @par	   guessed_or_detected = 0 if the protocol is guessed
+         * 				 1 if the protocol is detected
+         * @return -1 in case of error, 0 otherwise
+         *
          */
         int flowToJson(Reader* reader,
-                        FlowInfo * flow_infos);
+                        FlowInfo* & flow_infos,
+			int guessed_or_detected);
 
         /**
          * Various setters and getters
@@ -159,7 +163,7 @@ class PacketDissector {
         void incrPktsCaptured() { this->captured_stats.packets_captured++; };
         void incrUnhaPkts() { this->captured_stats.unhandled_packets++; };
 	    void incrWireBytes(unsigned long long int bytes) { this->captured_stats.total_wire_bytes += bytes; };
-        vector<char *> getAllarmList() { return &this->allarm_list; };
+        std::queue<std::string> *getAllarmList() { return &this->allarm_list; };
 };
 
 

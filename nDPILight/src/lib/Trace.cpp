@@ -90,7 +90,7 @@ void Trace::open_log() {
 void Trace::set_log_file(const char* log_file) {
   if(log_file && log_file[0] != '\0') {
     rotate_logs(true);
-    if(logFile) free(logFile);
+    //if(logFile) free(logFile);
     logFile = strndup(log_file, MAX_PATH);
     open_log();
   }
@@ -197,14 +197,14 @@ void Trace::traceAllarm(const char * format, ...) {
   int line = this->numLogLines;
 
   char buf[8100], out_buf[8192];
-  char theDate[32], *file = this->allarmFile;
+  char theDate[32], *file = this->logFile;
   const char *extra_msg = "";
   time_t theTime = time(NULL);
 #ifndef WIN32
   char *syslogMsg;
 #endif
   char filebuf[MAX_PATH];
-  const char *backslash = strrchr(this->allarmFile,
+  const char *backslash = strrchr(this->logFile,
 #ifdef WIN32
 				    '\\'
 #else
@@ -226,13 +226,12 @@ void Trace::traceAllarm(const char * format, ...) {
     */
 
   memset(buf, 0, sizeof(buf));
-  strftime(theDate, 32, "%d/%b/%Y %H:%M:%S", localtime_r(&theTime, &result));
 
   vsnprintf(buf, sizeof(buf)-1, format, va_ap);
 
   while(buf[strlen(buf)-1] == '\n') buf[strlen(buf)-1] = '\0';
 
-  snprintf(out_buf, sizeof(out_buf), "%s [%s:%d] %s%s", theDate, file, line, extra_msg, buf) < 0 ? abort() : (void)0;
+  snprintf(out_buf, sizeof(out_buf), "%s", buf) < 0 ? abort() : (void)0;
 
   if(logFd) {
     pthread_mutex_lock(&the_mutex);
