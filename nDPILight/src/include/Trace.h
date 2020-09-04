@@ -68,6 +68,7 @@ class Trace {
         inline u_int8_t get_trace_level() { return(traceLevel); };
         void traceEvent(int eventTraceLevel, const char * format, ...);
         void traceAllarm(const char * format, ...);
+	int getNumLines() { return(numLogLines); };
 };
 
 

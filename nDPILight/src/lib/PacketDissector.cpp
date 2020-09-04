@@ -5,14 +5,30 @@ std::mutex mtx;
 
 void allarmManager(PacketDissector * pkt_dissector)
 {
+    char theDate[40];
     Trace* trace_allarm = new Trace();
-    trace_allarm->set_log_file("./logs/allarms/allarm.json");
+    struct tm *timenow;
+
+    time_t now = time(NULL);
+    timenow = gmtime(&now);
+
+    strftime(theDate, sizeof(theDate), "logs/allarms/%Y-%m-%d_%H:%M:%S", timenow); 
+     
+    std::ofstream outfile (theDate);
+    trace_allarm->set_log_file(theDate);
     std::queue<std::string> *list = pkt_dissector->getAllarmList();
 
     while(true) {
         sleep(5);
 	
 	while(!list->empty()) {
+		if(trace_allarm->getNumLines() >= 10000) {
+			timenow = gmtime(&now);
+			strftime(theDate, sizeof(theDate), "logs/allarms/%Y-%m-%d_%H:%M:%S", timenow);
+
+    			std::ofstream outfile (theDate);
+    			trace_allarm->set_log_file(theDate);
+		}
 		mtx.lock();
 		trace_allarm->traceAllarm((list->front()).c_str());
 		list->pop();
@@ -24,14 +40,6 @@ void allarmManager(PacketDissector * pkt_dissector)
 
 PacketDissector::PacketDissector()
 {
-/*	this->captured_stats.unhandled_packets = 0;
-	this->captured_stats.packets_captured = 0;
-	this->captured_stats.total_wire_bytes = 0;
-	this->captured_stats.total_wire_bytes = 0;
-	this->captured_stats.total_wire_bytes = 0;
-	this->captured_stats.total_wire_bytes = 0;
-	this->captured_stats.total_wire_bytes = 0;
-*/
 	this->captured_stats.protos_cnt = nullptr;
 	ndpi_init_serializer(&this->serializer, this->fmt = ndpi_serialization_format_json);
 	std::thread allarmThread(allarmManager, this);
