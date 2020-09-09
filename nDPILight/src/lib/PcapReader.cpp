@@ -42,6 +42,12 @@ int PcapReader::initModule()
 
 int PcapReader::initFileOrDevice()
 {
+    if(this->log_path != nullptr) {
+	this->pkt_parser = new PcapDissector(this->log_path, this->type);
+    } else {
+        this->pkt_parser = new PcapDissector(this->type);
+    }
+
     if (access(file_or_device, R_OK) != 0 && errno == ENOENT) {
         this->pcap_handle = pcap_open_live(file_or_device, /* 1536 */ 65535, 1, 250, pcap_error_buffer);
     } else {

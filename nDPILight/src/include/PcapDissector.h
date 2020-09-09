@@ -64,7 +64,8 @@ static void process_helper(uint8_t * const args,
                            pcap_pkthdr const * const header,
                            uint8_t const * const packet)
 {
-//    pkt_parser->processPacket(args, (void *) header, (void *) packet);
+    PcapReader * reader = (PcapReader *) args;
+    reader->getParser()->processPacket(args, (void *) header, (void *) packet);
 };
 
 #endif

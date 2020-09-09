@@ -57,6 +57,8 @@ class PcapReader : public Reader {
 
         pcap_t* getPcapHandle() { return this->pcap_handle; };
 
+	PacketDissector *getParser() { return this->pkt_parser; };
+
     private:
         /*  
          *  Scan used to check if there are idle flows   

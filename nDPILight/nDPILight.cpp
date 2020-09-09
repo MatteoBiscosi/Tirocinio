@@ -286,12 +286,11 @@ static int setup_napatech()
 
 
     for(int i = 0; i < thread_number; i++) {
-        type = type + "_";
+        string type = "nt";
+	type = type + "_";
         type = type + to_string(i);
-        type = type + "_";
         NapatechReader *tmp = new NapatechReader(log_path, type.c_str(), flowStream, i);
         reader_thread.initReader(tmp, i, thread_number);
-
         if(i == 0)
 		flowStream = tmp->initConfig(thread_number);
 
@@ -440,13 +439,13 @@ int main(int argc, char * argv[])
 	if((dst = check_args(argc, argv)) == nullptr) {
 		return 0;
 	}
-	printf("Prova main");
+//	printf("Prova main");
 	/*  Setting up and starting the worker thread   */
 	if(setup_reader(dst) != 0) {
         tracer->traceEvent(0, "nDPILight initialization failed\n");
         return 1;
     }
-printf("End of setup");
+//printf("End of setup");
 
     if(start_reader() != 0) {
         tracer->traceEvent(0, "nDPILight initialization failed\n");
@@ -460,8 +459,10 @@ printf("End of setup");
     sleep(2);
     /*  have to find a better way of doing this job */
     while (terminate_thread == 0 && check_error_or_eof() == 0) {
-            //pkt_parser->printBriefInfos(reader_thread.getReader());
-	    sleep(1);
+        NapatechReader *tmpRdr = (NapatechReader *) reader_thread.getReader();
+//	tmpRdr[0].getParser()->printBriefInfos(reader_thread.getReader());
+	sleep(1);
+	printf("prova sleep\n");
     }
 
     if (terminate_thread == 0 && stop_reader() != 0) {

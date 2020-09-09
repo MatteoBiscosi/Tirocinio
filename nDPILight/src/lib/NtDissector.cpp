@@ -191,13 +191,13 @@ int NtDissector::parsePacket(FlowInfo & flow,
     NapatechReader * reader = (NapatechReader *) args;
     NtNetBuf_t * hNetBuffer = ((NtNetBuf_t *) header_tmp);
     NtDyn1Descr_t* pDyn1;
-    
+    printf("Prova\n"); 
+
     // Updating time counters
     pkt_infos.time_ms = NT_NET_GET_PKT_TIMESTAMP(* hNetBuffer);
     pkt_infos.eth_offset = 0;
     // Checking idle flows
     reader->newPacket((void *)hNetBuffer);
-
     // Parsing packets
     // descriptor DYN1 is used, which is set up via NTPL.
     pDyn1 = NT_NET_GET_PKT_DESCR_PTR_DYN1(* hNetBuffer);

@@ -329,10 +329,12 @@ void PacketDissector::processPacket(void * const args,
 	FlowInfo flow = FlowInfo();
 	Reader * reader = (Reader *) args;
 	PacketInfo pkt_infos = PacketInfo();
-
+	printf("Prova process\n");
 	/* Parsing the packet */
+	this->captured_stats.packets_captured = 0;
+	this->captured_stats.packets_captured++;
 	status = this->parsePacket(flow, reader, header_tmp, packet_tmp, pkt_infos);
-	
+	return;
 	/* Switch the status received from parsePacket */
 	switch(status) {
 		case -1: /* Error case */

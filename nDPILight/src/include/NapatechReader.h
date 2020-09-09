@@ -73,6 +73,9 @@ class NapatechReader : public Reader {
         unsigned long long int getInitPkts() { return this->init_pkts; };
 
 	    unsigned long long int getInitBytes() { return this->init_bytes; };
+
+	PacketDissector *getParser() { return this->pkt_parser; };
+	void setParser(PacketDissector *pkt_parser) { this->pkt_parser = pkt_parser; };
     private:
 
         /**

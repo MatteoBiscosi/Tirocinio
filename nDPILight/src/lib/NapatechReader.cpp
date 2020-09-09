@@ -67,12 +67,12 @@ void nt_idle_scan_walker(void const * const A, ndpi_VISIT which, int depth, void
     }
 }
 
-void printFlowStreamInfo(NtFlowStream_t& flowStream)
+void printFlowStreamInfo(NtFlowStream_t flowStream)
 {
     const char* ip;
     NtFlowInfo_t flowInfo;
     NtFlowStatus_t flowStatus;
-
+    printf("Prova\n");
     // For each element in internal flow stream queue print the flow info record.
     // The flow info record is only available when NtFlow_t.gfi is set to 1.
     // Maintaining the flow info record has a performance overhead, so if the
@@ -95,7 +95,7 @@ void printFlowStreamInfo(NtFlowStream_t& flowStream)
 
 /* ********************************** */
 
-void taskReceiverUnh(const char* streamName, NapatechReader *reader, NtDissector *pkt_parser)
+void taskReceiverUnh(const char* streamName, NapatechReader *reader)
 /**
  * Function used to handle the unhandled stream
  */
@@ -115,7 +115,7 @@ void taskReceiverUnh(const char* streamName, NapatechReader *reader, NtDissector
             continue;
         }
 
-        pkt_parser->incrUnhaPkts();
+        reader->getParser()->incrUnhaPkts();
 
         NT_NetRxRelease(* reader->getUnhStream(), * reader->getUnhBuffer());
     }	
@@ -125,7 +125,7 @@ void taskReceiverUnh(const char* streamName, NapatechReader *reader, NtDissector
 
 NapatechReader::NapatechReader(char *log_path, const char *type, NtFlowStream_t flowStream, int streamId)
 {
-	printf("NR init\n"); 
+//	printf("NR init\n"); 
     //printf("Inside reader\n");
     if(log_path != nullptr)
         strcpy(this->log_path, log_path);
@@ -153,7 +153,7 @@ NapatechReader::~NapatechReader()
 
 int NapatechReader::initModule()
 {
-    printf("INit mod\n");
+  //  printf("INit mod\n");
     ndpi_init_prefs init_prefs = ndpi_no_prefs;
 
     this->ndpi_struct = ndpi_init_detection_module(ndpi_no_prefs);
@@ -161,7 +161,7 @@ int NapatechReader::initModule()
 	printf("Prova\n");
         return -1;
     }
-printf("End mod\n");
+//printf("End mod\n");
     return 0;
 }
 
@@ -188,7 +188,7 @@ NtFlowStream_t NapatechReader::initConfig(int thread_number)
 
     ntplCall(hCfgStream, "Delete = All");
         
-printf("begin of config\n");
+//printf("begin of config\n");
     // Set new filters and flow tables settings
     ntplCall(hCfgStream, "KeyType[Name=kt4] = {sw_32_32,   sw_16_16}");
 	ntplCall(hCfgStream, "KeyType[Name=kt6] = {sw_128_128, sw_16_16}");
@@ -233,7 +233,7 @@ printf("begin of config\n");
     ntplCall(hCfgStream, "Assign[StreamId=Drop] = LearnFilterCheck(1,ipv4) and Key(kd4, KeyID=" STR(KEY_ID_IPV4) ", CounterSet=CSB, FieldAction=Swap)==" STR(KEY_SET_ID));
     ntplCall(hCfgStream, "Assign[StreamId=Drop] = LearnFilterCheck(1,ipv6) and Key(kd6, KeyID=" STR(KEY_ID_IPV6) ", CounterSet=CSB, FieldAction=Swap)==" STR(KEY_SET_ID));
 
-printf("Ennd of configuration\n");
+//printf("Ennd of configuration\n");
 
     // Initialize flow stream attributes and set adapter number attribute.
     NT_FlowOpenAttrInit(&(flowAttr));
@@ -263,9 +263,9 @@ printf("Ennd of configuration\n");
     if(handleErrorStatus(status, "NT_NetRxOpen() failed") != 0)
         return nullptr;
 
-    std::thread receiverThread2(taskReceiverUnh, "flowmatch_example_receiver_net_rx_unhandled", this, new NtDissector("nt_9_"));
+    std::thread receiverThread2(taskReceiverUnh, "flowmatch_example_receiver_net_rx_unhandled", this);
     receiverThread2.detach();
-printf("returning flow stream\n");
+//printf("returning flow stream\n");
     return flowStream;
 }
 
@@ -278,30 +278,30 @@ int NapatechReader::initInfos()
     struct timeval actual_time;
     gettimeofday(&actual_time, nullptr);
     this->last_idle_scan_time = (uint64_t) actual_time.tv_sec * TICK_RESOLUTION + actual_time.tv_usec / (1000000 / TICK_RESOLUTION);
-printf("Prova 0\n");
+//printf("Prova 0\n");
     this->total_active_flows = 0; /* First initialize active flow's infos */
     this->max_active_flows = MAX_FLOW_ROOTS_PER_THREAD;
     this->max_idle_scan_index = MAX_FLOW_ROOTS_PER_THREAD / 8;
-printf("Prova 0.1\n");
+//printf("Prova 0.1\n");
     this->ndpi_flows_active = (void **)ndpi_calloc(this->max_active_flows, sizeof(void *));
     if (this->ndpi_flows_active == nullptr) {
         return -1;
     }
-printf("Prova 1\n");
+//printf("Prova 1\n");
     this->total_idle_flows = 0; /* Then initialize idle flow's infos */
     this->max_idle_flows = MAX_IDLE_FLOWS_PER_THREAD;
     this->ndpi_flows_idle = (void **)ndpi_calloc(this->max_idle_flows, sizeof(void *));
     if (this->ndpi_flows_idle == nullptr) {
         return -1;
     }
-printf("Prova 2\n");
+//printf("Prova 2\n");
     NDPI_PROTOCOL_BITMASK protos; /* In the end initialize bitmask's infos */
     NDPI_BITMASK_SET_ALL(protos);
     ndpi_set_protocol_detection_bitmask2(this->ndpi_struct, &protos);
     ndpi_finalize_initalization(this->ndpi_struct);
 
     pkt_parser->initProtosCnt(ndpi_get_num_supported_protocols(this->ndpi_struct));
-printf("End info\n");
+//printf("End info\n");
     return 0;
 }
 
@@ -309,7 +309,7 @@ printf("End info\n");
 
 int NapatechReader::initFileOrDevice()
 {
-    printf("Init file or device\n");
+ //   printf("Init file or device\n");
 
     if(this->log_path != nullptr) {
 	    this->pkt_parser = new NtDissector(this->log_path, this->type);
@@ -317,7 +317,7 @@ int NapatechReader::initFileOrDevice()
         this->pkt_parser = new NtDissector(this->type);
     }
 
-	printf("Parser initilized\n");
+	printf("Parser initilized %d\n", this->pkt_parser->getPktsCaptured());
 
     if(this->initModule() != 0) {
         tracer->traceEvent(0, "Error initializing detection module\n");
@@ -325,14 +325,14 @@ int NapatechReader::initFileOrDevice()
         return -1;
     }
 
-	printf("end of module\n");
+//	printf("end of module\n");
 
     if(this->initInfos() != 0) {
         tracer->traceEvent(0, "Error initializing structure infos\n");
         delete(this);
         return -1;
     }
-	printf("End of init\n");	
+//	printf("End of init\n");	
     return 0;
 }
 
@@ -397,15 +397,18 @@ void taskReceiverAny(const char* streamName, NapatechReader *reader)
 {
     int status;
 
+    NtDissector *tmp = new NtDissector("nt_0");
+    reader->setParser(tmp);
     printf("Receiving packets\n");
 
-    while(this->error_or_eof == 0) {
+    while(reader->getErrorOfEof() == 0) {
 	    // Get package from rx stream.
-	    status = NT_NetRxGet(* reader->getMissStream(), reader->getMissBuffer()), 5000);
+	    status = NT_NetRxGet(* reader->getMissStream(), reader->getMissBuffer(), 5000);
 	    if(status == NT_STATUS_TIMEOUT || status == NT_STATUS_TRYAGAIN) {
+		    printf("sveglio\n");
 		    if(reader->getErrorOfEof() != 0)
 			    return;	
-		    printFlowStreamInfo(reader->getFlowStream());
+		  //  printFlowStreamInfo(reader->getFlowStream());
 		    continue;
 	    }
 	    if(status == NT_ERROR_NT_TERMINATING)
@@ -414,84 +417,86 @@ void taskReceiverAny(const char* streamName, NapatechReader *reader)
 	    if(handleErrorStatus(status, "Error while sniffing next packet") != 0)
 		    continue;
 
-	    pkt_parser->processPacket(reader, &(reader->getMissBuffer()), nullptr);
+	    //NtDissector *pkt_parser = (NtDissector *) reader->getParser();
+	    tmp->processPacket(reader, reader->getMissBuffer(), nullptr);
 
-	    if(reader->newFlowCheck() == true) {            
-            // Here a package has successfully been received, and the parameters for the
-            // next flow to be learned will be set up.
-	        NtFlow_t flow = NtFlow_t();
-	    
-	        NtDyn1Descr_t* pDyn1 = _NT_NET_GET_PKT_DESCR_PTR_DYN1(reader->getMissBuffer());
+	    if(reader->getNewFlow() == true) {            
+		    // Here a package has successfully been received, and the parameters for the
+		    // next flow to be learned will be set up.
+		    NtFlow_t flow = NtFlow_t();
 
-            flow.id              = reader->getIdFlow();// User defined ID
-            flow.color           = 0;                  // Flow color
-            flow.overwrite       = 0;                  // Overwrite filter action (1: enable, 0: disable)
-            flow.streamId        = 0;                  // Marks the stream id if overwrite filter action is enabled
-            flow.ipProtocolField = pDyn1->ipProtocol;  // IP protocol number of next header (6: TCP)
-            flow.keySetId        = KEY_SET_ID;         // Key Set ID as used in the NTPL filter
-            flow.op              = 1;                  // Flow programming operation (1: learn, 0: un-learn)
-            flow.gfi             = 1;                  // Generate flow info record (1: generate, 0: do not generate)
-            flow.tau             = 0;                  // TCP auto unlearn (1: auto unlearn enable, 0: auto unlearn disable)
+		    NtDyn1Descr_t* pDyn1 = _NT_NET_GET_PKT_DESCR_PTR_DYN1(*reader->getMissBuffer());
 
-            // Because colormask was used in the filters, it is very easy to check for
-            // the IP type.
-            // The filters also set up an alternative offset0, such that it points
-            // directly to the IP source address.
-            uint8_t* packet = reinterpret_cast<uint8_t*>(pDyn1) + pDyn1->descrLength;
+		    flow.id              = reader->getIdFlow();// User defined ID
+		    flow.color           = 0;                  // Flow color
+		    flow.overwrite       = 0;                  // Overwrite filter action (1: enable, 0: disable)
+		    flow.streamId        = 0;                  // Marks the stream id if overwrite filter action is enabled
+		    flow.ipProtocolField = pDyn1->ipProtocol;  // IP protocol number of next header (6: TCP)
+		    flow.keySetId        = KEY_SET_ID;         // Key Set ID as used in the NTPL filter
+		    flow.op              = 1;                  // Flow programming operation (1: learn, 0: un-learn)
+		    flow.gfi             = 1;                  // Generate flow info record (1: generate, 0: do not generate)
+		    flow.tau             = 0;                  // TCP auto unlearn (1: auto unlearn enable, 0: auto unlearn disable)
 
-            switch (pDyn1->color >> 2) {
-                case 0:  // IPv4
-                        std::memcpy(flow.keyData,      packet + pDyn1->offset0,     4);  // IPv4 src
-                        std::memcpy(flow.keyData + 4,  packet + pDyn1->offset0 + 4, 4);  // IPv4 dst
-                        std::memcpy(flow.keyData + 8,  packet + pDyn1->offset1,     2);  // TCP port src
-                        std::memcpy(flow.keyData + 10, packet + pDyn1->offset1 + 2, 2);  // TCP port dst
-                        flow.keyId = KEY_ID_IPV4;  // Key ID as used in the NTPL Key Test
-                        break;
-                case 1:  // IPv6
-                        std::memcpy(flow.keyData,      packet + pDyn1->offset0,      16);  // IPv6 src
-                        std::memcpy(flow.keyData + 16, packet + pDyn1->offset0 + 16, 16);  // IPv6 dst
-                        std::memcpy(flow.keyData + 32, packet + pDyn1->offset1,      2);   // TCP port src
-                        std::memcpy(flow.keyData + 34, packet + pDyn1->offset1 + 2,  2);   // TCP port dst
-                        flow.keyId = KEY_ID_IPV6;  // Key ID as used in the NTPL Key Test
-                        break;
-                case 2:  // Tunneled IPv4
-                        std::memcpy(flow.keyData,      packet + pDyn1->offset0,     4);  // IPv4 src
-                        std::memcpy(flow.keyData + 4,  packet + pDyn1->offset0 + 4, 4);  // IPv4 dst
-                        std::memcpy(flow.keyData + 8,  packet + pDyn1->offset1,     2);  // TCP port src
-                        std::memcpy(flow.keyData + 10, packet + pDyn1->offset1 + 2, 2);  // TCP port dst
-                        flow.keyId = KEY_ID_IPV4;  // Key ID as used in the NTPL Key Test
-                        break;
-                case 3:  // Tunneled IPv6
-                        std::memcpy(flow.keyData,      packet + pDyn1->offset0,      16);  // IPv6 src
-                        std::memcpy(flow.keyData + 16, packet + pDyn1->offset0 + 16, 16);  // IPv6 dst
-                        std::memcpy(flow.keyData + 32, packet + pDyn1->offset1,      2);   // TCP port src
-                        std::memcpy(flow.keyData + 34, packet + pDyn1->offset1 + 2,  2);   // TCP port dst
-                        flow.keyId = KEY_ID_IPV6;  // Key ID as used in the NTPL Key Test
-                        break;
-            }
-            // Program the flow into the adapter.
-            status = NT_FlowWrite(reader->getFlowStream(), &flow, -1);
-            handleErrorStatus(status, "NT_FlowWrite() failed");
-	        reader->setNewFlow(false);            
-        }
-	
-        status = NT_NetRxRelease(reader->getMissStream(), reader->getMissBuffer());
-        if(handleErrorStatus(status, "Error while releasing packet") != 0)
-            continue;
-     }     
+		    // Because colormask was used in the filters, it is very easy to check for
+		    // the IP type.
+		    // The filters also set up an alternative offset0, such that it points
+		    // directly to the IP source address.
+		    uint8_t* packet = reinterpret_cast<uint8_t*>(pDyn1) + pDyn1->descrLength;
+
+		    switch (pDyn1->color >> 2) {
+			    case 0:  // IPv4
+				    std::memcpy(flow.keyData,      packet + pDyn1->offset0,     4);  // IPv4 src
+				    std::memcpy(flow.keyData + 4,  packet + pDyn1->offset0 + 4, 4);  // IPv4 dst
+				    std::memcpy(flow.keyData + 8,  packet + pDyn1->offset1,     2);  // TCP port src
+				    std::memcpy(flow.keyData + 10, packet + pDyn1->offset1 + 2, 2);  // TCP port dst
+				    flow.keyId = KEY_ID_IPV4;  // Key ID as used in the NTPL Key Test
+				    break;
+			    case 1:  // IPv6
+				    std::memcpy(flow.keyData,      packet + pDyn1->offset0,      16);  // IPv6 src
+				    std::memcpy(flow.keyData + 16, packet + pDyn1->offset0 + 16, 16);  // IPv6 dst
+				    std::memcpy(flow.keyData + 32, packet + pDyn1->offset1,      2);   // TCP port src
+				    std::memcpy(flow.keyData + 34, packet + pDyn1->offset1 + 2,  2);   // TCP port dst
+				    flow.keyId = KEY_ID_IPV6;  // Key ID as used in the NTPL Key Test
+				    break;
+			    case 2:  // Tunneled IPv4
+				    std::memcpy(flow.keyData,      packet + pDyn1->offset0,     4);  // IPv4 src
+				    std::memcpy(flow.keyData + 4,  packet + pDyn1->offset0 + 4, 4);  // IPv4 dst
+				    std::memcpy(flow.keyData + 8,  packet + pDyn1->offset1,     2);  // TCP port src
+				    std::memcpy(flow.keyData + 10, packet + pDyn1->offset1 + 2, 2);  // TCP port dst
+				    flow.keyId = KEY_ID_IPV4;  // Key ID as used in the NTPL Key Test
+				    break;
+			    case 3:  // Tunneled IPv6
+				    std::memcpy(flow.keyData,      packet + pDyn1->offset0,      16);  // IPv6 src
+				    std::memcpy(flow.keyData + 16, packet + pDyn1->offset0 + 16, 16);  // IPv6 dst
+				    std::memcpy(flow.keyData + 32, packet + pDyn1->offset1,      2);   // TCP port src
+				    std::memcpy(flow.keyData + 34, packet + pDyn1->offset1 + 2,  2);   // TCP port dst
+				    flow.keyId = KEY_ID_IPV6;  // Key ID as used in the NTPL Key Test
+				    break;
+		    }
+		    // Program the flow into the adapter.
+		    status = NT_FlowWrite(reader->getFlowStream(), &flow, -1);
+		    handleErrorStatus(status, "NT_FlowWrite() failed");
+		    reader->setNewFlow(false);            
+	    }
+
+	    status = NT_NetRxRelease(*reader->getMissStream(), *reader->getMissBuffer());
+	    if(handleErrorStatus(status, "Error while releasing packet") != 0)
+		    continue;
+    }     
 }
 
 /* ********************************** */
 
 int NapatechReader::startRead()
 {
-
-    int status = NT_NetRxOpen(&(this->hNetRxMiss), "Miss packets stream", NT_NET_INTERFACE_PACKET, this->streamId, -1);
-    if(handleErrorStatus(status, "NT_NetRxOpen() failed") != 0)
-        return -1;
-
-    std::thread receiverThread2(this->taskReceiverAny, "flowmatch_example_receiver_net_rx_unhandled");
-
+	printf("Stream in apertura\n");
+	int status = NT_NetRxOpen(&(this->hNetRxMiss), "Miss packets stream", NT_NET_INTERFACE_PACKET, this->streamId, -1);
+	if(handleErrorStatus(status, "NT_NetRxOpen() failed") != 0)
+		return -1;
+        printf("Stream aperto\n");
+	//printf("Parser initilized %d\n", this->pkt_parser->getPktsCaptured());
+	std::thread receiverThread2(taskReceiverAny, "flowmatch_example_receiver_net_rx_unhandled", this);
+	receiverThread2.detach();
     return 0;
 }
 
@@ -520,7 +525,7 @@ int NapatechReader::checkEnd()
 
 void NapatechReader::printStats()
 {
-    pkt_parser->printStats((Reader *) this);
+    this->pkt_parser->printStats((NapatechReader *) this);
 }
 
 /* ********************************** */
