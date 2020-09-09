@@ -1,7 +1,0 @@
-{"src_ip":"192.168.2.126","dest_ip":"255.255.255.255","src_port":17500,"dst_port":17500,"proto":"UDP","ndpi": {"proto":"Dropbox","category":"Cloud"}}
-{"src_ip":"192.168.160.11","dest_ip":"192.168.160.255","src_port":17500,"dst_port":17500,"proto":"UDP","ndpi": {"proto":"Dropbox","category":"Cloud"}}
-{"src_ip":"192.168.2.126","dest_ip":"192.168.2.255","src_port":17500,"dst_port":17500,"proto":"UDP","ndpi": {"proto":"Dropbox","category":"Cloud"}}
-{"src_ip":"0.0.0.0","dest_ip":"255.255.255.255","src_port":68,"dst_port":67,"proto":"UDP","ndpi": {"proto":"DHCP","category":"Network"},"dhcp": {"fingerprint":"1,3,6,12,15,28,42,121"}}
-{"src_ip":"192.168.2.222","dest_ip":"192.168.2.225","src_port":50392,"dst_port":6343,"proto":"UDP","ndpi": {"proto":"sFlow","category":"Network"}}
-{"src_ip":"192.168.2.225","dest_ip":"192.168.2.222","src_port":0,"dst_port":0,"proto":"ICMP","ndpi": {"proto":"ICMP","category":"Network"}}
-{"src_ip":"192.168.2.136","dest_ip":"239.255.255.250","src_port":3246,"dst_port":1900,"proto":"UDP","ndpi": {"proto":"SSDP","category":"System"}}
