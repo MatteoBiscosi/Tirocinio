@@ -65,6 +65,7 @@ void allarmManager(PacketDissector * pkt_dissector)
 
 PacketDissector::PacketDissector(const char *type)
 {
+	this->log_path = nullptr;
 	this->if_type = type;
 	this->captured_stats.protos_cnt = nullptr;
 	ndpi_init_serializer(&this->serializer, this->fmt = ndpi_serialization_format_json);
@@ -76,6 +77,7 @@ PacketDissector::PacketDissector(const char *type)
 
 PacketDissector::PacketDissector(const char *type, uint num)
 {
+	this->log_path = nullptr;
 	this->if_type = type;
 	this->captured_stats.protos_cnt = new uint16_t[num + 1] ();
 	ndpi_init_serializer(&this->serializer, this->fmt = ndpi_serialization_format_json);
@@ -110,7 +112,7 @@ PacketDissector::~PacketDissector()
 
 void PacketDissector::initProtosCnt(uint num)
 {
-	this->captured_stats.protos_cnt = new uint16_t[num + 1] ();
+	//this->captured_stats.protos_cnt = new uint16_t[num + 1] ();
 }
 
 /* ********************************** */

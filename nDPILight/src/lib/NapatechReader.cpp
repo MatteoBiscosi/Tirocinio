@@ -123,6 +123,25 @@ void taskReceiverUnh(const char* streamName, NapatechReader *reader, NtDissector
 
 /* ********************************** */
 
+NapatechReader::NapatechReader(char *log_path, const char *type, NtFlowStream_t flowStream, int streamId)
+{
+	printf("NR init\n"); 
+    //printf("Inside reader\n");
+    if(log_path != nullptr)
+        strcpy(this->log_path, log_path);
+    else
+	this->log_path = nullptr;
+    this->type = type;
+    this->ndpi_flows_active = nullptr;
+    this->ndpi_flows_idle = nullptr;
+    this->error_or_eof = 0;
+    this->ndpi_struct = nullptr;
+    this->flowStream = flowStream; 
+    this->streamId = streamId;  
+}
+
+/* ********************************** */
+
 NapatechReader::~NapatechReader()
 {
     // Closes rx stream.
@@ -134,12 +153,15 @@ NapatechReader::~NapatechReader()
 
 int NapatechReader::initModule()
 {
+    printf("INit mod\n");
     ndpi_init_prefs init_prefs = ndpi_no_prefs;
-    this->ndpi_struct = ndpi_init_detection_module(init_prefs);
+
+    this->ndpi_struct = ndpi_init_detection_module(ndpi_no_prefs);
     if (this->ndpi_struct == nullptr) {
+	printf("Prova\n");
         return -1;
     }
-
+printf("End mod\n");
     return 0;
 }
 
@@ -166,7 +188,7 @@ NtFlowStream_t NapatechReader::initConfig(int thread_number)
 
     ntplCall(hCfgStream, "Delete = All");
         
-
+printf("begin of config\n");
     // Set new filters and flow tables settings
     ntplCall(hCfgStream, "KeyType[Name=kt4] = {sw_32_32,   sw_16_16}");
 	ntplCall(hCfgStream, "KeyType[Name=kt6] = {sw_128_128, sw_16_16}");
@@ -211,6 +233,8 @@ NtFlowStream_t NapatechReader::initConfig(int thread_number)
     ntplCall(hCfgStream, "Assign[StreamId=Drop] = LearnFilterCheck(1,ipv4) and Key(kd4, KeyID=" STR(KEY_ID_IPV4) ", CounterSet=CSB, FieldAction=Swap)==" STR(KEY_SET_ID));
     ntplCall(hCfgStream, "Assign[StreamId=Drop] = LearnFilterCheck(1,ipv6) and Key(kd6, KeyID=" STR(KEY_ID_IPV6) ", CounterSet=CSB, FieldAction=Swap)==" STR(KEY_SET_ID));
 
+printf("Ennd of configuration\n");
+
     // Initialize flow stream attributes and set adapter number attribute.
     NT_FlowOpenAttrInit(&(flowAttr));
     NT_FlowOpenAttrSetAdapterNo(&(flowAttr), 0);
@@ -241,7 +265,7 @@ NtFlowStream_t NapatechReader::initConfig(int thread_number)
 
     std::thread receiverThread2(taskReceiverUnh, "flowmatch_example_receiver_net_rx_unhandled", this, new NtDissector("nt_9_"));
     receiverThread2.detach();
-
+printf("returning flow stream\n");
     return flowStream;
 }
 
@@ -249,33 +273,35 @@ NtFlowStream_t NapatechReader::initConfig(int thread_number)
 
 int NapatechReader::initInfos()
 {
+    printf("Inside info\n");
     /* Actual time */
     struct timeval actual_time;
     gettimeofday(&actual_time, nullptr);
     this->last_idle_scan_time = (uint64_t) actual_time.tv_sec * TICK_RESOLUTION + actual_time.tv_usec / (1000000 / TICK_RESOLUTION);
-
+printf("Prova 0\n");
     this->total_active_flows = 0; /* First initialize active flow's infos */
     this->max_active_flows = MAX_FLOW_ROOTS_PER_THREAD;
     this->max_idle_scan_index = MAX_FLOW_ROOTS_PER_THREAD / 8;
+printf("Prova 0.1\n");
     this->ndpi_flows_active = (void **)ndpi_calloc(this->max_active_flows, sizeof(void *));
     if (this->ndpi_flows_active == nullptr) {
         return -1;
     }
-
+printf("Prova 1\n");
     this->total_idle_flows = 0; /* Then initialize idle flow's infos */
     this->max_idle_flows = MAX_IDLE_FLOWS_PER_THREAD;
     this->ndpi_flows_idle = (void **)ndpi_calloc(this->max_idle_flows, sizeof(void *));
     if (this->ndpi_flows_idle == nullptr) {
         return -1;
     }
-
+printf("Prova 2\n");
     NDPI_PROTOCOL_BITMASK protos; /* In the end initialize bitmask's infos */
     NDPI_BITMASK_SET_ALL(protos);
     ndpi_set_protocol_detection_bitmask2(this->ndpi_struct, &protos);
     ndpi_finalize_initalization(this->ndpi_struct);
 
     pkt_parser->initProtosCnt(ndpi_get_num_supported_protocols(this->ndpi_struct));
-
+printf("End info\n");
     return 0;
 }
 
@@ -283,11 +309,15 @@ int NapatechReader::initInfos()
 
 int NapatechReader::initFileOrDevice()
 {
+    printf("Init file or device\n");
+
     if(this->log_path != nullptr) {
 	    this->pkt_parser = new NtDissector(this->log_path, this->type);
     } else {
         this->pkt_parser = new NtDissector(this->type);
     }
+
+	printf("Parser initilized\n");
 
     if(this->initModule() != 0) {
         tracer->traceEvent(0, "Error initializing detection module\n");
@@ -295,12 +325,14 @@ int NapatechReader::initFileOrDevice()
         return -1;
     }
 
+	printf("end of module\n");
+
     if(this->initInfos() != 0) {
         tracer->traceEvent(0, "Error initializing structure infos\n");
         delete(this);
         return -1;
     }
-	
+	printf("End of init\n");	
     return 0;
 }
 
@@ -364,6 +396,8 @@ void NapatechReader::newPacket(void * header)
 void NapatechReader::taskReceiverAny(const char* streamName)
 {
     int status;
+
+    printf("Receiving packets\n");
 
     while(this->error_or_eof == 0) {
 	    // Get package from rx stream.
@@ -456,7 +490,7 @@ int NapatechReader::startRead()
     if(handleErrorStatus(status, "NT_NetRxOpen() failed") != 0)
         return -1;
 
-    this->taskReceiverAny("flowmatch_example_receiver_net_rx_miss");
+    std::thread receiverThread2(this->taskReceiverAny, "flowmatch_example_receiver_net_rx_unhandled");
 
     return 0;
 }

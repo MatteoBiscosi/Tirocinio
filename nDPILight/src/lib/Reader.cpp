@@ -141,6 +141,7 @@ Reader::Reader()
 
 Reader::Reader(char *log_path, const char *type)
 {
+    printf("Inside reader\n");
     if(log_path != nullptr)
     	strcpy(this->log_path, log_path);
     this->type = type;

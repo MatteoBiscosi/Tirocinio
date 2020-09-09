@@ -34,8 +34,7 @@ class NapatechReader : public Reader {
 	    unsigned long long int init_pkts;
         unsigned long long int init_bytes;
     public:
-    NapatechReader(char *log_path, const char *type, NtFlowStream_t flowStream, int streamId) : Reader(log_path, type) 
-                                                            { this->flowStream = flowStream; this->streamId = streamId; };
+        NapatechReader(char *log_path, const char *type, NtFlowStream_t flowStream, int streamId);// : Reader(log_path, type);
 	NapatechReader() {};
 	NapatechReader(int thread_number);
 	~NapatechReader();
