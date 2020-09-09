@@ -71,6 +71,27 @@ PacketDissector::PacketDissector(const char *type)
 	ndpi_init_serializer(&this->serializer, this->fmt = ndpi_serialization_format_json);
 	std::thread allarmThread(allarmManager, this);
 	allarmThread.detach();
+
+	this->unhandled_packets {0};
+	this->packets_captured {0};
+	this->previous_packets {0};
+	this->discarded_bytes {0};
+	this->ip_pkts {0};
+	this->ip_bytes {0};
+	this->tcp_pkts {0};
+	this->udp_pkts {0};
+	
+	this->total_flows_captured {0};
+
+	this->nt_time_start {0}, nt_time_end {0}; 
+
+	this->packets_processed {0};
+	this->total_l4_data_len {0};
+	this->total_wire_bytes {0};
+
+	this->detected_flow_protocols {0};
+	this->guessed_flow_protocols {0};
+	this->unclassified_flow_protocols {0};
 }
 
 /* ********************************** */

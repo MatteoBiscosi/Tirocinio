@@ -287,7 +287,7 @@ static int setup_napatech()
 
     for(int i = 0; i < thread_number; i++) {
         string type = "nt";
-	type = type + "_";
+	    type = type + "_";
         type = type + to_string(i);
         NapatechReader *tmp = new NapatechReader(log_path, type.c_str(), flowStream, i);
         reader_thread.initReader(tmp, i, thread_number);

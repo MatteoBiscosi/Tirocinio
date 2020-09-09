@@ -104,8 +104,12 @@ void taskReceiverUnh(const char* streamName, NapatechReader *reader)
 
     while(reader->getErrorOfEof() == 0) { 
 	status = NT_NetRxGetNextPacket(* reader->getUnhStream(), reader->getUnhBuffer(), 5000);      
-        if(status == NT_STATUS_TIMEOUT || status == NT_STATUS_TRYAGAIN) 
+        if(status == NT_STATUS_TIMEOUT || status == NT_STATUS_TRYAGAIN) {
+            if(reader->getErrorOfEof() != 0)
+                    return;	
+            printFlowStreamInfo(reader->getFlowStream());
             continue;
+        }
 	
 
         if(status == NT_ERROR_NT_TERMINATING)
@@ -130,7 +134,7 @@ NapatechReader::NapatechReader(char *log_path, const char *type, NtFlowStream_t 
     if(log_path != nullptr)
         strcpy(this->log_path, log_path);
     else
-	this->log_path = nullptr;
+	    this->log_path = nullptr;
     this->type = type;
     this->ndpi_flows_active = nullptr;
     this->ndpi_flows_idle = nullptr;
@@ -146,7 +150,7 @@ NapatechReader::~NapatechReader()
 {
     // Closes rx stream.
     NT_NetRxClose(hNetRxMiss);
-    NT_NetRxClose(hNetRxUnh); 
+    //NT_NetRxClose(hNetRxUnh); 
 }  
 
 /* ********************************** */
@@ -309,16 +313,6 @@ int NapatechReader::initInfos()
 
 int NapatechReader::initFileOrDevice()
 {
- //   printf("Init file or device\n");
-
-    if(this->log_path != nullptr) {
-	    this->pkt_parser = new NtDissector(this->log_path, this->type);
-    } else {
-        this->pkt_parser = new NtDissector(this->type);
-    }
-
-	printf("Parser initilized %d\n", this->pkt_parser->getPktsCaptured());
-
     if(this->initModule() != 0) {
         tracer->traceEvent(0, "Error initializing detection module\n");
         delete(this);
@@ -404,13 +398,9 @@ void taskReceiverAny(const char* streamName, NapatechReader *reader)
     while(reader->getErrorOfEof() == 0) {
 	    // Get package from rx stream.
 	    status = NT_NetRxGet(* reader->getMissStream(), reader->getMissBuffer(), 5000);
-	    if(status == NT_STATUS_TIMEOUT || status == NT_STATUS_TRYAGAIN) {
-		    printf("sveglio\n");
-		    if(reader->getErrorOfEof() != 0)
-			    return;	
-		  //  printFlowStreamInfo(reader->getFlowStream());
+	    if(status == NT_STATUS_TIMEOUT || status == NT_STATUS_TRYAGAIN) 
 		    continue;
-	    }
+	    
 	    if(status == NT_ERROR_NT_TERMINATING)
 		    break;
 

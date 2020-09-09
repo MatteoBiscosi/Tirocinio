@@ -142,6 +142,10 @@ class Reader {
         void setIdFlow(unsigned long long int idFlow) { this->idFlow = idFlow; };
 
         uint64_t getIdFlow() { return this->idFlow; };
+
+        char * getPath() { return this->log_path; };
+
+        const char * getType() { return this->type; };
 };
 
 
