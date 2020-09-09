@@ -174,19 +174,33 @@ NtFlowStream_t NapatechReader::initConfig(int thread_number)
     ntplCall(hCfgStream, "keydef[Name=kd6; KeyType=kt6; IpProtocolField=Outer] = (Layer3Header[8]/128/128, Layer4Header[0]/16/16)");
    
    //std::string stream = std::string(thread_number - 1); 
-	const char * prova = std::to_string(thread_number - 1).c_str();
+	const char * thread = std::to_string(thread_number - 1).c_str();
 	// Shorthand for the checks used in these filters.
     ntplCall(hCfgStream, "DefineMacro(\"LearnFilterCheck\", \"Port==$1 and Layer2Protocol==EtherII and Layer3Protocol==$2\")");
 	//
 //	printf("(0..%s)", prova);
 //	printf("(0.." STR(*prova) "");
-	std::string prova2 = std::string("Assign[StreamId=(0..");
-	prova2 = prova2 + prova;
-	prova2 = prova2 + "); Descriptor=DYN1, ColorBits=FlowID, Offset0=Layer3Header[12]; ColorMask=" STR(COLOR_IPV4) "] = LearnFilterCheck(0,ipv4) and Key(kd4, KeyID=" STR(KEY_ID_IPV4) ")==MISS";
-std::cout << prova2;
-    ntplCall(hCfgStream, "Assign[StreamId=(0.." STR(thread_number - 1) "); Descriptor=DYN1, ColorBits=FlowID, Offset0=Layer3Header[8];  ColorMask=" STR(COLOR_IPV6) "] = LearnFilterCheck(0,ipv6) and Key(kd6, KeyID=" STR(KEY_ID_IPV6) ")==MISS");
-    ntplCall(hCfgStream, "Assign[StreamId=(0.." STR(thread_number - 1) "); Descriptor=DYN1, ColorBits=FlowID, Offset0=Layer3Header[12]; ColorMask=" STR(COLOR_IPV4) "] = LearnFilterCheck(1,ipv4) and Key(kd4, KeyID=" STR(KEY_ID_IPV4) ", FieldAction=Swap)==MISS");
-    ntplCall(hCfgStream, "Assign[StreamId=(0.." STR(thread_number - 1) "); Descriptor=DYN1, ColorBits=FlowID, Offset0=Layer3Header[8];  ColorMask=" STR(COLOR_IPV6) "] = LearnFilterCheck(1,ipv6) and Key(kd6, KeyID=" STR(KEY_ID_IPV6) ", FieldAction=Swap)==MISS");
+    ntplCall(hCfgStream, "HashMode=Hash2TupleSorted");
+
+	std::string filter1 = std::string("Assign[StreamId=(0..");
+	filter1 = filter1 + thread;
+	filter1 = filter1 + "); Descriptor=DYN1, ColorBits=FlowID, Offset0=Layer3Header[12]; ColorMask=" STR(COLOR_IPV4) "] = LearnFilterCheck(0,ipv4) and Key(kd4, KeyID=" STR(KEY_ID_IPV4) ")==MISS";
+    ntplCall(hCfgStream, filter1.c_str());
+
+    std::string filter2 = std::string("Assign[StreamId=(0..");
+	filter2 = filter2 + thread;
+	filter2 = filter2 + "); Descriptor=DYN1, ColorBits=FlowID, Offset0=Layer3Header[8];  ColorMask=" STR(COLOR_IPV6) "] = LearnFilterCheck(0,ipv6) and Key(kd6, KeyID=" STR(KEY_ID_IPV6) ")==MISS";
+    ntplCall(hCfgStream, filter2.c_str());
+
+    std::string filter3 = std::string("Assign[StreamId=(0..");
+	filter3 = filter3 + thread;
+	filter3 = filter3 + "); Descriptor=DYN1, ColorBits=FlowID, Offset0=Layer3Header[12]; ColorMask=" STR(COLOR_IPV4) "] = LearnFilterCheck(1,ipv4) and Key(kd4, KeyID=" STR(KEY_ID_IPV4) ", FieldAction=Swap)==MISS";
+    ntplCall(hCfgStream, filter3.c_str());
+
+    std::string filter4 = std::string("Assign[StreamId=(0..");
+	filter4 = filter4 + thread;
+	filter4 = filter4 + "); Descriptor=DYN1, ColorBits=FlowID, Offset0=Layer3Header[8];  ColorMask=" STR(COLOR_IPV6) "] = LearnFilterCheck(1,ipv6) and Key(kd6, KeyID=" STR(KEY_ID_IPV6) ", FieldAction=Swap)==MISS";
+    ntplCall(hCfgStream, filter4.c_str());
 
     ntplCall(hCfgStream, "Assign[StreamId=" STR(STREAM_ID_UNHA) "] = LearnFilterCheck(0,ipv4) and Key(kd4, KeyID=" STR(KEY_ID_IPV4) ")==UNHANDLED");
     ntplCall(hCfgStream, "Assign[StreamId=" STR(STREAM_ID_UNHA) "] = LearnFilterCheck(0,ipv6) and Key(kd6, KeyID=" STR(KEY_ID_IPV6) ")==UNHANDLED");
