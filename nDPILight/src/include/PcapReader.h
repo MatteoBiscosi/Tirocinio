@@ -5,7 +5,6 @@
 
 
 
-extern PacketDissector * pkt_parser;
 extern Trace *tracer;
 
 

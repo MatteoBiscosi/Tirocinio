@@ -10,7 +10,7 @@ Trace *tracer;
 ReaderThread reader_thread;
 int terminate_thread {0};
 int generate_logs {0};
-PacketDissector * pkt_parser;
+uint8_t thread_number {1};
 uint32_t mask;
 char *log_path;
 
@@ -124,6 +124,8 @@ static char * check_args(int &argc, char ** argv)
              << "  -i <file.pcap|device>       | Specify a pcap file/playlist to read packets from or a\n"
              << "                              | device for live capture (comma-separated list)\n"
              << "  -t <tracelevel>             | Specify a trace level between 1 ad 6 (standard trace level is 2)\n"
+             << "  -n <thread_number>          | If this option is supported, specify the number of threads to be used to\n"
+             << "                              | capture and process packets; the number must be betwenn 1 and 8.\n"
              << "  -r none|risk1|risk2[,...]   | Specify which situation is a risk (default is, each situation is a risk).\n"
              << "                              | Possible risks are: URL_POSSIBLE_XSS | URL_POSSIBLE_SQL_INJECTION | URL_POSSIBLE_RCE_INJECTION |\n"
              << "                              |                     BINARY_APPLICATION_TRANSFER | KNOWN_PROTOCOL_ON_NON_STANDARD_PORT |\n"
@@ -138,7 +140,7 @@ static char * check_args(int &argc, char ** argv)
         return nullptr;
     }
 
-    while((opt = getopt(argc, argv, "p:i:t:r:v")) != -1) {
+    while((opt = getopt(argc, argv, "n:p:i:t:r:v")) != -1) {
         switch (opt) {
             case 't':
                 tracelvl = atoi(optarg);
@@ -164,9 +166,18 @@ static char * check_args(int &argc, char ** argv)
                 dst = optarg;
                 break;
 
-	    case 'p':
-		log_path = optarg;
-		break;
+            case 'p':
+                log_path = optarg;
+                break;
+
+            case 'n':
+                thread_number = atoi(optarg);
+                if(thread_number < 1 || thread_number > 8) {
+                    tracer->traceEvent(0, "invalid thread number, please check -h for more infos\n");
+                    return nullptr;
+                }
+
+                break;
 
             case 'v':
                 generate_logs = 1;
@@ -217,12 +228,6 @@ static int setup_pcap(char const * const file_or_device)
 {
     char interface[50];
     PcapReader *tmp;
-    if(starts_with(file_or_device, "pcap:")) {
-	strcpy(interface, file_or_device + 5); 
-    	tmp = new PcapReader(interface);
-    } else 
-	tmp = new PcapReader(file_or_device);
-    reader_thread.initReader(tmp);
     string type = "pcap";
  
     if(log_path == nullptr) {
@@ -230,7 +235,6 @@ static int setup_pcap(char const * const file_or_device)
             tracer->traceEvent(0, "Couldn't find necessary directories, please do `make clean` and then do `make`\n");
             return -1;
         }
-	pkt_parser = new PcapDissector(type.c_str());
 	tracer->set_log_file("logs/pcap_log");	
     }
     else {
@@ -238,10 +242,16 @@ static int setup_pcap(char const * const file_or_device)
             tracer->traceEvent(0, "Couldn't find the directory inserted with -p option, please check the path\n");
             return -1;
         }
-	pkt_parser = new PcapDissector(log_path, type.c_str());
 	strcat(log_path, "pcap_log");
 	tracer->set_log_file(log_path);
     }
+
+    if(starts_with(file_or_device, "pcap:")) {
+	strcpy(interface, file_or_device + 5); 
+    	tmp = new PcapReader(interface, log_path, type.c_str());
+    } else 
+	tmp = new PcapReader(file_or_device, log_path, type.c_str());
+    reader_thread.initReader(tmp);
 
     if(reader_thread.init() == -1)
         return -1;
@@ -254,8 +264,7 @@ static int setup_pcap(char const * const file_or_device)
 static int setup_napatech()
 /*  Setup the reader_thread */
 {
-    NapatechReader *tmp = new NapatechReader();
-    reader_thread.initReader(tmp);
+    NtFlowStream_t flowStream;
     string type = "nt";
 
     if(log_path == nullptr) {
@@ -274,12 +283,23 @@ static int setup_napatech()
         tracer->set_log_file(log_path);
     }
 
-    NapatechReader *tmp = new NapatechReader(log_path, type.c_str());
-    reader_thread.initReader(tmp);
-    string type = "nt";
 
-    if(reader_thread.init() == -1)
-        return -1;
+    for(int i = 0; i < thread_number; i++) {
+        type = type + "_";
+        type = type + to_string(i);
+        type = type + "_";
+        NapatechReader *tmp = new NapatechReader(log_path, type.c_str(), flowStream);
+        reader_thread.initReader(tmp, i, thread_number);
+
+        if(i == 0)
+            flowStream = tmp->initConfig(thread_number);
+
+        if(tmp->initFileOrDevice() == -1)
+            return -1;
+    }
+
+    /* Analysis starts */
+    tracer->traceEvent(2, "\tAnalysis started\r\n\r\n");
 
     return 0;
 }
@@ -439,7 +459,7 @@ int main(int argc, char * argv[])
     sleep(2);
     /*  have to find a better way of doing this job */
     while (terminate_thread == 0 && check_error_or_eof() == 0) {
-            pkt_parser->printBriefInfos(reader_thread.getReader());
+            //pkt_parser->printBriefInfos(reader_thread.getReader());
 	    sleep(1);
     }
 

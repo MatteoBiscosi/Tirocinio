@@ -6,6 +6,8 @@
 
 class ReaderThread {
     private:
+        int thread_number;
+        int type;
         Reader* rdr;
         pthread_t thread_id;
 
@@ -20,6 +22,16 @@ class ReaderThread {
          * 
          */
         void initReader(Reader* tmpRdr);
+
+        /**
+         * Function used to set this->rdr to tmpRdr
+         * 
+         * @par    tmpRdr = pointer to a Reader
+         * @par    i      = number of Reader to setup 
+         * @par    thread_number = number of readers
+         * 
+         */
+        void initReader(Reader* tmpRdr, int i, int thread_number);
 
         /**
          * Function used to start the initialization,

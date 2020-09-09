@@ -12,9 +12,12 @@ extern Trace * tracer;
 
 class NapatechReader : public Reader {
     private:
+        uint8_t streamId;
         uint8_t adapterNo;
-	PacketDissector *pkt_parser;
         NtFlowAttr_t flowAttr;
+
+        NtNetStreamRx_t hNetRxMiss;
+        NtNetBuf_t hNetBufferMiss;
 
         NtNetStreamRx_t hNetRxUnh;
         NtNetBuf_t hNetBufferUnh;
@@ -29,10 +32,13 @@ class NapatechReader : public Reader {
 	    unsigned long long int init_pkts;
         unsigned long long int init_bytes;
     public:
+    NapatechReader(char *log_path, const char *type, NtFlowStream_t flowStream, int streamId) : Reader(log_path, type) 
+                                                            { this->flowStream = flowStream; this->streamId = streamId; };
 	NapatechReader();
 	NapatechReader(int thread_number);
 	~NapatechReader();
 
+        NtFlowStream_t initConfig(int stream_number);
        
         int startRead() override;
 
@@ -55,11 +61,11 @@ class NapatechReader : public Reader {
         
         NtNetBuf_t * getUnhBuffer() { return &hNetBufferUnh; };
 
-	NtStatStream_t getStatStream() { return this->hStatStream; };
+	    NtStatStream_t getStatStream() { return this->hStatStream; };
 
         unsigned long long int getInitPkts() { return this->init_pkts; };
 
-	unsigned long long int getInitBytes() { return this->init_bytes; };
+	    unsigned long long int getInitBytes() { return this->init_bytes; };
     private:
 
         /**

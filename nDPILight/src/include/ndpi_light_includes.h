@@ -64,8 +64,8 @@
 #define ETH_P_ARP  0x0806
 #endif
 
-#define STREAM_ID_MISS  1
-#define STREAM_ID_UNHA  2
+#define STREAM_ID_MISS  0
+#define STREAM_ID_UNHA  9
 
 #define KEY_SET_ID      4
 

@@ -7,12 +7,10 @@
 
 class Reader {
     protected:
-        bool newFlowCheck;
-
+        PacketDissector *pkt_parser;
         uint8_t error_or_eof;
-	uint8_t thread_number;
-	char *log_path;
-	char *type;
+        char *log_path;
+        char *type;
 
         uint64_t last_idle_scan_time;
         uint64_t last_time;
@@ -37,7 +35,7 @@ class Reader {
 
         struct ndpi_detection_module_struct * ndpi_struct;
     public:
-        Reader();
+        Reader(char *log_path, char *type);
         ~Reader();
        
          /**
@@ -118,10 +116,6 @@ class Reader {
         unsigned long long int getMaxActiveFlows() {return this->max_active_flows; };
 
         unsigned long long int getMaxIdleFlows() {return this->max_idle_flows; };
-
-        void setNewFlow(bool flow) { newFlowCheck = flow; };
-
-        bool getNewFlow() { return newFlowCheck; };
 
         struct ndpi_detection_module_struct * getNdpiStruct() { return this->ndpi_struct; };
 

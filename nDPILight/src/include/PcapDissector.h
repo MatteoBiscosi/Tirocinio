@@ -52,8 +52,6 @@ class PcapDissector : public PacketDissector {
                     PacketInfo & pkt_infos);
 };
 
-extern PacketDissector * pkt_parser;
-
 /**
  * Function called for each packet by pcap_loop
  *
