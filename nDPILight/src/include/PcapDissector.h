@@ -7,6 +7,9 @@
 
 class PcapDissector : public PacketDissector {
     public:
+	PcapDissector(char *log_path, const char *type) : PacketDissector(log_path, type) {};
+	PcapDissector(const char *type) : PacketDissector(type) {};        
+
         int parsePacket(FlowInfo & flow,
                             Reader * & args,
                             void * header_tmp,

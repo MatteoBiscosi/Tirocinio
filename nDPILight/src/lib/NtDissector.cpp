@@ -14,9 +14,9 @@ void NtDissector::printBriefInfos(Reader *reader)
     hStat.u.query_v3.poll = 1;
     hStat.u.query_v3.clear = 1;
     NT_StatRead(reader_tmp->getStatStream(), &hStat);
-
-    this->captured_stats.packets_captured = (long long unsigned int)hStat.u.query_v3.data.port.aPorts[0].rx.extDrop.pktsFilterDrop + this->captured_stats.packets_captured;
-    this->captured_stats.total_wire_bytes = (long long unsigned int)hStat.u.query_v3.data.port.aPorts[0].rx.extDrop.octetsFilterDrop + this->captured_stats.total_wire_bytes;
+    //tracer->traceEvent(2, "final packets: %llu\n", (long long unsigned int)hStat.u.query_v3.data.port.aPorts[0].rx.RMON1.pkts);
+    this->captured_stats.packets_captured = (long long unsigned int)hStat.u.query_v3.data.port.aPorts[0].rx.RMON1.pkts + this->captured_stats.packets_captured;
+    this->captured_stats.total_wire_bytes = (long long unsigned int)hStat.u.query_v3.data.port.aPorts[0].rx.RMON1.octets + this->captured_stats.total_wire_bytes;
     delta = this->captured_stats.packets_captured - this->captured_stats.previous_packets;
     this->captured_stats.previous_packets = this->captured_stats.packets_captured;
 
@@ -39,10 +39,11 @@ int NtDissector::DumpIPv4(Reader * & reader,
     pkt_infos.ethernet = (struct ndpi_ethhdr *) &packet[pkt_infos.eth_offset];
     pkt_infos.ip_offset = sizeof(struct ndpi_ethhdr) + pkt_infos.eth_offset;
     pkt_infos.ip = (struct ndpi_iphdr *)(&packet[pkt_infos.ip_offset]);
-    pkt_infos.ip6 = nullptr;
-    
+    pkt_infos.ip6 = nullptr; 
     pkt_infos.ip_size = pDyn1->capLength - pDyn1->descrLength - pkt_infos.ip_offset;
+    //printf("%llu, %llu\n", pkt_infos.ip_size, pkt_infos.ip_offset);
     flow.setFlowL3Type(4);
+    //printf("%d\n", pkt_infos.ip_size);
     /* Search if the record is already inside the structure */
     flow.ip_tuple.v4.src = pkt_infos.ip->saddr;
     flow.ip_tuple.v4.dst = pkt_infos.ip->daddr;

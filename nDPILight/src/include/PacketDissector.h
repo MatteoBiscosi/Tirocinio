@@ -10,6 +10,10 @@ extern int generate_logs;
 
 class PacketDissector {
     protected:
+	bool newFlow;
+	uint64_t flowId;
+	char *log_path;
+	const char *if_type;
         std::queue<std::string> allarm_list;
 	    unsigned long long int flow_id;
         ndpi_serializer serializer;
@@ -69,8 +73,11 @@ class PacketDissector {
                       PacketInfo & pkt_infos);
 
     public:
-        PacketDissector();
-        PacketDissector(uint num);
+        PacketDissector(const char *type);
+        PacketDissector(const char *type,
+			uint num);
+	PacketDissector(char *log_path, 
+			const char *type);
         ~PacketDissector();
 
 	/**
@@ -164,6 +171,11 @@ class PacketDissector {
         void incrUnhaPkts() { this->captured_stats.unhandled_packets++; };
 	    void incrWireBytes(unsigned long long int bytes) { this->captured_stats.total_wire_bytes += bytes; };
         std::queue<std::string> *getAllarmList() { return &this->allarm_list; };
+	const char *getType() { return this->if_type; };
+	char *getLogPath() { return this->log_path; };
+        bool newFlowCheck() { return this->newFlow; };
+        void setNewFlow(bool flow) { this->newFlow = flow; };
+	uint64_t getFlowId() { return this->flowId; };
 };
 
 

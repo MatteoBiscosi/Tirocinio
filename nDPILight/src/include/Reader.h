@@ -10,6 +10,9 @@ class Reader {
         bool newFlowCheck;
 
         uint8_t error_or_eof;
+	uint8_t thread_number;
+	char *log_path;
+	char *type;
 
         uint64_t last_idle_scan_time;
         uint64_t last_time;

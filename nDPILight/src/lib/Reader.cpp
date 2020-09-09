@@ -130,6 +130,20 @@ int ndpi_workflow_node_cmp(void const * const A, void const * const B)
 
 Reader::Reader()
 {
+    this->thread_number = 1;
+    this->ndpi_flows_active = nullptr;
+    this->ndpi_flows_idle = nullptr;
+    this->error_or_eof = 0;
+    this->ndpi_struct = nullptr;
+}
+
+/* ********************************** */
+
+Reader::Reader(int thread_number, char *log_path, char *type)
+{
+    strcpy(this->log_path, log_path);
+    strcpy(this->type, type);
+    this->thread_number = thread_number;
     this->ndpi_flows_active = nullptr;
     this->ndpi_flows_idle = nullptr;
     this->error_or_eof = 0;

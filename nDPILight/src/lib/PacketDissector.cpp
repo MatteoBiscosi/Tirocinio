@@ -8,12 +8,24 @@ void allarmManager(PacketDissector * pkt_dissector)
     char theDate[40];
     Trace* trace_allarm = new Trace();
     struct tm *timenow;
-
     time_t now = time(NULL);
     timenow = gmtime(&now);
 
-    strftime(theDate, sizeof(theDate), "logs/allarms/%Y-%m-%d_%H:%M:%S", timenow); 
-     
+    if(pkt_dissector->getLogPath() == nullptr) {
+    	strftime(theDate, sizeof(theDate), "_%Y-%m-%d_%H:%M:%S", timenow);
+	char log_path[40] = "logs/";
+	strcat(log_path, pkt_dissector->getType());
+	strcat(log_path, theDate);
+        strcpy(theDate, log_path); 
+    }
+    else {
+	strftime(theDate, sizeof(theDate), "_%Y-%m-%d_%H:%M:%S", timenow);
+	char *log_path = (char *)pkt_dissector->getLogPath();
+	strcat(log_path, pkt_dissector->getType());
+	strcat(log_path, theDate);
+	strcpy(theDate, log_path);
+    }
+    
     std::ofstream outfile (theDate);
     trace_allarm->set_log_file(theDate);
     std::queue<std::string> *list = pkt_dissector->getAllarmList();
@@ -22,10 +34,23 @@ void allarmManager(PacketDissector * pkt_dissector)
         sleep(5);
 	
 	while(!list->empty()) {
-		if(trace_allarm->getNumLines() >= 10000) {
+		if(trace_allarm->getNumLines() >= 20000) {
 			timenow = gmtime(&now);
-			strftime(theDate, sizeof(theDate), "logs/allarms/%Y-%m-%d_%H:%M:%S", timenow);
 
+			if(pkt_dissector->getLogPath() == nullptr) {
+        		    strftime(theDate, sizeof(theDate), "_%Y-%m-%d_%H:%M:%S", timenow);
+        		    char log_path[40] = "logs/";
+        		    strcat(log_path, pkt_dissector->getType());
+        		    strcat(log_path, theDate);
+        		    strcpy(theDate, log_path);
+			}
+    			else {
+        		    strftime(theDate, sizeof(theDate), "_%Y-%m-%d_%H:%M:%S", timenow);
+        		    char *log_path = (char *) pkt_dissector->getLogPath();
+			    strcat(log_path, pkt_dissector->getType());
+        		    strcat(log_path, theDate);
+        		    strcpy(theDate, log_path);
+    			}
     			std::ofstream outfile (theDate);
     			trace_allarm->set_log_file(theDate);
 		}
@@ -38,8 +63,9 @@ void allarmManager(PacketDissector * pkt_dissector)
 }
 
 
-PacketDissector::PacketDissector()
+PacketDissector::PacketDissector(const char *type)
 {
+	this->if_type = type;
 	this->captured_stats.protos_cnt = nullptr;
 	ndpi_init_serializer(&this->serializer, this->fmt = ndpi_serialization_format_json);
 	std::thread allarmThread(allarmManager, this);
@@ -48,9 +74,25 @@ PacketDissector::PacketDissector()
 
 /* ********************************** */
 
-PacketDissector::PacketDissector(uint num)
+PacketDissector::PacketDissector(const char *type, uint num)
 {
+	this->if_type = type;
 	this->captured_stats.protos_cnt = new uint16_t[num + 1] ();
+	ndpi_init_serializer(&this->serializer, this->fmt = ndpi_serialization_format_json);
+        std::thread allarmThread(allarmManager, this);
+        allarmThread.detach();
+}
+
+/* ********************************** */
+
+PacketDissector::PacketDissector(char *log_path, const char *type)
+{
+	this->log_path = log_path;
+	this->if_type = type;
+        this->captured_stats.protos_cnt = nullptr;
+        ndpi_init_serializer(&this->serializer, this->fmt = ndpi_serialization_format_json);
+        std::thread allarmThread(allarmManager, this);
+        allarmThread.detach();
 }
 
 /* ********************************** */
@@ -286,11 +328,9 @@ void PacketDissector::processPacket(void * const args,
 	Reader * reader = (Reader *) args;
 	PacketInfo pkt_infos = PacketInfo();
 
-	this->captured_stats.packets_captured++;
-
 	/* Parsing the packet */
 	status = this->parsePacket(flow, reader, header_tmp, packet_tmp, pkt_infos);
-
+	
 	/* Switch the status received from parsePacket */
 	switch(status) {
 		case -1: /* Error case */

@@ -12,6 +12,10 @@ int terminate_thread {0};
 int generate_logs {0};
 PacketDissector * pkt_parser;
 uint32_t mask;
+char *log_path;
+
+
+
 
 
 
@@ -134,7 +138,7 @@ static char * check_args(int &argc, char ** argv)
         return nullptr;
     }
 
-    while((opt = getopt(argc, argv, "i:t:r:v")) != -1) {
+    while((opt = getopt(argc, argv, "p:i:t:r:v")) != -1) {
         switch (opt) {
             case 't':
                 tracelvl = atoi(optarg);
@@ -159,6 +163,10 @@ static char * check_args(int &argc, char ** argv)
             case 'i':
                 dst = optarg;
                 break;
+
+	    case 'p':
+		log_path = optarg;
+		break;
 
             case 'v':
                 generate_logs = 1;
@@ -207,10 +215,33 @@ static char * check_args(int &argc, char ** argv)
 static int setup_pcap(char const * const file_or_device)
 /*  Setup the reader_thread */
 {
-    PcapReader *tmp = new PcapReader(file_or_device);
+    char interface[50];
+    PcapReader *tmp;
+    if(starts_with(file_or_device, "pcap:")) {
+	strcpy(interface, file_or_device + 5); 
+    	tmp = new PcapReader(interface);
+    } else 
+	tmp = new PcapReader(file_or_device);
     reader_thread.initReader(tmp);
-
-    pkt_parser = new PcapDissector();
+    string type = "pcap";
+ 
+    if(log_path == nullptr) {
+        if(dirExists("./logs") != 1) {
+            tracer->traceEvent(0, "Couldn't find necessary directories, please do `make clean` and then do `make`\n");
+            return -1;
+        }
+	pkt_parser = new PcapDissector(type.c_str());
+	tracer->set_log_file("logs/pcap_log");	
+    }
+    else {
+        if(dirExists(log_path) != 1) {
+            tracer->traceEvent(0, "Couldn't find the directory inserted with -p option, please check the path\n");
+            return -1;
+        }
+	pkt_parser = new PcapDissector(log_path, type.c_str());
+	strcat(log_path, "pcap_log");
+	tracer->set_log_file(log_path);
+    }
 
     if(reader_thread.init() == -1)
         return -1;
@@ -225,8 +256,27 @@ static int setup_napatech()
 {
     NapatechReader *tmp = new NapatechReader();
     reader_thread.initReader(tmp);
+    string type = "nt";
 
-    pkt_parser = new NtDissector();
+    if(log_path == nullptr) {
+        if(dirExists("./logs") != 1) {
+            tracer->traceEvent(0, "Couldn't find necessary directories, please do `make clean` and then do `make`\n");
+            return -1;
+        }
+        tracer->set_log_file("logs/nt_log");
+    }
+    else {
+        if(dirExists(log_path) != 1) {
+            tracer->traceEvent(0, "Couldn't find the directory inserted with -p option, please check the path\n");
+            return -1;
+        }
+        strcat(log_path, "nt_log");
+        tracer->set_log_file(log_path);
+    }
+
+    NapatechReader *tmp = new NapatechReader(log_path, type.c_str());
+    reader_thread.initReader(tmp);
+    string type = "nt";
 
     if(reader_thread.init() == -1)
         return -1;
@@ -364,16 +414,6 @@ int main(int argc, char * argv[])
     char *dst;
     NDPI_BITMASK_SET_ALL(mask);
     tracer = new Trace();
-
-    if(dirExists("./logs") != 1) {
-        tracer->traceEvent(0, "Couldn't find necessary directories, please do `make clean` and then do `make`\n", argv[0]);
-        return -1;
-    }
-
-    if(dirExists("./logs/allarms") != 1) {
-        tracer->traceEvent(0, "Couldn't find necessary directories, please do `make clean` and then do `make`\n", argv[0]);
-        return -1;
-    }
 
     /*  Args check  */
     if((dst = check_args(argc, argv)) == nullptr) {

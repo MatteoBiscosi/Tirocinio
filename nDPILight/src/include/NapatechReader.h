@@ -7,17 +7,14 @@
 
 
 
-extern PacketDissector * pkt_parser;
 extern Trace * tracer;
 
 
 class NapatechReader : public Reader {
     private:
         uint8_t adapterNo;
+	PacketDissector *pkt_parser;
         NtFlowAttr_t flowAttr;
-
-        NtNetStreamRx_t hNetRxMiss;
-        NtNetBuf_t hNetBufferMiss;
 
         NtNetStreamRx_t hNetRxUnh;
         NtNetBuf_t hNetBufferUnh;
@@ -32,7 +29,9 @@ class NapatechReader : public Reader {
 	    unsigned long long int init_pkts;
         unsigned long long int init_bytes;
     public:
-	    ~NapatechReader();
+	NapatechReader();
+	NapatechReader(int thread_number);
+	~NapatechReader();
 
        
         int startRead() override;
