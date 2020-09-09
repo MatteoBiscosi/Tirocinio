@@ -4,14 +4,13 @@
 #include "ndpi_light_includes.h"
 
 
-
 class Reader {
     protected:
-        PacketDissector *pkt_parser;
         uint8_t error_or_eof;
         char *log_path;
-        char *type;
-
+        const char *type;
+	bool newFlowCheck;
+	
         uint64_t last_idle_scan_time;
         uint64_t last_time;
         size_t idle_scan_index;
@@ -35,7 +34,8 @@ class Reader {
 
         struct ndpi_detection_module_struct * ndpi_struct;
     public:
-        Reader(char *log_path, char *type);
+	Reader() {};
+        Reader(char *log_path, const char *type);
         ~Reader();
        
          /**
@@ -129,7 +129,11 @@ class Reader {
 
         uint64_t getLastTime() { return this->last_time; };
 
-        void **getNdpiFlowsIdle() { return this->ndpi_flows_idle; };    
+        void **getNdpiFlowsIdle() { return this->ndpi_flows_idle; }; 
+
+        void setNewFlow(bool flow) { newFlowCheck = flow; };
+
+        bool getNewFlow() { return newFlowCheck; };   
 
         unsigned long long int getCurIdleFlows() { return this->cur_idle_flows; };
 

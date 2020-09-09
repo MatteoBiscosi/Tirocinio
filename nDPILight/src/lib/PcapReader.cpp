@@ -6,12 +6,12 @@
 /* ********************************** */
 
 /*  Constructors and Destructors    */
-PcapReader::PcapReader() : file_or_device(nullptr)
+PcapReader::PcapReader(char *log_path, const char *type) : Reader(log_path, type) 
 {
     file_or_device = nullptr;
 }
 
-PcapReader::PcapReader(char const * const dst) : file_or_device(nullptr)
+PcapReader::PcapReader(char *log_path, const char *type, const char * dst) : Reader(log_path, type) 
 {
     file_or_device = dst;
 }

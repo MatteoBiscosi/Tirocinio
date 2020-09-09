@@ -33,10 +33,10 @@ void ReaderThread::initReader(Reader* tmpRdr, int i, int thread_number)
     this->type = 1; // Napatech
     this->thread_number = thread_number;
     if(i == 0) {
-        this->rdr = Reader[thread_number];
+        this->rdr = (Reader *) new NapatechReader[thread_number];
     }
 
-    this->rdr[i] = tmpRdr;
+    this->rdr[i] = *tmpRdr;
 }
 
 /* ********************************** */
@@ -53,9 +53,9 @@ int ReaderThread::init()
 
 void ReaderThread::startRead()
 {
-    if(this->type) == 1) {
+    if(this->type == 1) {
         for(int i = 0; i < this->thread_number; i++)
-            this->rdr[i]->startRead();
+            this->rdr[i].startRead();
     }
     else
     {

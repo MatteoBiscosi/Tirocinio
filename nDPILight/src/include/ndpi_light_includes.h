@@ -35,13 +35,13 @@
 #include "FlowInfo.h"
 #include "PacketInfo.h"
 #include "Reader.h"
-#include "ReaderThread.h"
 #include "SupportStructs.h"
 #include "PacketDissector.h"
 #include "PcapReader.h"
 #include "PcapDissector.h"
 #include "NapatechReader.h"
 #include "NtDissector.h"
+#include "ReaderThread.h"
 
 /* ********************************** */
 

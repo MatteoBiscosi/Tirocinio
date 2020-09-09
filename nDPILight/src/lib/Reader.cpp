@@ -139,10 +139,11 @@ Reader::Reader()
 */
 /* ********************************** */
 
-Reader::Reader(char *log_path, char *type)
+Reader::Reader(char *log_path, const char *type)
 {
-    strcpy(this->log_path, log_path);
-    strcpy(this->type, type);
+    if(log_path != nullptr)
+    	strcpy(this->log_path, log_path);
+    this->type = type;
     this->ndpi_flows_active = nullptr;
     this->ndpi_flows_idle = nullptr;
     this->error_or_eof = 0;
@@ -174,15 +175,14 @@ Reader::~Reader()
 
 int Reader::newFlow(FlowInfo * & flow_to_process) {
     if (this->cur_active_flows == this->max_active_flows) {
-        tracer->traceEvent(0, "[%8llu] max flows to track reached: %llu, idle: %llu\n",
-                                pkt_parser->getPktsCaptured(), this->max_active_flows, this->cur_idle_flows);
+        tracer->traceEvent(0, "[10] max flows to track reached: %llu, idle: %llu\n",
+                                this->max_active_flows, this->cur_idle_flows);
         return -1;
     }
 
     flow_to_process = (FlowInfo *)ndpi_malloc(sizeof(*flow_to_process));
     if (flow_to_process == nullptr) {
-        tracer->traceEvent(0, "[%8llu] Not enough memory for flow info\n",
-                                pkt_parser->getPktsCaptured());
+        tracer->traceEvent(0, "[10] Not enough memory for flow info\n");
         return -1;
     }
 

@@ -10,7 +10,7 @@ Trace *tracer;
 ReaderThread reader_thread;
 int terminate_thread {0};
 int generate_logs {0};
-uint8_t thread_number {1};
+int thread_number {1};
 uint32_t mask;
 char *log_path;
 
@@ -248,9 +248,9 @@ static int setup_pcap(char const * const file_or_device)
 
     if(starts_with(file_or_device, "pcap:")) {
 	strcpy(interface, file_or_device + 5); 
-    	tmp = new PcapReader(interface, log_path, type.c_str());
+    	tmp = new PcapReader(log_path, type.c_str(), interface);
     } else 
-	tmp = new PcapReader(file_or_device, log_path, type.c_str());
+	tmp = new PcapReader(log_path, type.c_str(), file_or_device);
     reader_thread.initReader(tmp);
 
     if(reader_thread.init() == -1)
@@ -264,6 +264,7 @@ static int setup_pcap(char const * const file_or_device)
 static int setup_napatech()
 /*  Setup the reader_thread */
 {
+    printf("Prova");
     NtFlowStream_t flowStream;
     string type = "nt";
 
@@ -288,7 +289,7 @@ static int setup_napatech()
         type = type + "_";
         type = type + to_string(i);
         type = type + "_";
-        NapatechReader *tmp = new NapatechReader(log_path, type.c_str(), flowStream);
+        NapatechReader *tmp = new NapatechReader(log_path, type.c_str(), flowStream, i);
         reader_thread.initReader(tmp, i, thread_number);
 
         if(i == 0)
@@ -439,7 +440,7 @@ int main(int argc, char * argv[])
     if((dst = check_args(argc, argv)) == nullptr) {
         return 0;
     }
-
+printf("Prova main");
     /*  Setting up and starting the worker thread   */
     if(setup_reader(dst) != 0) {
         tracer->traceEvent(0, "nDPILight initialization failed\n");

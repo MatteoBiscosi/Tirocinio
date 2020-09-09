@@ -14,13 +14,14 @@ class PcapReader : public Reader {
 
     private:
         pcap_t *pcap_handle;
+	PacketDissector *pkt_parser;
 
         char pcap_error_buffer[PCAP_ERRBUF_SIZE];
         
     public:
-        explicit PcapReader();
-        explicit PcapReader(char const * dst);
-        explicit PcapReader(char const * dst, int error_or_eof);
+        explicit PcapReader(char *log_path, const char *type);
+        explicit PcapReader(char *log_path, const char *type, const char * dst);
+        explicit PcapReader(char *log_path, const char *type, const char * dst, int error_or_eof);
 
         ~PcapReader();
 

@@ -12,6 +12,8 @@ extern Trace * tracer;
 
 class NapatechReader : public Reader {
     private:
+	PacketDissector *pkt_parser;
+
         uint8_t streamId;
         uint8_t adapterNo;
         NtFlowAttr_t flowAttr;
@@ -34,7 +36,7 @@ class NapatechReader : public Reader {
     public:
     NapatechReader(char *log_path, const char *type, NtFlowStream_t flowStream, int streamId) : Reader(log_path, type) 
                                                             { this->flowStream = flowStream; this->streamId = streamId; };
-	NapatechReader();
+	NapatechReader() {};
 	NapatechReader(int thread_number);
 	~NapatechReader();
 
@@ -81,8 +83,7 @@ class NapatechReader : public Reader {
         /**
          * Analyze each type of packet
          */
-        void taskReceiverAny(const char* streamName, 
-                    NtFlowStream_t& flowStream);
+        void taskReceiverAny(const char* streamName);
 };
 
 
