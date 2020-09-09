@@ -112,7 +112,7 @@ PacketDissector::~PacketDissector()
 
 void PacketDissector::initProtosCnt(uint num)
 {
-	//this->captured_stats.protos_cnt = new uint16_t[num + 1] ();
+	this->captured_stats.protos_cnt = new uint16_t[num + 1] ();
 }
 
 /* ********************************** */

@@ -62,7 +62,13 @@ class NapatechReader : public Reader {
         
         NtNetBuf_t * getUnhBuffer() { return &hNetBufferUnh; };
 
+        NtNetStreamRx_t * getMissStream() { return &hNetRxMiss; };
+        
+        NtNetBuf_t * getMissBuffer() { return &hNetBufferMiss; };
+
 	    NtStatStream_t getStatStream() { return this->hStatStream; };
+
+        NtFlowStream_t getFlowStream() { return this->flowStream; };
 
         unsigned long long int getInitPkts() { return this->init_pkts; };
 
@@ -82,7 +88,7 @@ class NapatechReader : public Reader {
         /**
          * Analyze each type of packet
          */
-        void taskReceiverAny(const char* streamName);
+        //void taskReceiverAny(const char* streamName);
 };
 
 

@@ -140,6 +140,8 @@ class Reader {
         unsigned long long int getCurActiveFlows() { return this->cur_active_flows; };
 
         void setIdFlow(unsigned long long int idFlow) { this->idFlow = idFlow; };
+
+        uint64_t getIdFlow() { return this->idFlow; };
 };
 
 

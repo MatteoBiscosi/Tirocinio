@@ -393,7 +393,7 @@ void NapatechReader::newPacket(void * header)
 
 /* ********************************** */
 
-void NapatechReader::taskReceiverAny(const char* streamName)
+void taskReceiverAny(const char* streamName, NapatechReader *reader)
 {
     int status;
 
@@ -401,11 +401,11 @@ void NapatechReader::taskReceiverAny(const char* streamName)
 
     while(this->error_or_eof == 0) {
 	    // Get package from rx stream.
-	    status = NT_NetRxGet(this->hNetRxMiss, &(this->hNetBufferMiss), 5000);
+	    status = NT_NetRxGet(* reader->getMissStream(), reader->getMissBuffer()), 5000);
 	    if(status == NT_STATUS_TIMEOUT || status == NT_STATUS_TRYAGAIN) {
-		    if(this->error_or_eof != 0)
-			return;	
-		    printFlowStreamInfo(this->flowStream);
+		    if(reader->getErrorOfEof() != 0)
+			    return;	
+		    printFlowStreamInfo(reader->getFlowStream());
 		    continue;
 	    }
 	    if(status == NT_ERROR_NT_TERMINATING)
@@ -414,16 +414,16 @@ void NapatechReader::taskReceiverAny(const char* streamName)
 	    if(handleErrorStatus(status, "Error while sniffing next packet") != 0)
 		    continue;
 
-	    pkt_parser->processPacket(this, &(this->hNetBufferMiss), nullptr);
+	    pkt_parser->processPacket(reader, &(reader->getMissBuffer()), nullptr);
 
-	    if(this->newFlowCheck == true) {            
+	    if(reader->newFlowCheck() == true) {            
             // Here a package has successfully been received, and the parameters for the
             // next flow to be learned will be set up.
 	        NtFlow_t flow = NtFlow_t();
 	    
-	        NtDyn1Descr_t* pDyn1 = _NT_NET_GET_PKT_DESCR_PTR_DYN1(this->hNetBufferMiss);
+	        NtDyn1Descr_t* pDyn1 = _NT_NET_GET_PKT_DESCR_PTR_DYN1(reader->getMissBuffer());
 
-            flow.id              = this->idFlow;        // User defined ID
+            flow.id              = reader->getIdFlow();// User defined ID
             flow.color           = 0;                  // Flow color
             flow.overwrite       = 0;                  // Overwrite filter action (1: enable, 0: disable)
             flow.streamId        = 0;                  // Marks the stream id if overwrite filter action is enabled
@@ -470,12 +470,12 @@ void NapatechReader::taskReceiverAny(const char* streamName)
                         break;
             }
             // Program the flow into the adapter.
-            status = NT_FlowWrite(this->flowStream, &flow, -1);
+            status = NT_FlowWrite(reader->getFlowStream(), &flow, -1);
             handleErrorStatus(status, "NT_FlowWrite() failed");
-	        this->setNewFlow(false);            
+	        reader->setNewFlow(false);            
         }
 	
-        status = NT_NetRxRelease(this->hNetRxMiss, this->hNetBufferMiss);
+        status = NT_NetRxRelease(reader->getMissStream(), reader->getMissBuffer());
         if(handleErrorStatus(status, "Error while releasing packet") != 0)
             continue;
      }     

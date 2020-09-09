@@ -15,8 +15,8 @@ void NtDissector::printBriefInfos(Reader *reader)
     hStat.u.query_v3.clear = 1;
     NT_StatRead(reader_tmp->getStatStream(), &hStat);
     //tracer->traceEvent(2, "final packets: %llu\n", (long long unsigned int)hStat.u.query_v3.data.port.aPorts[0].rx.RMON1.pkts);
-    this->captured_stats.packets_captured = (long long unsigned int)hStat.u.query_v3.data.port.aPorts[0].rx.RMON1.pkts + this->captured_stats.packets_captured;
-    this->captured_stats.total_wire_bytes = (long long unsigned int)hStat.u.query_v3.data.port.aPorts[0].rx.RMON1.octets + this->captured_stats.total_wire_bytes;
+    this->captured_stats.packets_captured = (long long unsigned int)hStat.u.query_v3.data.port.aPorts[0].rx.extDrop.pktsFilterDrop + this->captured_stats.packets_captured;
+    this->captured_stats.total_wire_bytes = (long long unsigned int)hStat.u.query_v3.data.port.aPorts[0].rx.extDrop.octetsFilterDrop + this->captured_stats.total_wire_bytes;
     delta = this->captured_stats.packets_captured - this->captured_stats.previous_packets;
     this->captured_stats.previous_packets = this->captured_stats.packets_captured;
 
