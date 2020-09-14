@@ -103,8 +103,8 @@ PacketDissector::PacketDissector(const char *type, uint num)
 	this->if_type = type;
 	this->captured_stats.protos_cnt = new uint16_t[num + 1] ();
 	ndpi_init_serializer(&this->serializer, this->fmt = ndpi_serialization_format_json);
-        std::thread allarmThread(allarmManager, this);
-        allarmThread.detach();
+	std::thread allarmThread(allarmManager, this);
+	allarmThread.detach();
 }
 
 /* ********************************** */
@@ -113,10 +113,10 @@ PacketDissector::PacketDissector(char *log_path, const char *type)
 {
 	this->log_path = log_path;
 	this->if_type = type;
-        this->captured_stats.protos_cnt = nullptr;
-        ndpi_init_serializer(&this->serializer, this->fmt = ndpi_serialization_format_json);
-        std::thread allarmThread(allarmManager, this);
-        allarmThread.detach();
+	this->captured_stats.protos_cnt = nullptr;
+	ndpi_init_serializer(&this->serializer, this->fmt = ndpi_serialization_format_json);
+	std::thread allarmThread(allarmManager, this);
+	allarmThread.detach();
 }
 
 /* ********************************** */
@@ -128,6 +128,11 @@ PacketDissector::~PacketDissector()
 
 	if(this->captured_stats.protos_cnt != nullptr)
 		delete [] this->captured_stats.protos_cnt;
+
+	if(this->allarm_list != nullptr)
+		allarm_list->erase() (allarm_list->begin(), allarm_list->end());
+
+	ndpi_term_serializer(&this->serializer);
 }
 
 /* ********************************** */
@@ -152,6 +157,8 @@ void PacketDissector::printFlow(Reader* reader,
 			pkt_infos->flow_id, pkt_infos->packets_processed, pkt_infos->bytes_processed, 
 			src_addr_str, pkt_infos->src_port, dst_addr_str, pkt_infos->dst_port);
 }
+
+/* ********************************** */
 
 int PacketDissector::flowToJson(Reader* reader,
 		FlowInfo* & flow_infos,
@@ -212,7 +219,9 @@ void PacketDissector::printStats(Reader *reader)
 {
 	long long unsigned int avg_pkt_size = 0;
 	long long unsigned int breed_stats[NUM_BREEDS] = { 0 };
-	char buf[32];
+	char buf[32], when[64];
+	struct tm result;
+	
 
 	tracer->traceEvent(2, "\tTraffic statistics:\r\n");
 	tracer->traceEvent(2, "\t\tEthernet bytes:             %-20llu (includes ethernet CRC/IFC/trailer)\n",
@@ -236,6 +245,11 @@ void PacketDissector::printStats(Reader *reader)
 	tracer->traceEvent(2, "\t\tTCP Packets:                %-20lu\n", this->captured_stats.tcp_pkts);
 	tracer->traceEvent(2, "\t\tUDP Packets:                %-20lu\n", this->captured_stats.udp_pkts);
 
+	strftime(when, sizeof(when), "%d/%b/%Y %H:%M:%S", localtime_r(&this->captured_stats.time_start, &result));
+	tracer->traceEvent(2, "\t\tAnalysis begin:             %-20s\n", when);
+	strftime(when, sizeof(when), "%d/%b/%Y %H:%M:%S", localtime_r(&this->captured_stats.time_end, &result));
+	tracer->traceEvent(2, "\t\tAnalysis end:               %-20s\n", when);
+
 	tracer->traceEvent(2, "\t\tDetected flow protos:       %-20u\n", this->captured_stats.detected_flow_protocols);
 	tracer->traceEvent(2, "\t\tGuessed flow protos:        %-20u\n", this->captured_stats.guessed_flow_protocols);
 	tracer->traceEvent(2, "\t\tUnclassified flow protos:   %-20u\r\n", this->captured_stats.unclassified_flow_protocols);
@@ -252,16 +266,16 @@ void PacketDissector::printStats(Reader *reader)
 					ndpi_get_proto_name((reader->getNdpiStruct()), i), this->captured_stats.protos_cnt[i]);
 		}
 	}
-	/*
-	   tracer->traceEvent(2, "\tProtocol statistics:\n");
+	
+	tracer->traceEvent(2, "\tProtocol statistics:\n");
 
-	   for(u_int32_t i = 0; i < NUM_BREEDS; i++) {
+	for(u_int32_t i = 0; i < NUM_BREEDS; i++) {
 	   if(breed_stats[i] > 0) {
-	   tracer->traceEvent(2, "\t\t%-20s flows: %-13u\n",
-	   ndpi_get_proto_breed_name(reader->getNdpiStruct(), ndpi_get_proto_breed(reader->getNdpiStruct(), i)),
-	   breed_stats[i]);
+			tracer->traceEvent(2, "\t\t%-20s flows: %-13u\n",
+	   		ndpi_get_proto_breed_name(reader->getNdpiStruct(), ndpi_get_proto_breed(reader->getNdpiStruct(), i)),
+	    	breed_stats[i]);
 	   }
-	   }*/
+	}
 }
 
 /* ********************************** */
@@ -299,7 +313,7 @@ int PacketDissector::addVal(Reader * & reader,
 {
 	if(reader->newFlow(pkt_infos.flow_to_process) != 0) 
 		return -1;   
-	//printf("New flow\n");
+
 	memcpy(pkt_infos.flow_to_process, &flow, sizeof(*pkt_infos.flow_to_process));
 	pkt_infos.flow_to_process->flow_id = flow_id++;
 
@@ -348,9 +362,9 @@ void PacketDissector::processPacket(void * const args,
 		void * packet_tmp)
 {
 	int status;
-	FlowInfo flow = FlowInfo();
+	FlowInfo flow = new FlowInfo();
 	Reader * reader = (Reader *) args;
-	PacketInfo pkt_infos = PacketInfo();
+	PacketInfo pkt_infos = new PacketInfo();
 
 	/* Parsing the packet */
 	this->captured_stats.packets_captured++;
@@ -402,6 +416,7 @@ void PacketDissector::processPacket(void * const args,
 	this->captured_stats.packets_processed++;
 	pkt_infos.flow_to_process->packets_processed++;
 	pkt_infos.flow_to_process->bytes_processed += pkt_infos.ip_size;
+
 	/* update timestamps, important for timeout handling */
 	if (pkt_infos.flow_to_process->first_seen == 0) {
 		pkt_infos.flow_to_process->first_seen = pkt_infos.time_ms;
@@ -412,6 +427,7 @@ void PacketDissector::processPacket(void * const args,
 	char dst_addr_str[INET6_ADDRSTRLEN+1];
 
 	pkt_infos.flow_to_process->ipTupleToString(src_addr_str, sizeof(src_addr_str), dst_addr_str, sizeof(dst_addr_str));	
+
 	/* Try to detect the protocol */
 	if (pkt_infos.flow_to_process->ndpi_flow->num_processed_pkts == 0xFF) {
 		return;

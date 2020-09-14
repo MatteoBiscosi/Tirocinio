@@ -14,7 +14,7 @@ class PcapReader : public Reader {
 
     private:
         pcap_t *pcap_handle;
-	PacketDissector *pkt_parser;
+	    PacketDissector *pkt_parser;
 
         char pcap_error_buffer[PCAP_ERRBUF_SIZE];
         

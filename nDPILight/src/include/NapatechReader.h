@@ -12,7 +12,7 @@ extern Trace * tracer;
 
 class NapatechReader : public Reader {
     private:
-	PacketDissector *pkt_parser;
+	    PacketDissector *pkt_parser;
 
         uint8_t streamId;
         uint8_t adapterNo;

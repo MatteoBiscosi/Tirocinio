@@ -9,7 +9,7 @@ class Reader {
         uint8_t error_or_eof;
         char *log_path;
         const char *type;
-	bool newFlowCheck;
+	    bool newFlowCheck;
 	
         uint64_t last_idle_scan_time;
         uint64_t last_time;
@@ -34,7 +34,7 @@ class Reader {
 
         struct ndpi_detection_module_struct * ndpi_struct;
     public:
-	Reader() {};
+	    Reader() {};
         Reader(char *log_path, const char *type);
         ~Reader();
        

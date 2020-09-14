@@ -16,14 +16,11 @@ void ndpi_idle_scan_walker(void const * const A, ndpi_VISIT which, int depth, vo
         return;
     }
 
-	//printf("%llu, %llu, %llu\n", flow->last_seen, MAX_IDLE_TIME, workflow->getLastTime());
-
     if (which == ndpi_preorder || which == ndpi_leaf) {
         if ((flow->flow_fin_ack_seen == 1 && flow->flow_ack_seen == 1) ||
             flow->last_seen + MAX_IDLE_TIME < workflow->getLastTime())
             /*  New flow that need to be added to idle flows    */
         {
-	printf("PRova\n");
             char src_addr_str[INET6_ADDRSTRLEN+1];
             char dst_addr_str[INET6_ADDRSTRLEN+1];
             flow->ipTupleToString(src_addr_str, sizeof(src_addr_str), dst_addr_str, sizeof(dst_addr_str));
@@ -130,21 +127,9 @@ int ndpi_workflow_node_cmp(void const * const A, void const * const B)
 }
 
 /* ********************************** */
-/*
-Reader::Reader()
-{
-    this->thread_number = 1;
-    this->ndpi_flows_active = nullptr;
-    this->ndpi_flows_idle = nullptr;
-    this->error_or_eof = 0;
-    this->ndpi_struct = nullptr;
-}
-*/
-/* ********************************** */
 
 Reader::Reader(char *log_path, const char *type)
 {
-    printf("Inside reader\n");
     if(log_path != nullptr)
     	strcpy(this->log_path, log_path);
     this->type = type;

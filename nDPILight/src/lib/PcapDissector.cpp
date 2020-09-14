@@ -40,12 +40,12 @@ int PcapDissector::processL2(PcapReader * const reader,
                 tracer->traceEvent(1, "[%8llu] Ethernet packet too short - skipping\n", this->captured_stats.packets_captured);
                 return -1;
             }
-	    //printf("%llu\n", header->len);
+
             pkt_infos.ethernet = (struct ndpi_ethhdr *) &packet[pkt_infos.eth_offset];
 	 
             pkt_infos.ip_offset = sizeof(struct ndpi_ethhdr) + pkt_infos.eth_offset;
             pkt_infos.type = ntohs(pkt_infos.ethernet->h_proto);
-            //printf("%d, %llu, %llu\n", sizeof(pkt_infos.ethernet), pkt_infos.type, pkt_infos.ip_offset);
+
             switch (pkt_infos.type) {
                 case ETH_P_IP:
                     /* IPv4 */
@@ -130,7 +130,7 @@ int PcapDissector::processL3(FlowInfo& flow,
         }
 
         flow.setFlowL3Type(4);
-	//printf("%d\n", pkt_infos.ip_size);
+        
         if (ndpi_detection_get_l4((uint8_t*)pkt_infos.ip, pkt_infos.ip_size, &pkt_infos.l4_ptr, &pkt_infos.l4_len,
                                   &flow.l4_protocol, NDPI_DETECTION_ONLY_IPV4) != 0)
         {
@@ -268,8 +268,6 @@ int PcapDissector::parsePacket(FlowInfo & flow,
         return -1;
     }
 
-/*    printf("%llu, %llu, %llu, %c.%c.%c.%c.%c.%c, %c.%c.%c.%c.%c.%c, %llu, %llu, %llu, %llu, %llu", pkt_infos.eth_offset, pkt_infos.ip_offset, pkt_infos.ip_size, pkt_infos.ethernet->h_dest[0], pkt_infos.ethernet->h_dest[1], pkt_infos.ethernet->h_dest[2], pkt_infos.ethernet->h_dest[3], pkt_infos.ethernet->h_dest[4], pkt_infos.ethernet->h_dest[5], pkt_infos.ethernet->h_source[0], pkt_infos.ethernet->h_source[1], pkt_infos.ethernet->h_source[2], pkt_infos.ethernet->h_source[3], pkt_infos.ethernet->h_source[4], pkt_infos.ethernet->h_source[5], pkt_infos.ethernet->h_proto, pkt_infos.ip->tot_len, pkt_infos.ip->protocol, pkt_infos.ip->saddr, pkt_infos.ip->daddr);
-*/
     return 0;
 }
 

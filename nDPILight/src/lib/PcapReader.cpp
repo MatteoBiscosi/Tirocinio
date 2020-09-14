@@ -11,11 +11,14 @@ PcapReader::PcapReader(char *log_path, const char *type) : Reader(log_path, type
     file_or_device = nullptr;
 }
 
+/* ********************************** */
+
 PcapReader::PcapReader(char *log_path, const char *type, const char * dst) : Reader(log_path, type) 
 {
     file_or_device = dst;
 }
 
+/* ********************************** */
 
 PcapReader::~PcapReader()
 {
@@ -43,7 +46,7 @@ int PcapReader::initModule()
 int PcapReader::initFileOrDevice()
 {
     if(this->log_path != nullptr) {
-	this->pkt_parser = new PcapDissector(this->log_path, this->type);
+	    this->pkt_parser = new PcapDissector(this->log_path, this->type);
     } else {
         this->pkt_parser = new PcapDissector(this->type);
     }
@@ -124,6 +127,8 @@ int PcapReader::startRead()
     int status;
     tracer->traceEvent(2, "\tAnalysis started\r\n\r\n");
 
+    this->pkt_parser->setStartAnalysis();
+
     if(this->pcap_handle != nullptr) {
 	status = pcap_loop(this->pcap_handle, -1,
                       &process_helper, (uint8_t *) this);
@@ -137,6 +142,8 @@ int PcapReader::startRead()
             }
 	this->error_or_eof = 1;
     }
+
+    this->pkt_parser->setEndAnalysis();
 
     return -1;
 }
@@ -164,11 +171,10 @@ int PcapReader::checkEnd()
 
 void PcapReader::checkForIdleFlows()
 {
-    //printf("%llu, %llu, %llu\n", this->last_idle_scan_time, IDLE_SCAN_PERIOD, this->last_time);
     /*  Check if at least IDLE_SCAN_PERIOD passed since last scan   */
     if (this->last_idle_scan_time + IDLE_SCAN_PERIOD < this->last_time || 
         pkt_parser->getPktsCaptured() - this->last_packets_scan > PACKET_SCAN_PERIOD) {
-	// printf("Prova idle, %llu, %llu\n", this->idle_scan_index, this->max_idle_scan_index);
+
         for (this->idle_scan_index; this->idle_scan_index < this->max_idle_scan_index; ++this->idle_scan_index) {
             if(this->ndpi_flows_active[this->idle_scan_index] == nullptr)
                 continue;
@@ -207,11 +213,9 @@ void PcapReader::checkForIdleFlows()
         this->last_packets_scan = pkt_parser->getPktsCaptured();
 
         /* Updating next max_idle_scan_index */
-	//printf("%llu, %llu, %llu\n", this->idle_scan_index, this->max_idle_scan_index, this->max_active_flows);
         this->max_idle_scan_index = this->max_idle_scan_index + (this->max_active_flows / 4);
-	if (this->max_idle_scan_index > this->max_active_flows)
-		this->max_idle_scan_index = 0;
-	//printf("%llu, %llu, %llu\n", this->idle_scan_index, this->max_idle_scan_index, this->max_active_flows);
+        if (this->max_idle_scan_index > this->max_active_flows)
+            this->max_idle_scan_index = 0;
     }
 }
 
@@ -221,9 +225,8 @@ void PcapReader::newPacket(void * header) {
     pcap_pkthdr const * const header_tmp = (pcap_pkthdr const * const) header;
     struct timeval actual_time;
     gettimeofday(&actual_time, nullptr);
-    //printf("%llu, %llu, %llu, %llu\n", (uint64_t) header_tmp->ts.tv_sec, TICK_RESOLUTION, header_tmp->ts.tv_usec, (1000000 / TICK_RESOLUTION));
-    //uint64_t time_ms = ((uint64_t) header_tmp->ts.tv_sec) * TICK_RESOLUTION + header_tmp->ts.tv_usec / (1000000 / TICK_RESOLUTION);
     this->last_time = ((uint64_t) actual_time.tv_sec) * TICK_RESOLUTION + actual_time.tv_usec / (1000000 / TICK_RESOLUTION); 
+
     /*  Scan done every 15000 ms more or less   */    
     pkt_parser->incrWireBytes(header_tmp->caplen);
     this->checkForIdleFlows();

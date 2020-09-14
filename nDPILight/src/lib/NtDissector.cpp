@@ -15,9 +15,14 @@ void NtDissector::printBriefInfos(Reader *reader)
     hStat.u.query_v3.poll = 0;
     hStat.u.query_v3.clear = 1;
     NT_StatRead(*reader_tmp->getStatStream(), &hStat);
-    //tracer->traceEvent(2, "final packets: %llu\n", (long long unsigned int)hStat.u.query_v3.data.port.aPorts[0].rx.RMON1.pkts);
-    this->captured_stats.packets_captured = (long long unsigned int)hStat.u.query_v3.data.port.aPorts[0].rx.extDrop.pktsFilterDrop + this->captured_stats.packets_captured;
-    this->captured_stats.total_wire_bytes = (long long unsigned int)hStat.u.query_v3.data.port.aPorts[0].rx.extDrop.octetsFilterDrop + this->captured_stats.total_wire_bytes;
+    
+    this->captured_stats.packets_captured = (long long unsigned int)hStat.u.query_v3.data.port.aPorts[0].rx.extDrop.pktsFilterDrop + 
+                                            (long long unsigned int)hStat.u.query_v3.data.port.aPorts[1].rx.extDrop.pktsFilterDrop +
+                                            this->captured_stats.packets_captured;
+    this->captured_stats.total_wire_bytes = (long long unsigned int)hStat.u.query_v3.data.port.aPorts[0].rx.extDrop.octetsFilterDrop + 
+                                            (long long unsigned int)hStat.u.query_v3.data.port.aPorts[1].rx.extDrop.octetsFilterDrop +
+                                            this->captured_stats.total_wire_bytes;
+
     delta = this->captured_stats.packets_captured - this->captured_stats.previous_packets;
     this->captured_stats.previous_packets = this->captured_stats.packets_captured;
 
@@ -42,9 +47,9 @@ int NtDissector::DumpIPv4(Reader * & reader,
     pkt_infos.ip = (struct ndpi_iphdr *)(&packet[pkt_infos.ip_offset]);
     pkt_infos.ip6 = nullptr; 
     pkt_infos.ip_size = pDyn1->capLength - pDyn1->descrLength - pkt_infos.ip_offset;
-    //printf("%llu, %llu\n", pkt_infos.ip_size, pkt_infos.ip_offset);
+
     flow.setFlowL3Type(4);
-    //printf("%d\n", pkt_infos.ip_size);
+
     /* Search if the record is already inside the structure */
     flow.ip_tuple.v4.src = pkt_infos.ip->saddr;
     flow.ip_tuple.v4.dst = pkt_infos.ip->daddr;
@@ -195,9 +200,10 @@ int NtDissector::parsePacket(FlowInfo & flow,
     
     // Updating time counters
     pkt_infos.time_ms = NT_NET_GET_PKT_TIMESTAMP(* hNetBuffer);
-    pkt_infos.eth_offset = 0;
+
     // Checking idle flows
     reader->newPacket((void *)hNetBuffer);
+    
     // Parsing packets
     // descriptor DYN1 is used, which is set up via NTPL.
     pDyn1 = NT_NET_GET_PKT_DESCR_PTR_DYN1(* hNetBuffer);

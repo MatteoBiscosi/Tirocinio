@@ -19,7 +19,9 @@ int thread_number {1};
 uint32_t mask;
 char *log_path;
 uint8_t type {0};
-long long unsigned int previous_pkts = 0;
+
+unsigned long long int previous_pkts = 0;
+unsigned long long int time_start, time_end;
 
 
 
@@ -73,7 +75,7 @@ static int parseMask(char * tmp)
             NDPI_SET_BIT(mask, 6);
         else if(!strcmp(tmp, "NDPI_TLS_OBSOLETE_VERSION"))
             NDPI_SET_BIT(mask, 7);
-	else if(!strcmp(tmp, "TLS_WEAK_CIPHER"))
+	    else if(!strcmp(tmp, "TLS_WEAK_CIPHER"))
             NDPI_SET_BIT(mask, 8);
         else if(!strcmp(tmp, "TLS_CERTIFICATE_EXPIRED"))
             NDPI_SET_BIT(mask, 9);
@@ -298,6 +300,10 @@ static int setup_napatech()
     /* Analysis starts */
     tracer->traceEvent(2, "\tAnalysis started\r\n\r\n");
 
+    time_start = struct timeval actual_time;
+    gettimeofday(&actual_time, nullptr);
+    time_start = (uint64_t) actual_time.tv_sec;
+
     return 0;
 }
 
@@ -395,10 +401,10 @@ static int stop_reader()
 
 	switch(type) {
 	    case 0:
-		reader_thread->printStats();
-		break;
+            reader_thread->printStats();
+            break;
 	    case 1:
-		printCustomStats();
+		    printCustomStats();
 		break;
 	}
 
@@ -485,30 +491,35 @@ static void printCustomStats()
 	NT_StatRead(*tmpRdr->getStatStream(), &hStat);
 
 	long long unsigned int tot_unhandled_packets = 0;
-        long long unsigned int tot_packets_captured = (long long unsigned int)hStat.u.query_v3.data.port.aPorts[0].rx.extDrop.pktsFilterDrop +
-                                 (long long unsigned int)hStat.u.query_v3.data.port.aPorts[1].rx.extDrop.pktsFilterDrop;
-        long long unsigned int tot_previous_packets = 0;
-        long long unsigned int tot_discarded_bytes = 0;
-        long long unsigned int tot_ip_pkts = 0;
-        long long unsigned int tot_ip_bytes = 0;
-        long long unsigned int tot_tcp_pkts = 0;
-        long long unsigned int tot_udp_pkts = 0;
+    long long unsigned int tot_packets_captured = (long long unsigned int)hStat.u.query_v3.data.port.aPorts[0].rx.extDrop.pktsFilterDrop +
+                                (long long unsigned int)hStat.u.query_v3.data.port.aPorts[1].rx.extDrop.pktsFilterDrop;
+    long long unsigned int tot_previous_packets = 0;
+    long long unsigned int tot_discarded_bytes = 0;
+    long long unsigned int tot_ip_pkts = 0;
+    long long unsigned int tot_ip_bytes = 0;
+    long long unsigned int tot_tcp_pkts = 0;
+    long long unsigned int tot_udp_pkts = 0;
 
-        long long unsigned int tot_total_flows_captured = 0;
+    long long unsigned int tot_total_flows_captured = 0;
 
-        long long unsigned int tot_packets_processed = 0;
-        long long unsigned int tot_total_l4_data_len = 0;
-        long long unsigned int tot_total_wire_bytes = (long long unsigned int)hStat.u.query_v3.data.port.aPorts[0].rx.extDrop.octetsFilterDrop +
-                                (long long unsigned int)hStat.u.query_v3.data.port.aPorts[1].rx.extDrop.octetsFilterDrop;
+    long long unsigned int tot_packets_processed = 0;
+    long long unsigned int tot_total_l4_data_len = 0;
+    long long unsigned int tot_total_wire_bytes = (long long unsigned int)hStat.u.query_v3.data.port.aPorts[0].rx.extDrop.octetsFilterDrop +
+                            (long long unsigned int)hStat.u.query_v3.data.port.aPorts[1].rx.extDrop.octetsFilterDrop;
 
-        long long unsigned int tot_detected_flow_protocols = 0;
-        long long unsigned int tot_guessed_flow_protocols = 0;
-        long long unsigned int tot_unclassified_flow_protocols = 0;
-        long long unsigned int tot_avg_pkt_size = 0;
-        long long unsigned int tot_breed_stats[NUM_BREEDS] = { 0 };
-	uint16_t * tot_protos_cnt = new uint16_t[ndpi_get_num_supported_protocols(reader_thread[0].getReader()->getNdpiStruct()) + 1] ();
+    long long unsigned int tot_detected_flow_protocols = 0;
+    long long unsigned int tot_guessed_flow_protocols = 0;
+    long long unsigned int tot_unclassified_flow_protocols = 0;
+    long long unsigned int tot_avg_pkt_size = 0;
+    long long unsigned int tot_breed_stats[NUM_BREEDS] = { 0 };
+    uint16_t * tot_protos_cnt = new uint16_t[ndpi_get_num_supported_protocols(reader_thread[0].getReader()->getNdpiStruct()) + 1] ();
 
-        char buf[32];
+    char buf[32], when[65];
+    struct tm result;
+
+    time_end = struct timeval actual_time;
+    gettimeofday(&actual_time, nullptr);
+    time_end = (uint64_t) actual_time.tv_sec;
 
 
 	for(int i = 0; i < thread_number; i++) {
@@ -516,18 +527,18 @@ static void printCustomStats()
 	    //tmp->getParser()->printStats((Reader *) tmp);
 	    tot_unhandled_packets 	    += tmp->getParser()->getUnhPkts();
 	    tot_packets_captured  	    += tmp->getParser()->getPktsCaptured();
-            tot_discarded_bytes 	    += tmp->getParser()->getDiscardedBytes();
-            tot_ip_pkts 		    += tmp->getParser()->getIpPkts();
-            tot_ip_bytes 		    += tmp->getParser()->getIpBytes();
-            tot_tcp_pkts 		    += tmp->getParser()->getTcpPkts();
-            tot_udp_pkts 		    += tmp->getParser()->getUdpPkts();
-            tot_total_flows_captured 	    += tmp->getParser()->getCptFlows();
-            tot_packets_processed 	    += tmp->getParser()->getProcPkts();
-            tot_total_l4_data_len 	    += tmp->getParser()->getL4Bytes();
-            tot_total_wire_bytes 	    += tmp->getParser()->getTotBytes();
-            tot_detected_flow_protocols     += tmp->getParser()->getDetectedProtos();
-            tot_guessed_flow_protocols 	    += tmp->getParser()->getGuessedProtos();
-            tot_unclassified_flow_protocols += tmp->getParser()->getUnclassProtos();
+        tot_discarded_bytes 	    += tmp->getParser()->getDiscardedBytes();
+        tot_ip_pkts 		    += tmp->getParser()->getIpPkts();
+        tot_ip_bytes 		    += tmp->getParser()->getIpBytes();
+        tot_tcp_pkts 		    += tmp->getParser()->getTcpPkts();
+        tot_udp_pkts 		    += tmp->getParser()->getUdpPkts();
+        tot_total_flows_captured 	    += tmp->getParser()->getCptFlows();
+        tot_packets_processed 	    += tmp->getParser()->getProcPkts();
+        tot_total_l4_data_len 	    += tmp->getParser()->getL4Bytes();
+        tot_total_wire_bytes 	    += tmp->getParser()->getTotBytes();
+        tot_detected_flow_protocols     += tmp->getParser()->getDetectedProtos();
+        tot_guessed_flow_protocols 	    += tmp->getParser()->getGuessedProtos();
+        tot_unclassified_flow_protocols += tmp->getParser()->getUnclassProtos();
 
 	    uint16_t *protos_cnt	     = tmp->getParser()->getProtosCnt();
 	    for(u_int32_t i = 0; i <= ndpi_get_num_supported_protocols(tmp->getNdpiStruct()); i++) {
@@ -558,6 +569,11 @@ static void printCustomStats()
         tracer->traceEvent(2, "\t\tTCP Packets:                %-20lu\n", tot_tcp_pkts);
         tracer->traceEvent(2, "\t\tUDP Packets:                %-20lu\n", tot_udp_pkts);
 
+        strftime(when, sizeof(when), "%d/%b/%Y %H:%M:%S", localtime_r(&time_start, &result));
+        tracer->traceEvent(2, "\t\tAnalysis begin:             %-20s\n", when);
+        strftime(when, sizeof(when), "%d/%b/%Y %H:%M:%S", localtime_r(&time_end, &result));
+        tracer->traceEvent(2, "\t\tAnalysis end:               %-20s\n", when);
+
         tracer->traceEvent(2, "\t\tDetected flow protos:       %-20u\n", tot_detected_flow_protocols);
         tracer->traceEvent(2, "\t\tGuessed flow protos:        %-20u\n", tot_guessed_flow_protocols);
         tracer->traceEvent(2, "\t\tUnclassified flow protos:   %-20u\r\n", tot_unclassified_flow_protocols);
@@ -571,6 +587,16 @@ static void printCustomStats()
                                         ndpi_get_proto_name((tmpRdr->getNdpiStruct()), i), tot_protos_cnt[i]);
                 }
         }
+
+        tracer->traceEvent(2, "\tProtocol statistics:\n");
+
+	    for(u_int32_t i = 0; i < NUM_BREEDS; i++) {
+	    if(breed_stats[i] > 0) {
+			tracer->traceEvent(2, "\t\t%-20s flows: %-13u\n",
+	   		ndpi_get_proto_breed_name(tmpRdr->getNdpiStruct(), ndpi_get_proto_breed(tmpRdr->getNdpiStruct(), i)),
+	    	breed_stats[i]);
+	    }
+	}
 }
 
 /* ********************************** */
@@ -607,7 +633,7 @@ int main(int argc, char * argv[])
 	/*  Setting up the sighandler bitmask   */
 	signal(SIGINT, sighandler);
 	signal(SIGTERM, sighandler);
-	printf("%d\n", type);
+    
 	sleep(2);
 	/*  have to find a better way of doing this job */
 	while (terminate_thread == 0 && reader_thread[0].getEof() == 0) {
