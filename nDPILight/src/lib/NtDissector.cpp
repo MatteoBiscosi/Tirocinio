@@ -9,11 +9,12 @@ void NtDissector::printBriefInfos(Reader *reader)
     NtStatistics_t hStat;
     uint64_t delta = 0;
     NapatechReader *reader_tmp = (NapatechReader *) reader;
-
+    
+    // Open the stat stream.
     hStat.cmd = NT_STATISTICS_READ_CMD_QUERY_V3;
-    hStat.u.query_v3.poll = 1;
+    hStat.u.query_v3.poll = 0;
     hStat.u.query_v3.clear = 1;
-    NT_StatRead(reader_tmp->getStatStream(), &hStat);
+    NT_StatRead(*reader_tmp->getStatStream(), &hStat);
     //tracer->traceEvent(2, "final packets: %llu\n", (long long unsigned int)hStat.u.query_v3.data.port.aPorts[0].rx.RMON1.pkts);
     this->captured_stats.packets_captured = (long long unsigned int)hStat.u.query_v3.data.port.aPorts[0].rx.extDrop.pktsFilterDrop + this->captured_stats.packets_captured;
     this->captured_stats.total_wire_bytes = (long long unsigned int)hStat.u.query_v3.data.port.aPorts[0].rx.extDrop.octetsFilterDrop + this->captured_stats.total_wire_bytes;
@@ -191,8 +192,7 @@ int NtDissector::parsePacket(FlowInfo & flow,
     NapatechReader * reader = (NapatechReader *) args;
     NtNetBuf_t * hNetBuffer = ((NtNetBuf_t *) header_tmp);
     NtDyn1Descr_t* pDyn1;
-    printf("Prova\n"); 
-
+    
     // Updating time counters
     pkt_infos.time_ms = NT_NET_GET_PKT_TIMESTAMP(* hNetBuffer);
     pkt_infos.eth_offset = 0;

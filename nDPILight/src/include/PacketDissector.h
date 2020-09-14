@@ -166,10 +166,25 @@ class PacketDissector {
          * Various setters and getters
          * 
          */ 
-	    unsigned long long int getPktsCaptured() { return captured_stats.packets_captured; };
-        void incrPktsCaptured() { this->captured_stats.packets_captured++; };
+	unsigned long long int getPktsCaptured() { return captured_stats.packets_captured; };
+        unsigned long long int getUnhPkts() { return captured_stats.unhandled_packets; };
+	unsigned long long int getDiscardedBytes() { return captured_stats.discarded_bytes; };
+	unsigned long long int getIpPkts() { return captured_stats.ip_pkts; };
+	unsigned long long int getIpBytes() { return captured_stats.ip_bytes; };
+	unsigned long long int getTcpPkts() { return captured_stats.tcp_pkts; };
+	unsigned long long int getUdpPkts() { return captured_stats.udp_pkts; };
+	unsigned long long int getCptFlows() { return captured_stats.total_flows_captured; };
+	unsigned long long int getProcPkts() { return captured_stats.packets_processed; };
+	unsigned long long int getL4Bytes() { return captured_stats.total_l4_data_len; };
+	unsigned long long int getTotBytes() { return captured_stats.total_wire_bytes; };
+	unsigned long long int getDetectedProtos() { return captured_stats.detected_flow_protocols; };
+	unsigned long long int getGuessedProtos() { return captured_stats.guessed_flow_protocols; };
+	unsigned long long int getUnclassProtos() { return captured_stats.unclassified_flow_protocols; };
+	uint16_t * getProtosCnt() { return captured_stats.protos_cnt; };
+
+	void incrPktsCaptured() { this->captured_stats.packets_captured++; };
         void incrUnhaPkts() { this->captured_stats.unhandled_packets++; };
-	    void incrWireBytes(unsigned long long int bytes) { this->captured_stats.total_wire_bytes += bytes; };
+	void incrWireBytes(unsigned long long int bytes) { this->captured_stats.total_wire_bytes += bytes; };
         std::queue<std::string> *getAllarmList() { return &this->allarm_list; };
 	const char *getType() { return this->if_type; };
 	char *getLogPath() { return this->log_path; };

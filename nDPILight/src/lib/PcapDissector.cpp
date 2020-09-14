@@ -232,11 +232,15 @@ int PcapDissector::parsePacket(FlowInfo & flow,
                                 void * packet_tmp,
                                 PacketInfo & pkt_infos)
 {
-	printf("PRRRova\n");
     PcapReader * reader = (PcapReader *) args;
        
     pcap_pkthdr const * const header = (pcap_pkthdr const * const) header_tmp;
     uint8_t const * const packet = (uint8_t const * const) packet_tmp;
+
+    struct timeval actual_time;
+    gettimeofday(&actual_time, nullptr);
+    
+    pkt_infos.time_ms = ((uint64_t) actual_time.tv_sec) * TICK_RESOLUTION + actual_time.tv_usec / (1000000 / TICK_RESOLUTION);
 
     this->captured_stats.packets_captured++;
     reader->newPacket((void *) header);

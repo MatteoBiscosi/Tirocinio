@@ -72,26 +72,27 @@ PacketDissector::PacketDissector(const char *type)
 	std::thread allarmThread(allarmManager, this);
 	allarmThread.detach();
 
-	this->unhandled_packets {0};
-	this->packets_captured {0};
-	this->previous_packets {0};
-	this->discarded_bytes {0};
-	this->ip_pkts {0};
-	this->ip_bytes {0};
-	this->tcp_pkts {0};
-	this->udp_pkts {0};
+	this->captured_stats.unhandled_packets = 0;
+	this->captured_stats.packets_captured = 0;
+	this->captured_stats.previous_packets = 0;
+	this->captured_stats.discarded_bytes = 0;
+	this->captured_stats.ip_pkts = 0;
+	this->captured_stats.ip_bytes = 0;
+	this->captured_stats.tcp_pkts = 0;
+	this->captured_stats.udp_pkts = 0;
 	
-	this->total_flows_captured {0};
+	this->captured_stats.total_flows_captured = 0;
 
-	this->nt_time_start {0}, nt_time_end {0}; 
+	this->captured_stats.nt_time_start = 0;
+	this->captured_stats.nt_time_end = 0; 
 
-	this->packets_processed {0};
-	this->total_l4_data_len {0};
-	this->total_wire_bytes {0};
+	this->captured_stats.packets_processed = 0;
+	this->captured_stats.total_l4_data_len = 0;
+	this->captured_stats.total_wire_bytes = 0;
 
-	this->detected_flow_protocols {0};
-	this->guessed_flow_protocols {0};
-	this->unclassified_flow_protocols {0};
+	this->captured_stats.detected_flow_protocols = 0;
+	this->captured_stats.guessed_flow_protocols = 0;
+	this->captured_stats.unclassified_flow_protocols = 0;
 }
 
 /* ********************************** */
@@ -159,7 +160,7 @@ int PacketDissector::flowToJson(Reader* reader,
 	char src_addr_str[INET6_ADDRSTRLEN+1];
 	char dst_addr_str[INET6_ADDRSTRLEN+1];
 	ndpi_serializer serializer;
-        ndpi_serialization_format fmt;
+	ndpi_serialization_format fmt;
 	ndpi_init_serializer(&serializer, fmt = ndpi_serialization_format_json);
 	flow_infos->ipTupleToString(src_addr_str, sizeof(src_addr_str), dst_addr_str, sizeof(dst_addr_str));
 
@@ -298,7 +299,7 @@ int PacketDissector::addVal(Reader * & reader,
 {
 	if(reader->newFlow(pkt_infos.flow_to_process) != 0) 
 		return -1;   
-
+	//printf("New flow\n");
 	memcpy(pkt_infos.flow_to_process, &flow, sizeof(*pkt_infos.flow_to_process));
 	pkt_infos.flow_to_process->flow_id = flow_id++;
 
@@ -350,12 +351,11 @@ void PacketDissector::processPacket(void * const args,
 	FlowInfo flow = FlowInfo();
 	Reader * reader = (Reader *) args;
 	PacketInfo pkt_infos = PacketInfo();
-	printf("Prova process\n");
+
 	/* Parsing the packet */
-	this->captured_stats.packets_captured = 0;
 	this->captured_stats.packets_captured++;
 	status = this->parsePacket(flow, reader, header_tmp, packet_tmp, pkt_infos);
-	return;
+	
 	/* Switch the status received from parsePacket */
 	switch(status) {
 		case -1: /* Error case */
@@ -392,8 +392,10 @@ void PacketDissector::processPacket(void * const args,
 		this->captured_stats.tcp_pkts++;
 
 	if(pkt_infos.flow_to_process->ended_dpi) {
-		pkt_infos.flow_to_process->last_seen = 0;
-		return;
+		if(status == 1) {
+			pkt_infos.flow_to_process->last_seen = 0;
+			return;
+		}
 	}
 
 	/* Updates timers and counters */

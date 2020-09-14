@@ -72,7 +72,7 @@ void printFlowStreamInfo(NtFlowStream_t flowStream)
     const char* ip;
     NtFlowInfo_t flowInfo;
     NtFlowStatus_t flowStatus;
-    //printf("Prova\n");
+    printf("Prova\n");
     // For each element in internal flow stream queue print the flow info record.
     // The flow info record is only available when NtFlow_t.gfi is set to 1.
     // Maintaining the flow info record has a performance overhead, so if the
@@ -107,6 +107,7 @@ void taskReceiverUnh(const char* streamName, NapatechReader *reader)
         if(status == NT_STATUS_TIMEOUT || status == NT_STATUS_TRYAGAIN) {
             if(reader->getErrorOfEof() != 0)
                     return;	
+ //           printFlowStreamInfo(reader->getFlowStream());
             continue;
         }
 	
@@ -117,9 +118,8 @@ void taskReceiverUnh(const char* streamName, NapatechReader *reader)
         if(handleErrorStatus(status, "Error while sniffing next packet") != 0) {
             continue;
         }
-	//printf("Incr pkts unha\n");
-        if(reader->getParser() != nullptr)
-	    reader->getParser()->incrUnhaPkts();
+
+//        reader->getParser()->incrUnhaPkts();
 
         NT_NetRxRelease(* reader->getUnhStream(), * reader->getUnhBuffer());
     }	
@@ -127,8 +127,10 @@ void taskReceiverUnh(const char* streamName, NapatechReader *reader)
 
 /* ********************************** */
 
-NapatechReader::NapatechReader(char *log_path, const char *type, int streamId)
+NapatechReader::NapatechReader(char *log_path, const char *type, NtFlowStream_t& flowStream, int streamId)
 {
+//	printf("NR init\n"); 
+    //printf("Inside reader\n");
     if(log_path != nullptr)
         strcpy(this->log_path, log_path);
     else
@@ -137,7 +139,8 @@ NapatechReader::NapatechReader(char *log_path, const char *type, int streamId)
     this->ndpi_flows_active = nullptr;
     this->ndpi_flows_idle = nullptr;
     this->error_or_eof = 0;
-    this->ndpi_struct = nullptr; 
+    this->ndpi_struct = nullptr;
+    this->flowStream = flowStream; 
     this->streamId = streamId;  
     this->newFlowCheck = false;
 }
@@ -146,7 +149,7 @@ NapatechReader::NapatechReader(char *log_path, const char *type, int streamId)
 
 NapatechReader::~NapatechReader()
 {
-    // Closes rx stream
+	// Closes rx stream
     NT_NetRxClose(hNetRxMiss);
     //NT_NetRxClose(hNetRxUnh); 
 }  
@@ -155,6 +158,7 @@ NapatechReader::~NapatechReader()
 
 int NapatechReader::initModule()
 {
+  //  printf("INit mod\n");
     ndpi_init_prefs init_prefs = ndpi_no_prefs;
 
     this->ndpi_struct = ndpi_init_detection_module(ndpi_no_prefs);
@@ -162,12 +166,13 @@ int NapatechReader::initModule()
 	printf("Prova\n");
         return -1;
     }
+//printf("End mod\n");
     return 0;
 }
 
 /* ********************************** */
 
-int NapatechReader::initConfig(int thread_number)
+NtFlowStream_t *NapatechReader::initConfig(int thread_number, NtFlowStream_t& flowStream)
 {
 	NtConfigStream_t hCfgStream;
 
@@ -178,7 +183,7 @@ int NapatechReader::initConfig(int thread_number)
 	status = NT_Init(NTAPI_VERSION);
 	if(handleErrorStatus(status, "NT_NetRxOpen() failed") != 0) {
 		delete(this);
-		return -1;
+		return nullptr;
 	}
 
 	// Open a configuration stream to assign a filter to a stream ID.
@@ -197,7 +202,9 @@ int NapatechReader::initConfig(int thread_number)
 	const char * thread = std::to_string(thread_number - 1).c_str();
 	// Shorthand for the checks used in these filters.
 	ntplCall(hCfgStream, "DefineMacro(\"LearnFilterCheck\", \"Port==$1 and Layer2Protocol==EtherII and Layer3Protocol==$2\")");
-	
+	//
+	//	printf("(0..%s)", prova);
+	//	printf("(0.." STR(*prova) "");
 	ntplCall(hCfgStream, "HashMode=Hash2TupleSorted");
 
 	std::string filter1 = std::string("Assign[StreamId=(0..");
@@ -219,27 +226,51 @@ int NapatechReader::initConfig(int thread_number)
 	filter4 = filter4 + thread;
 	filter4 = filter4 + "); Descriptor=DYN1, ColorBits=FlowID, Offset0=Layer3Header[8];  ColorMask=" STR(COLOR_IPV6) "] = LearnFilterCheck(1,ipv6) and Key(kd6, KeyID=" STR(KEY_ID_IPV6) ", FieldAction=Swap)==MISS";
 	ntplCall(hCfgStream, filter4.c_str());
-//printf("Prova3\n");
 
 	ntplCall(hCfgStream, "Assign[StreamId=" STR(STREAM_ID_UNHA) "] = LearnFilterCheck(0,ipv4) and Key(kd4, KeyID=" STR(KEY_ID_IPV4) ")==UNHANDLED");
 	ntplCall(hCfgStream, "Assign[StreamId=" STR(STREAM_ID_UNHA) "] = LearnFilterCheck(0,ipv6) and Key(kd6, KeyID=" STR(KEY_ID_IPV6) ")==UNHANDLED");
 	ntplCall(hCfgStream, "Assign[StreamId=" STR(STREAM_ID_UNHA) "] = LearnFilterCheck(1,ipv4) and Key(kd4, KeyID=" STR(KEY_ID_IPV4) ", FieldAction=Swap)==UNHANDLED");
 	ntplCall(hCfgStream, "Assign[StreamId=" STR(STREAM_ID_UNHA) "] = LearnFilterCheck(1,ipv6) and Key(kd6, KeyID=" STR(KEY_ID_IPV6) ", FieldAction=Swap)==UNHANDLED");
-//printf("Prova4\n");
-
 	ntplCall(hCfgStream, "Assign[StreamId=Drop] = LearnFilterCheck(0,ipv4) and Key(kd4, KeyID=" STR(KEY_ID_IPV4) ", CounterSet=CSA)==" STR(KEY_SET_ID));
 	ntplCall(hCfgStream, "Assign[StreamId=Drop] = LearnFilterCheck(0,ipv6) and Key(kd6, KeyID=" STR(KEY_ID_IPV6) ", CounterSet=CSA)==" STR(KEY_SET_ID));
 	ntplCall(hCfgStream, "Assign[StreamId=Drop] = LearnFilterCheck(1,ipv4) and Key(kd4, KeyID=" STR(KEY_ID_IPV4) ", CounterSet=CSB, FieldAction=Swap)==" STR(KEY_SET_ID));
 	ntplCall(hCfgStream, "Assign[StreamId=Drop] = LearnFilterCheck(1,ipv6) and Key(kd6, KeyID=" STR(KEY_ID_IPV6) ", CounterSet=CSB, FieldAction=Swap)==" STR(KEY_SET_ID));
 
-//printf("Prova2\n");
+	//printf("Ennd of configuration\n");
+	/*
+	// Initialize flow stream attributes and set adapter number attribute.
+	NT_FlowOpenAttrInit(&(flowAttr));
+	NT_FlowOpenAttrSetAdapterNo(&(flowAttr), 0);
+
+	// Opens a flow programming stream and returns a stream handle (flowStream).
+	status = NT_FlowOpen_Attr(&flowStream, "open_flow_stream_example", &(flowAttr));
+	handleErrorStatus(status, "Error while opening the flow stream");
+	if(handleErrorStatus(status, "Error while opening the flow stream") != 0)
+	return nullptr;
+
+	this->flowStream = flowStream;
+	*/
+	NtStatistics_t hStat;
+
+	// Open the stat stream.
+	status = NT_StatOpen(&this->hStatStream, "ExampleStatUsage") != NT_SUCCESS;
+
+	if(handleErrorStatus(status, "NT_StatOpen() failed") != 0)
+		return nullptr;
+
+	hStat.cmd = NT_STATISTICS_READ_CMD_QUERY_V3;
+
+	hStat.u.query_v3.poll = 0;
+	hStat.u.query_v3.clear = 1;
+	NT_StatRead(this->hStatStream, &hStat);
+
 	status = NT_NetRxOpen(&(this->hNetRxUnh), "Unhandled packets stream", NT_NET_INTERFACE_PACKET, STREAM_ID_UNHA, -1);
 	if(handleErrorStatus(status, "NT_NetRxOpen() failed") != 0)
-		return -1;
-//printf("Prova\n");
+		return nullptr;
+
 	std::thread receiverThread2(taskReceiverUnh, "flowmatch_example_receiver_net_rx_unhandled", this);
 	receiverThread2.detach();
-	return 0;
+	return nullptr;
 }
 
 /* ********************************** */
@@ -349,8 +380,9 @@ void NapatechReader::newPacket(void * header)
 		this->last_packets_scan = pkt_parser->getPktsCaptured();
 
 		/* Updating next max_idle_scan_index */
-		this->max_idle_scan_index = ((this->idle_scan_index + this->max_idle_scan_index) % this->max_active_flows) + 1;		
+		this->max_idle_scan_index = ((this->idle_scan_index + this->max_idle_scan_index) % this->max_active_flows) + 1;
 	}
+//	printFlowStreamInfo(this->flowStream);
 }
 
 /* ********************************** */
@@ -359,14 +391,11 @@ void taskReceiverAny(const char* streamName, NapatechReader *reader)
 {
     NtFlowAttr_t    flowAttr;
     NtFlowStream_t  flowStream;
-    NtStatistics_t hStat;
     int status;
-    
-    std::string nt_log = std::string("nt_");
-    nt_log = nt_log + std::to_string(reader->getStreamId());
 
-    NtDissector *tmp = new NtDissector(nt_log.c_str());
+    NtDissector *tmp = new NtDissector("nt_0");
     reader->setParser(tmp);
+//    printf("Receiving packets\n");
 
     tmp->initProtosCnt(ndpi_get_num_supported_protocols(reader->getNdpiStruct()));
 
@@ -377,24 +406,11 @@ void taskReceiverAny(const char* streamName, NapatechReader *reader)
     // Opens a flow programming stream and returns a stream handle (flowStream).
     status = NT_FlowOpen_Attr(&flowStream, "open_flow_stream_example", &(flowAttr));
     handleErrorStatus(status, "Error while opening the flow stream");
+                         
 
-        // Open the stat stream.
-    status = NT_StatOpen(reader->getStatStream(), "ExampleStatUsage") != NT_SUCCESS;
-        
-    if(handleErrorStatus(status, "NT_StatOpen() failed") != 0)
-	return;
-        
-    hStat.cmd = NT_STATISTICS_READ_CMD_QUERY_V3;
-        
-    hStat.u.query_v3.poll = 0;
-    hStat.u.query_v3.clear = 1;
-    NT_StatRead(* reader->getStatStream(), &hStat);                         
-    //printf("Stream %d ready\n", reader->getStreamId());
     while(reader->getErrorOfEof() == 0) {
 	    // Get package from rx stream.
-	    printFlowStreamInfo(flowStream);
 	    status = NT_NetRxGet(* reader->getMissStream(), reader->getMissBuffer(), 5000);
-	    //printf("Stream n. %d\n", reader->getStreamId());
 	    if(status == NT_STATUS_TIMEOUT || status == NT_STATUS_TRYAGAIN) 
 		    continue;
 	    
@@ -403,12 +419,12 @@ void taskReceiverAny(const char* streamName, NapatechReader *reader)
 
 	    if(handleErrorStatus(status, "Error while sniffing next packet") != 0)
 		    continue;
-//	    printf("Stream n. %d\n", reader->getStreamId());
-	    
+
+	    //NtDissector *pkt_parser = (NtDissector *) reader->getParser();
 	    tmp->processPacket(reader, reader->getMissBuffer(), nullptr);
 
 	    if(reader->getNewFlow() == true) {      
-		//printf("Prova new flow");      
+		printf("Prova new flow");      
 		    // Here a package has successfully been received, and the parameters for the
 		    // next flow to be learned will be set up.
 		    NtFlow_t flow = NtFlow_t();
@@ -462,11 +478,13 @@ void taskReceiverAny(const char* streamName, NapatechReader *reader)
 				    break;
 		    }
 		    // Program the flow into the adapter.
+		    //if((reader->getFlowStream()) == nullptr)
+		//	printf("DIO CANE\n");
 		    status = NT_FlowWrite(flowStream, &flow, -1);
 		    handleErrorStatus(status, "NT_FlowWrite() failed");
 		    reader->setNewFlow(false);            
 	    }
-	    //printFlowStreamInfo(flowStream);
+
 	    status = NT_NetRxRelease(*reader->getMissStream(), *reader->getMissBuffer());
 	    if(handleErrorStatus(status, "Error while releasing packet") != 0)
 		    continue;

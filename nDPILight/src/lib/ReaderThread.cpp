@@ -6,8 +6,8 @@
 
 ReaderThread::ReaderThread() 
 {
-    this->rdr = nullptr;
     this->thread_id = 0;
+    this->rdr = nullptr;        
 }
 
 /* ********************************** */
@@ -28,15 +28,15 @@ void ReaderThread::initReader(Reader* tmpRdr)
 
 /* ********************************** */
 
-void ReaderThread::initReader(Reader* tmpRdr, int i, int thread_number) 
+void ReaderThread::initReader(Reader *tmpRdr, int i, uint8_t thread_number) 
 {
-    this->type = 1; // Napatech
-    this->thread_number = thread_number;
+    this->type = 1; // Napatech 
     if(i == 0) {
-        this->rdr = (Reader *) new NapatechReader[thread_number];
+    	NapatechReader *tmp = (NapatechReader *) tmpRdr;
+	tmp->initConfig(thread_number);
     }
-    printf("new assignment\n");
-    this->rdr[i] = * tmpRdr;
+    this->rdr = tmpRdr;
+    this->rdr->initFileOrDevice();
 }
 
 /* ********************************** */
@@ -53,18 +53,7 @@ int ReaderThread::init()
 
 void ReaderThread::startRead()
 {
-    if(this->type == 1) {
-        for(int i = 0; i < this->thread_number; i++) {
-	    printf("Reader %d\n, %d", i, sizeof(this->rdr)/sizeof(*this->rdr));
-	    //if(this->rdr[i] != nullptr)
-            	this->rdr[i].startRead();
-	}
-    }
-    else
-    {
-        this->rdr->startRead();
-    }
-    
+    this->rdr->startRead();   
 }
 
 /* ********************************** */

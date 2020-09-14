@@ -48,9 +48,9 @@
 #define MAX_FLOW_ROOTS_PER_THREAD 1048576
 #define MAX_IDLE_FLOWS_PER_THREAD 65536
 #define TICK_RESOLUTION 1000
-#define IDLE_SCAN_PERIOD 150000 /* msec */
+#define IDLE_SCAN_PERIOD 60000 /* msec */
 #define PACKET_SCAN_PERIOD 524288 /* n_pkts */
-#define MAX_IDLE_TIME 300000 /* msec */
+#define MAX_IDLE_TIME 120000 /* msec */
 
 #ifndef ETH_P_IP
 #define ETH_P_IP 0x0800

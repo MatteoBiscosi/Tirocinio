@@ -16,11 +16,14 @@ void ndpi_idle_scan_walker(void const * const A, ndpi_VISIT which, int depth, vo
         return;
     }
 
+	//printf("%llu, %llu, %llu\n", flow->last_seen, MAX_IDLE_TIME, workflow->getLastTime());
+
     if (which == ndpi_preorder || which == ndpi_leaf) {
         if ((flow->flow_fin_ack_seen == 1 && flow->flow_ack_seen == 1) ||
             flow->last_seen + MAX_IDLE_TIME < workflow->getLastTime())
             /*  New flow that need to be added to idle flows    */
         {
+	printf("PRova\n");
             char src_addr_str[INET6_ADDRSTRLEN+1];
             char dst_addr_str[INET6_ADDRSTRLEN+1];
             flow->ipTupleToString(src_addr_str, sizeof(src_addr_str), dst_addr_str, sizeof(dst_addr_str));

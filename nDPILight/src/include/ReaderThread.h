@@ -6,7 +6,6 @@
 
 class ReaderThread {
     private:
-        int thread_number;
         int type;
         Reader* rdr;
         pthread_t thread_id;
@@ -31,7 +30,7 @@ class ReaderThread {
          * @par    thread_number = number of readers
          * 
          */
-        void initReader(Reader* tmpRdr, int i, int thread_number);
+        void initReader(Reader *tmpRdr, int i, uint8_t thread_number);
 
         /**
          * Function used to start the initialization,
@@ -75,6 +74,8 @@ class ReaderThread {
          *
          */
         void setThreadId(pthread_t tmp_thread_id) { this->thread_id = tmp_thread_id; };
+
+	void setType(uint8_t type) { this->type = type; };
 
         pthread_t* getThreadIdPtr() { return &this->thread_id; };
 

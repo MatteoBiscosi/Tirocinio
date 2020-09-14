@@ -5,16 +5,21 @@
 using namespace std;
 
 
+static void printCustomStats();
+
+
 
 Trace *tracer;
-ReaderThread reader_thread;
+ReaderThread *reader_thread;
+
 int terminate_thread {0};
 int generate_logs {0};
 int thread_number {1};
+
 uint32_t mask;
 char *log_path;
-
-
+uint8_t type {0};
+long long unsigned int previous_pkts = 0;
 
 
 
@@ -251,9 +256,9 @@ static int setup_pcap(char const * const file_or_device)
     	tmp = new PcapReader(log_path, type.c_str(), interface);
     } else 
 	tmp = new PcapReader(log_path, type.c_str(), file_or_device);
-    reader_thread.initReader(tmp);
+    reader_thread->initReader(tmp);
 
-    if(reader_thread.init() == -1)
+    if(reader_thread->init() == -1)
         return -1;
 
     return 0;
@@ -264,10 +269,6 @@ static int setup_pcap(char const * const file_or_device)
 static int setup_napatech()
 /*  Setup the reader_thread */
 {
-    printf("Prova");
-    NtFlowStream_t flowStream;
-    string type = "nt";
-
     if(log_path == nullptr) {
         if(dirExists("./logs") != 1) {
             tracer->traceEvent(0, "Couldn't find necessary directories, please do `make clean` and then do `make`\n");
@@ -287,16 +288,12 @@ static int setup_napatech()
 
     for(int i = 0; i < thread_number; i++) {
         string type = "nt";
-	    type = type + "_";
+	type = type + "_";
         type = type + to_string(i);
-        NapatechReader *tmp = new NapatechReader(log_path, type.c_str(), flowStream, i);
-        reader_thread.initReader(tmp, i, thread_number);
-        if(i == 0)
-		flowStream = tmp->initConfig(thread_number);
+        NapatechReader *tmp = new NapatechReader(log_path, type.c_str(), i);
 
-	if(tmp->initFileOrDevice() == -1)
-		return -1;
-    }
+	reader_thread[i].initReader(tmp, i, thread_number);
+    }    
 
     /* Analysis starts */
     tracer->traceEvent(2, "\tAnalysis started\r\n\r\n");
@@ -310,12 +307,16 @@ static int setup_reader(char const * const file_or_device)
 {
 	/*  Napatech    */
 	if(starts_with(file_or_device, "nt")) {
+		reader_thread = new ReaderThread[thread_number];
+		type = 1;
 		if(setup_napatech() != 0) {
 			return -1;
 		}
 	}
 	/*  Pcap    */
 	else {
+		reader_thread = new ReaderThread();
+		type = 0;
 		if(setup_pcap(file_or_device) != 0) {
 			return -1;
 		}
@@ -329,7 +330,14 @@ static int setup_reader(char const * const file_or_device)
 static void * run_reader(void * const tmp)
 	/*  Reader run function, it calls for the pcap_loop */
 {
-	reader_thread.startRead();
+	switch(type) {
+	    case 0:
+		reader_thread->startRead();
+		break;
+	    case 1:
+		for(int i = 0; i < thread_number; i++)
+		    reader_thread[i].startRead();
+	}
 
 	return nullptr;
 }
@@ -351,7 +359,7 @@ static int start_reader()
 	}
 
 	/*  Run necessary threads to monitor flows  */
-	if (pthread_create(reader_thread.getThreadIdPtr(), nullptr,
+	if (pthread_create(reader_thread->getThreadIdPtr(), nullptr,
 				run_reader, nullptr) != 0) {
 		tracer->traceEvent(0, "Error pthread_create: %d\n", strerror(errno));
 		return -1;
@@ -370,7 +378,7 @@ static int start_reader()
 static int stop_reader()
 	/*  Stop the reader_thread, it means that the program is gonna terminate soon   */
 {
-	reader_thread.stopRead();
+	reader_thread->stopRead();
 
 	tracer->traceEvent(1, "Stopping analysis\r\n\r\n");
 
@@ -379,13 +387,20 @@ static int stop_reader()
 	clock_gettime(CLOCK_REALTIME, &abstime);
 	abstime.tv_sec += 10; 
 
-	if (pthread_timedjoin_np(reader_thread.getThreadId(), nullptr, &abstime) != 0) {
-		tracer->traceEvent(0, "Error in pthread_join: %d; Forcing termination\n", strerror(errno));
-		reader_thread.printStats();
+	if (pthread_timedjoin_np(reader_thread->getThreadId(), nullptr, &abstime) != 0) {
+		//tracer->traceEvent(0, "Error in pthread_join: %d; Forcing termination\n", strerror(errno));
+		//reader_thread.printStats();
 		return -1;
 	}
 
-	reader_thread.printStats();
+	switch(type) {
+	    case 0:
+		reader_thread->printStats();
+		break;
+	    case 1:
+		printCustomStats();
+		break;
+	}
 
 	return 0;
 }
@@ -407,6 +422,8 @@ static void sighandler(int signum)
 	} else {
 		tracer->traceEvent(2, "\tReader threads are already shutting down, please be patient.\n");
 	}
+
+	exit(0);
 }
 
 /* ********************************** */
@@ -414,10 +431,146 @@ static void sighandler(int signum)
 static int check_error_or_eof()
 	/*  Checks if eof is reached */
 {
-	if (reader_thread.getEof() == 0)
+	if (reader_thread->getEof() == 0)
 		return 0;
 
 	return -1;
+}
+
+/* ********************************** */
+
+static void printCustomBriefInfos()
+{
+    NtStatistics_t hStat;
+    uint64_t delta = 0;
+    NapatechReader *reader_tmp = (NapatechReader *) reader_thread[0].getReader();
+    long long unsigned int tot_packets_captured = 0;
+    long long unsigned int total_wire_bytes = 0;
+
+    // Open the stat stream.
+    hStat.cmd = NT_STATISTICS_READ_CMD_QUERY_V3;
+    hStat.u.query_v3.poll = 0;
+    hStat.u.query_v3.clear = 0;
+    NT_StatRead(*reader_tmp->getStatStream(), &hStat);
+    
+    tot_packets_captured = (long long unsigned int)hStat.u.query_v3.data.port.aPorts[0].rx.extDrop.pktsFilterDrop +
+				 (long long unsigned int)hStat.u.query_v3.data.port.aPorts[1].rx.extDrop.pktsFilterDrop; 
+
+    total_wire_bytes = (long long unsigned int)hStat.u.query_v3.data.port.aPorts[0].rx.extDrop.octetsFilterDrop +
+				(long long unsigned int)hStat.u.query_v3.data.port.aPorts[1].rx.extDrop.octetsFilterDrop; 
+
+    for(int i = 0; i < thread_number; i++) {
+	NapatechReader *tmp   = (NapatechReader *) reader_thread[i].getReader();
+	tot_packets_captured += tmp->getParser()->getPktsCaptured();
+	total_wire_bytes     += tmp->getParser()->getTotBytes();
+    }
+
+    delta = tot_packets_captured - previous_pkts;
+    previous_pkts = tot_packets_captured;
+    
+    tracer->traceEvent(2, "\tCapture brief summary: Tot. packets: %llu | Tot. bytes: %llu | pps: %llu\r\n",
+    			tot_packets_captured, total_wire_bytes, delta);
+}
+
+
+
+static void printCustomStats()
+{
+	NtStatistics_t hStat;
+	NapatechReader *tmpRdr = (NapatechReader *) reader_thread[0].getReader();
+	//Open the stat stream.
+	hStat.cmd = NT_STATISTICS_READ_CMD_QUERY_V3;
+	hStat.u.query_v3.poll = 0;
+	hStat.u.query_v3.clear = 0;
+	NT_StatRead(*tmpRdr->getStatStream(), &hStat);
+
+	long long unsigned int tot_unhandled_packets = 0;
+        long long unsigned int tot_packets_captured = (long long unsigned int)hStat.u.query_v3.data.port.aPorts[0].rx.extDrop.pktsFilterDrop +
+                                 (long long unsigned int)hStat.u.query_v3.data.port.aPorts[1].rx.extDrop.pktsFilterDrop;
+        long long unsigned int tot_previous_packets = 0;
+        long long unsigned int tot_discarded_bytes = 0;
+        long long unsigned int tot_ip_pkts = 0;
+        long long unsigned int tot_ip_bytes = 0;
+        long long unsigned int tot_tcp_pkts = 0;
+        long long unsigned int tot_udp_pkts = 0;
+
+        long long unsigned int tot_total_flows_captured = 0;
+
+        long long unsigned int tot_packets_processed = 0;
+        long long unsigned int tot_total_l4_data_len = 0;
+        long long unsigned int tot_total_wire_bytes = (long long unsigned int)hStat.u.query_v3.data.port.aPorts[0].rx.extDrop.octetsFilterDrop +
+                                (long long unsigned int)hStat.u.query_v3.data.port.aPorts[1].rx.extDrop.octetsFilterDrop;
+
+        long long unsigned int tot_detected_flow_protocols = 0;
+        long long unsigned int tot_guessed_flow_protocols = 0;
+        long long unsigned int tot_unclassified_flow_protocols = 0;
+        long long unsigned int tot_avg_pkt_size = 0;
+        long long unsigned int tot_breed_stats[NUM_BREEDS] = { 0 };
+	uint16_t * tot_protos_cnt = new uint16_t[ndpi_get_num_supported_protocols(reader_thread[0].getReader()->getNdpiStruct()) + 1] ();
+
+        char buf[32];
+
+
+	for(int i = 0; i < thread_number; i++) {
+	    NapatechReader *tmp 	     = (NapatechReader *) reader_thread[i].getReader();
+	    //tmp->getParser()->printStats((Reader *) tmp);
+	    tot_unhandled_packets 	    += tmp->getParser()->getUnhPkts();
+	    tot_packets_captured  	    += tmp->getParser()->getPktsCaptured();
+            tot_discarded_bytes 	    += tmp->getParser()->getDiscardedBytes();
+            tot_ip_pkts 		    += tmp->getParser()->getIpPkts();
+            tot_ip_bytes 		    += tmp->getParser()->getIpBytes();
+            tot_tcp_pkts 		    += tmp->getParser()->getTcpPkts();
+            tot_udp_pkts 		    += tmp->getParser()->getUdpPkts();
+            tot_total_flows_captured 	    += tmp->getParser()->getCptFlows();
+            tot_packets_processed 	    += tmp->getParser()->getProcPkts();
+            tot_total_l4_data_len 	    += tmp->getParser()->getL4Bytes();
+            tot_total_wire_bytes 	    += tmp->getParser()->getTotBytes();
+            tot_detected_flow_protocols     += tmp->getParser()->getDetectedProtos();
+            tot_guessed_flow_protocols 	    += tmp->getParser()->getGuessedProtos();
+            tot_unclassified_flow_protocols += tmp->getParser()->getUnclassProtos();
+
+	    uint16_t *protos_cnt	     = tmp->getParser()->getProtosCnt();
+	    for(u_int32_t i = 0; i <= ndpi_get_num_supported_protocols(tmp->getNdpiStruct()); i++) {
+                if(protos_cnt[i] > 0) 
+                        tot_protos_cnt[i] += protos_cnt[i];
+            }
+	}
+
+        tracer->traceEvent(2, "\tTraffic statistics:\r\n");
+        tracer->traceEvent(2, "\t\tEthernet bytes:             %-20llu (includes ethernet CRC/IFC/trailer)\n",
+                        tot_total_wire_bytes);
+        tracer->traceEvent(2, "\t\tDiscarded bytes:            %-20llu\n",
+                        tot_discarded_bytes);
+        tracer->traceEvent(2, "\t\tIP packets:                 %-20llu of %llu packets total\n",
+                        tot_ip_pkts,
+                        tot_packets_captured);
+        tracer->traceEvent(2, "\t\tUnhandled IP packets:       %-20llu\n",
+                        tot_unhandled_packets);
+        /* In order to prevent Floating point exception in case of no traffic*/
+        if(tot_ip_pkts != 0)
+                tot_avg_pkt_size = tot_ip_bytes/tot_ip_pkts;
+
+        tracer->traceEvent(2, "\t\tIP bytes:                   %-20llu (avg pkt size %u bytes)\n",
+                        tot_ip_bytes, tot_avg_pkt_size);
+
+        tracer->traceEvent(2, "\t\tUnique flows:               %-20u\n", tot_total_flows_captured);
+
+        tracer->traceEvent(2, "\t\tTCP Packets:                %-20lu\n", tot_tcp_pkts);
+        tracer->traceEvent(2, "\t\tUDP Packets:                %-20lu\n", tot_udp_pkts);
+
+        tracer->traceEvent(2, "\t\tDetected flow protos:       %-20u\n", tot_detected_flow_protocols);
+        tracer->traceEvent(2, "\t\tGuessed flow protos:        %-20u\n", tot_guessed_flow_protocols);
+        tracer->traceEvent(2, "\t\tUnclassified flow protos:   %-20u\r\n", tot_unclassified_flow_protocols);
+
+
+        tracer->traceEvent(2, "\tDetected protocols:\r\n");
+
+        for(u_int32_t i = 0; i <= ndpi_get_num_supported_protocols(tmpRdr->getNdpiStruct()); i++) {
+                if(tot_protos_cnt[i] > 0) {
+                        tracer->traceEvent(2, "\t\t%-20s flows: %-13u\r\n",
+                                        ndpi_get_proto_name((tmpRdr->getNdpiStruct()), i), tot_protos_cnt[i]);
+                }
+        }
 }
 
 /* ********************************** */
@@ -439,37 +592,42 @@ int main(int argc, char * argv[])
 	if((dst = check_args(argc, argv)) == nullptr) {
 		return 0;
 	}
-//	printf("Prova main");
+	
 	/*  Setting up and starting the worker thread   */
 	if(setup_reader(dst) != 0) {
-        tracer->traceEvent(0, "nDPILight initialization failed\n");
-        return 1;
-    }
-//printf("End of setup");
+		tracer->traceEvent(0, "nDPILight initialization failed\n");
+		return 1;
+	}
 
-    if(start_reader() != 0) {
-        tracer->traceEvent(0, "nDPILight initialization failed\n");
-        return 1;
-    }
+	if(start_reader() != 0) {
+		tracer->traceEvent(0, "nDPILight initialization failed\n");
+		return 1;
+	}
 
-    /*  Setting up the sighandler bitmask   */
-    signal(SIGINT, sighandler);
-    signal(SIGTERM, sighandler);
+	/*  Setting up the sighandler bitmask   */
+	signal(SIGINT, sighandler);
+	signal(SIGTERM, sighandler);
+	printf("%d\n", type);
+	sleep(2);
+	/*  have to find a better way of doing this job */
+	while (terminate_thread == 0 && reader_thread[0].getEof() == 0) {
+            switch(type) {
+		case 0: {
+		    PcapReader *tmp1 = (PcapReader *) reader_thread->getReader();
+		    tmp1->getParser()->printBriefInfos(reader_thread->getReader());
+		    break;
+		}
+		case 1: {
+		    printCustomBriefInfos();
+		    break;
+		}
+	    }
+	    sleep(1);
+        }
 
-    sleep(2);
-    /*  have to find a better way of doing this job */
-    while (terminate_thread == 0 && check_error_or_eof() == 0) {
-        NapatechReader *tmpRdr = (NapatechReader *) reader_thread.getReader();
-//	tmpRdr[0].getParser()->printBriefInfos(reader_thread.getReader());
-	sleep(1);
-	printf("prova sleep\n");
-    }
-
-    if (terminate_thread == 0 && stop_reader() != 0) {
-        tracer->traceEvent(2, "\tnDPILight: stop_reader\n");
-        return 1;
-    }
-    //delete(tracer);
+        if (terminate_thread == 0 && stop_reader() != 0) {
+            return 1;
+        }
 	
-    return 0;
+        return 0;
 }
