@@ -58,7 +58,7 @@ void nt_idle_scan_walker(void const * const A, ndpi_VISIT which, int depth, void
             /*  New flow that need to be added to idle flows    */
         {
 			if(flow->last_seen != 0)
-				pkt_parser->printFlow(workflow, flow);
+				workflow->getParser()->printFlow(workflow, flow);
 
             char src_addr_str[INET6_ADDRSTRLEN+1];
             char dst_addr_str[INET6_ADDRSTRLEN+1];

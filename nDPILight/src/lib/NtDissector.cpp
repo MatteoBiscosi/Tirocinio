@@ -200,6 +200,7 @@ int NtDissector::parsePacket(FlowInfo & flow,
     
     // Updating time counters
     pkt_infos.time_ms = NT_NET_GET_PKT_TIMESTAMP(* hNetBuffer);
+    pkt_infos.eth_offset = 0;
 
     // Checking idle flows
     reader->newPacket((void *)hNetBuffer);

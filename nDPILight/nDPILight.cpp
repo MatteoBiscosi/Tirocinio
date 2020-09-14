@@ -21,7 +21,7 @@ char *log_path;
 uint8_t type {0};
 
 unsigned long long int previous_pkts = 0;
-unsigned long long int time_start, time_end;
+time_t time_start, time_end;
 
 
 
@@ -126,7 +126,7 @@ static char * check_args(int &argc, char ** argv)
 
     /*  In case of -h arg, print infos and terminate    */
     if(find_help(argv, argv + argc, "-h")) {
-        cout << "nDPILight -i <file|device> [-t <tracelevel>]\n"
+        cout << "nDPILight -i <file|device> [-t <tracelevel>] [-n <thread_number>] [-p <path>] [-v]\n"
              << "Usage:\n"
              << "  -i <file.pcap|device>       | Specify a pcap file/playlist to read packets from or a\n"
              << "                              | device for live capture (comma-separated list)\n"
@@ -134,16 +134,20 @@ static char * check_args(int &argc, char ** argv)
              << "  -n <thread_number>          | If this option is supported, specify the number of threads to be used to\n"
              << "                              | capture and process packets; the number must be betwenn 1 and 8.\n"
              << "  -r none|risk1|risk2[,...]   | Specify which situation is a risk (default is, each situation is a risk).\n"
-             << "                              | Possible risks are: URL_POSSIBLE_XSS | URL_POSSIBLE_SQL_INJECTION | URL_POSSIBLE_RCE_INJECTION |\n"
-             << "                              |                     BINARY_APPLICATION_TRANSFER | KNOWN_PROTOCOL_ON_NON_STANDARD_PORT |\n"
-             << "                              |                     TLS_SELFSIGNED_CERTIFICATE | TLS_OBSOLETE_VERSION | TLS_WEAK_CIPHER |\n"
-             << "                              |                     TLS_CERTIFICATE_EXPIRED | TLS_CERTIFICATE_MISMATCH | HTTP_SUSPICIOUS_USER_AGENT |\n"
-             << "                              |                     HTTP_NUMERIC_IP_HOST | HTTP_SUSPICIOUS_URL | HTTP_SUSPICIOUS_HEADER |\n"
-             << "                              |                     TLS_NOT_CARRYING_HTTPS | SUSPICIOUS_DGA_DOMAIN | MALFORMED_PACKET |\n"
-             << "                              |                     SSH_OBSOLETE_CLIENT_VERSION_OR_CIPHER | SSH_OBSOLETE_SERVER_VERSION_OR_CIPHER |\n"
-             << "                              |                     SMB_INSECURE_VERSION | TLS_SUSPICIOUS_ESNI_USAGE | UNSAFE_PROTOCOL\n"
+             << "                              | Possible risks are: URL_POSSIBLE_XSS 			  | URL_POSSIBLE_SQL_INJECTION\n"
+             << "                              |                     BINARY_APPLICATION_TRANSFER	          | KNOWN_PROTOCOL_ON_NON_STANDARD_PORT\n"
+             << "                              |                     TLS_SELFSIGNED_CERTIFICATE 	          | TLS_OBSOLETE_VERSION\n"
+             << "                              |                     TLS_CERTIFICATE_EXPIRED 		  | TLS_CERTIFICATE_MISMATCH\n"
+             << "                              |                     HTTP_NUMERIC_IP_HOST 		  | HTTP_SUSPICIOUS_URL\n"
+             << "                              |                     TLS_NOT_CARRYING_HTTPS 		  | SUSPICIOUS_DGA_DOMAIN\n"
+             << "                              |                     SSH_OBSOLETE_CLIENT_VERSION_OR_CIPHER | SSH_OBSOLETE_SERVER_VERSION_OR_CIPHER\n"
+             << "                              |                     SMB_INSECURE_VERSION 		  | TLS_SUSPICIOUS_ESNI_USAGE\n"
+             << "                              |                     URL_POSSIBLE_RCE_INJECTION            | TLS_WEAK_CIPHER \n"
+             << "                              |                     MALFORMED_PACKET                      | HTTP_SUSPICIOUS_USER_AGENT\n"
+             << "                              |                     UNSAFE_PROTOCOL                       | HTTP_SUSPICIOUS_HEADER\n"
              << "  -v                          | Creates a log file about every flow after detecting level 7 protocol (by default\n"
-             << "                              | it's created when a flow hits a risk specified with -r option)\n";
+             << "                              | it's created when a flow hits a risk specified with -r option).\n"
+             << "  -p                          | Specify the path to save log files; default is ./logs.\n";
         return nullptr;
     }
 
@@ -300,9 +304,9 @@ static int setup_napatech()
     /* Analysis starts */
     tracer->traceEvent(2, "\tAnalysis started\r\n\r\n");
 
-    time_start = struct timeval actual_time;
+    struct timeval actual_time;
     gettimeofday(&actual_time, nullptr);
-    time_start = (uint64_t) actual_time.tv_sec;
+    time_start = actual_time.tv_sec;
 
     return 0;
 }
@@ -516,11 +520,11 @@ static void printCustomStats()
 
     char buf[32], when[65];
     struct tm result;
-
-    time_end = struct timeval actual_time;
+    long long unsigned int breed_stats[NUM_BREEDS] = { 0 };
+    struct timeval actual_time;
     gettimeofday(&actual_time, nullptr);
-    time_end = (uint64_t) actual_time.tv_sec;
-
+    time_end = actual_time.tv_sec;
+    
 
 	for(int i = 0; i < thread_number; i++) {
 	    NapatechReader *tmp 	     = (NapatechReader *) reader_thread[i].getReader();
@@ -582,7 +586,9 @@ static void printCustomStats()
         tracer->traceEvent(2, "\tDetected protocols:\r\n");
 
         for(u_int32_t i = 0; i <= ndpi_get_num_supported_protocols(tmpRdr->getNdpiStruct()); i++) {
+		ndpi_protocol_breed_t breed = ndpi_get_proto_breed((tmpRdr->getNdpiStruct()), i);
                 if(tot_protos_cnt[i] > 0) {
+			breed_stats[i] += tot_protos_cnt[i];
                         tracer->traceEvent(2, "\t\t%-20s flows: %-13u\r\n",
                                         ndpi_get_proto_name((tmpRdr->getNdpiStruct()), i), tot_protos_cnt[i]);
                 }

@@ -34,7 +34,7 @@ class PacketDissector {
                 
                 unsigned long long int total_flows_captured;
 
-                unsigned long long int time_start, time_end; 
+                time_t time_start, time_end; 
 
                 unsigned long long int packets_processed;
                 unsigned long long int total_l4_data_len;
@@ -179,15 +179,15 @@ class PacketDissector {
 	unsigned long long int getProcPkts() { return captured_stats.packets_processed; };
 	unsigned long long int getL4Bytes() { return captured_stats.total_l4_data_len; };
 	unsigned long long int getTotBytes() { return captured_stats.total_wire_bytes; };
-        unsigned long long int getStartAnalysis() { return captured_stats.time_start; };
-        unsigned long long int getEndAnalysis() { return captured_stats.time_end; };
+        const time_t getStartAnalysis() { return captured_stats.time_start; };
+        const time_t getEndAnalysis() { return captured_stats.time_end; };
 	unsigned long long int getDetectedProtos() { return captured_stats.detected_flow_protocols; };
 	unsigned long long int getGuessedProtos() { return captured_stats.guessed_flow_protocols; };
 	unsigned long long int getUnclassProtos() { return captured_stats.unclassified_flow_protocols; };
 	uint16_t * getProtosCnt() { return captured_stats.protos_cnt; };
 
-        void setStartAnalysis() { struct timeval actual_time; gettimeofday(&actual_time, nullptr); time_start = (uint64_t) actual_time.tv_sec) };
-        void setEndAnalysis() { struct timeval actual_time; gettimeofday(&actual_time, nullptr); time_end = (uint64_t) actual_time.tv_sec) };
+        void setStartAnalysis() { struct timeval actual_time; gettimeofday(&actual_time, nullptr); this->captured_stats.time_start = actual_time.tv_sec; };
+        void setEndAnalysis() { struct timeval actual_time; gettimeofday(&actual_time, nullptr); this->captured_stats.time_end = actual_time.tv_sec; };
 	void incrPktsCaptured() { this->captured_stats.packets_captured++; };
         void incrUnhaPkts() { this->captured_stats.unhandled_packets++; };
 	void incrWireBytes(unsigned long long int bytes) { this->captured_stats.total_wire_bytes += bytes; };

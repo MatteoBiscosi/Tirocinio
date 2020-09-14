@@ -21,9 +21,10 @@ void allarmManager(PacketDissector * pkt_dissector)
     else {
 	strftime(theDate, sizeof(theDate), "_%Y-%m-%d_%H:%M:%S", timenow);
 	char *log_path = (char *)pkt_dissector->getLogPath();
-	strcat(log_path, pkt_dissector->getType());
+	printf("%s, %s, %s\n", log_path, theDate);
 	strcat(log_path, theDate);
 	strcpy(theDate, log_path);
+	printf("%s, %s, %s\n", log_path, theDate);
     }
     
     std::ofstream outfile (theDate);
@@ -83,8 +84,8 @@ PacketDissector::PacketDissector(const char *type)
 	
 	this->captured_stats.total_flows_captured = 0;
 
-	this->captured_stats.nt_time_start = 0;
-	this->captured_stats.nt_time_end = 0; 
+	this->captured_stats.time_start = 0;
+	this->captured_stats.time_end = 0; 
 
 	this->captured_stats.packets_processed = 0;
 	this->captured_stats.total_l4_data_len = 0;
@@ -105,6 +106,28 @@ PacketDissector::PacketDissector(const char *type, uint num)
 	ndpi_init_serializer(&this->serializer, this->fmt = ndpi_serialization_format_json);
 	std::thread allarmThread(allarmManager, this);
 	allarmThread.detach();
+
+	this->captured_stats.unhandled_packets = 0;
+        this->captured_stats.packets_captured = 0;
+        this->captured_stats.previous_packets = 0;
+        this->captured_stats.discarded_bytes = 0;
+        this->captured_stats.ip_pkts = 0;
+        this->captured_stats.ip_bytes = 0;
+        this->captured_stats.tcp_pkts = 0;
+        this->captured_stats.udp_pkts = 0;
+
+        this->captured_stats.total_flows_captured = 0;
+
+        this->captured_stats.time_start = 0;
+        this->captured_stats.time_end = 0;
+
+        this->captured_stats.packets_processed = 0;
+        this->captured_stats.total_l4_data_len = 0;
+        this->captured_stats.total_wire_bytes = 0;
+
+        this->captured_stats.detected_flow_protocols = 0;
+        this->captured_stats.guessed_flow_protocols = 0; 
+        this->captured_stats.unclassified_flow_protocols = 0;
 }
 
 /* ********************************** */
@@ -117,6 +140,28 @@ PacketDissector::PacketDissector(char *log_path, const char *type)
 	ndpi_init_serializer(&this->serializer, this->fmt = ndpi_serialization_format_json);
 	std::thread allarmThread(allarmManager, this);
 	allarmThread.detach();
+
+	this->captured_stats.unhandled_packets = 0;
+        this->captured_stats.packets_captured = 0;
+        this->captured_stats.previous_packets = 0;
+        this->captured_stats.discarded_bytes = 0;
+        this->captured_stats.ip_pkts = 0;
+        this->captured_stats.ip_bytes = 0;
+        this->captured_stats.tcp_pkts = 0;
+        this->captured_stats.udp_pkts = 0;
+
+        this->captured_stats.total_flows_captured = 0;
+
+        this->captured_stats.time_start = 0;
+        this->captured_stats.time_end = 0;
+
+        this->captured_stats.packets_processed = 0;
+        this->captured_stats.total_l4_data_len = 0;
+        this->captured_stats.total_wire_bytes = 0;
+
+        this->captured_stats.detected_flow_protocols = 0;
+        this->captured_stats.guessed_flow_protocols = 0; 
+        this->captured_stats.unclassified_flow_protocols = 0;
 }
 
 /* ********************************** */
@@ -128,9 +173,6 @@ PacketDissector::~PacketDissector()
 
 	if(this->captured_stats.protos_cnt != nullptr)
 		delete [] this->captured_stats.protos_cnt;
-
-	if(this->allarm_list != nullptr)
-		allarm_list->erase() (allarm_list->begin(), allarm_list->end());
 
 	ndpi_term_serializer(&this->serializer);
 }
@@ -362,9 +404,9 @@ void PacketDissector::processPacket(void * const args,
 		void * packet_tmp)
 {
 	int status;
-	FlowInfo flow = new FlowInfo();
+	FlowInfo flow = FlowInfo();
 	Reader * reader = (Reader *) args;
-	PacketInfo pkt_infos = new PacketInfo();
+	PacketInfo pkt_infos = PacketInfo();
 
 	/* Parsing the packet */
 	this->captured_stats.packets_captured++;

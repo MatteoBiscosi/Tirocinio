@@ -29,8 +29,8 @@ class PacketInfo {
         FlowInfo * flow_to_process;
         
     public:
-        PacketInfo() {};
-        ~PacketInfo() {};
+        PacketInfo();
+        ~PacketInfo();
 };
 
 #endif
