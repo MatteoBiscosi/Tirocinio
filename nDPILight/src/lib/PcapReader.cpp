@@ -172,8 +172,7 @@ int PcapReader::checkEnd()
 void PcapReader::checkForIdleFlows()
 {
     /*  Check if at least IDLE_SCAN_PERIOD passed since last scan   */
-    if (this->last_idle_scan_time + IDLE_SCAN_PERIOD < this->last_time || 
-        pkt_parser->getPktsCaptured() - this->last_packets_scan > PACKET_SCAN_PERIOD) {
+    if (this->last_idle_scan_time + IDLE_SCAN_PERIOD < this->last_time) {
 
         for (this->idle_scan_index; this->idle_scan_index < this->max_idle_scan_index; ++this->idle_scan_index) {
             if(this->ndpi_flows_active[this->idle_scan_index] == nullptr)

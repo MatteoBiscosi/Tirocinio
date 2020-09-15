@@ -132,19 +132,9 @@ void taskReceiverUnh(const char* streamName, NapatechReader *reader)
 
 /* ********************************** */
 
-NapatechReader::NapatechReader(char *log_path, const char *type, int streamId)
+NapatechReader::NapatechReader(char *log_path, const char *type, int streamId) : Reader(log_path, type)
 {
-    if(log_path != nullptr)
-        strcpy(this->log_path, log_path);
-    else
-   	this->log_path = nullptr;
-    this->type = type;
-    this->ndpi_flows_active = nullptr;
-    this->ndpi_flows_idle = nullptr;
-    this->error_or_eof = 0;
-    this->ndpi_struct = nullptr; 
     this->streamId = streamId;  
-    this->newFlowCheck = false;
 }
 
 /* ********************************** */

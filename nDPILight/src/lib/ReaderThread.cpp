@@ -76,6 +76,8 @@ void ReaderThread::close()
 {
     if(this->rdr != nullptr)
         delete(this->rdr);
+
+    this->rdr->~Reader();
 }
 
 /* ********************************** */

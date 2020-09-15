@@ -432,8 +432,6 @@ static void sighandler(int signum)
 	} else {
 		tracer->traceEvent(2, "\tReader threads are already shutting down, please be patient.\n");
 	}
-
-	exit(0);
 }
 
 /* ********************************** */
@@ -648,18 +646,25 @@ int main(int argc, char * argv[])
 		    PcapReader *tmp1 = (PcapReader *) reader_thread->getReader();
 		    tmp1->getParser()->printBriefInfos(reader_thread->getReader());
 		    break;
-		}
+		    }
 		case 1: {
 		    printCustomBriefInfos();
 		    break;
-		}
+		    }
 	    }
 	    sleep(1);
-        }
+    }
 
-        if (terminate_thread == 0 && stop_reader() != 0) {
-            return 1;
-        }
-	
-        return 0;
+    if (terminate_thread == 0 && stop_reader() != 0) {
+        return 1;
+    }
+
+    for(int i = 0; i < thread_number; i++) {
+        reader_thread[i].close();
+    }
+
+    tracer->~Trace();
+    reader_thread->~ReaderThread();
+
+    return 0;
 }
