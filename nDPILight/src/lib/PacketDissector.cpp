@@ -34,33 +34,35 @@ void allarmManager(PacketDissector * pkt_dissector)
     while(true) {
         sleep(5);
 	
-	while(!list->empty()) {
-		if(trace_allarm->getNumLines() >= 20000) {
-			timenow = gmtime(&now);
+		while(!list->empty()) {
+			if(trace_allarm->getNumLines() >= 20000) {
+				timenow = gmtime(&now);
 
-			if(pkt_dissector->getLogPath() == nullptr) {
-        		    strftime(theDate, sizeof(theDate), "_%Y-%m-%d_%H:%M:%S", timenow);
-        		    char log_path[40] = "logs/";
-        		    strcat(log_path, pkt_dissector->getType());
-        		    strcat(log_path, theDate);
-        		    strcpy(theDate, log_path);
+				if(pkt_dissector->getLogPath() == nullptr) {
+						strftime(theDate, sizeof(theDate), "_%Y-%m-%d_%H:%M:%S", timenow);
+						char log_path[40] = "logs/";
+						strcat(log_path, pkt_dissector->getType());
+						strcat(log_path, theDate);
+						strcpy(theDate, log_path);
+				}
+					else {
+						strftime(theDate, sizeof(theDate), "_%Y-%m-%d_%H:%M:%S", timenow);
+						char *log_path = (char *) pkt_dissector->getLogPath();
+					strcat(log_path, pkt_dissector->getType());
+						strcat(log_path, theDate);
+						strcpy(theDate, log_path);
+					}
+					std::ofstream outfile (theDate);
+					trace_allarm->set_log_file(theDate);
 			}
-    			else {
-        		    strftime(theDate, sizeof(theDate), "_%Y-%m-%d_%H:%M:%S", timenow);
-        		    char *log_path = (char *) pkt_dissector->getLogPath();
-			    strcat(log_path, pkt_dissector->getType());
-        		    strcat(log_path, theDate);
-        		    strcpy(theDate, log_path);
-    			}
-    			std::ofstream outfile (theDate);
-    			trace_allarm->set_log_file(theDate);
+			mtx.lock();
+			trace_allarm->traceAllarm((list->front()).c_str());
+			list->pop();
+			mtx.unlock();
 		}
-		mtx.lock();
-		trace_allarm->traceAllarm((list->front()).c_str());
-		list->pop();
-		mtx.unlock();
-	}
-    }
+    } 
+
+	trace_allarm->~Trace();
 }
 
 
