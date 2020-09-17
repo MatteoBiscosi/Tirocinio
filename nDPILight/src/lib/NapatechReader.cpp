@@ -45,6 +45,7 @@ void nt_idle_scan_walker(void const * const A, ndpi_VISIT which, int depth, void
 {   
     NapatechReader * const workflow = (NapatechReader *)user_data;
     FlowInfo * const flow = *(FlowInfo **)A;
+    uint64_t max_time = MAX_IDLE_TIME * 1000000LL;
 
     (void)depth;
 
@@ -54,11 +55,11 @@ void nt_idle_scan_walker(void const * const A, ndpi_VISIT which, int depth, void
 
     if (which == ndpi_preorder || which == ndpi_leaf) {
         if ((flow->flow_fin_ack_seen == 1 && flow->flow_ack_seen == 1) ||
-            flow->last_seen + MAX_IDLE_TIME * 1000  < workflow->getLastTime())
+            flow->last_seen + max_time  < workflow->getLastTime())
             /*  New flow that need to be added to idle flows    */
         {
-			if(flow->last_seen != 0)
-				workflow->getParser()->printFlow(workflow, flow);
+	    if(flow->ended_dpi == 0)
+		workflow->getParser()->printFlow(workflow, flow);
 
             char src_addr_str[INET6_ADDRSTRLEN+1];
             char dst_addr_str[INET6_ADDRSTRLEN+1];
@@ -134,6 +135,7 @@ void taskReceiverUnh(const char* streamName, NapatechReader *reader)
 
 NapatechReader::NapatechReader(char *log_path, const char *type, int streamId) : Reader(log_path, type)
 {
+//    this->newFlowCheck = false;
     this->streamId = streamId;  
 }
 
@@ -332,6 +334,8 @@ void NapatechReader::newPacket(void * header)
         this->max_idle_scan_index = this->max_idle_scan_index + (this->max_active_flows / 4);
         if (this->max_idle_scan_index > this->max_active_flows)
             this->max_idle_scan_index = 0;	
+
+	printFlowStreamInfo(this->flowStream);
 	}
 }
 
@@ -343,7 +347,8 @@ void taskReceiverAny(const char* streamName, NapatechReader *reader)
     NtFlowStream_t  flowStream;
     NtStatistics_t hStat;
     int status;
-    
+    int n_flows = 0;   
+ 
     std::string nt_log = std::string("nt_");
     nt_log = nt_log + std::to_string(reader->getStreamId());
 
@@ -372,22 +377,32 @@ void taskReceiverAny(const char* streamName, NapatechReader *reader)
     hStat.u.query_v3.clear = 1;
     NT_StatRead(* reader->getStatStream(), &hStat);       
 
+    reader->setFlowStream(flowStream);
+
     while(reader->getErrorOfEof() == 0) {
 	    // Get package from rx stream.
-	    printFlowStreamInfo(flowStream);
+	    
 	    status = NT_NetRxGet(* reader->getMissStream(), reader->getMissBuffer(), 5000);
-	    if(status == NT_STATUS_TIMEOUT || status == NT_STATUS_TRYAGAIN) 
-		    continue;
+	    if(status == NT_STATUS_TIMEOUT || status == NT_STATUS_TRYAGAIN) {
+		printFlowStreamInfo(flowStream); 
+		continue;
+	    }
 	    
 	    if(status == NT_ERROR_NT_TERMINATING)
 		    break;
 
 	    if(handleErrorStatus(status, "Error while sniffing next packet") != 0)
 		    continue;
-	    
-	    tmp->processPacket(reader, reader->getMissBuffer(), nullptr);
+	    tmp->incrPktsCaptured();
+/*	    if(reader->getNewFlow())
+	    	printf("true\n");
+	    else
+		printf("false\n"); 
+*/	    tmp->processPacket(reader, reader->getMissBuffer(), nullptr);
 
-	    if(reader->getNewFlow() == true) {      
+//	    reader->setNewFlow(true);
+	    if(reader->getNewFlow() == true) {   
+			n_flows++;   
 		    // Here a package has successfully been received, and the parameters for the
 		    // next flow to be learned will be set up.
 		    NtFlow_t flow = NtFlow_t();
@@ -445,11 +460,13 @@ void taskReceiverAny(const char* streamName, NapatechReader *reader)
 		    handleErrorStatus(status, "NT_FlowWrite() failed");
 		    reader->setNewFlow(false);            
 	    }
-	    printFlowStreamInfo(flowStream);
+	    
 	    status = NT_NetRxRelease(*reader->getMissStream(), *reader->getMissBuffer());
 	    if(handleErrorStatus(status, "Error while releasing packet") != 0)
 		    continue;
-    }     
+    }
+
+	    printf("%d\n", n_flows);     
 }
 
 /* ********************************** */

@@ -412,9 +412,9 @@ void PacketDissector::processPacket(void * const args,
 
 	/* Parsing the packet */
 	this->captured_stats.packets_captured++;
-	status = this->parsePacket(flow, reader, header_tmp, packet_tmp, pkt_infos);
-	
+	status = this->parsePacket(flow, reader, header_tmp, packet_tmp, pkt_infos);	
 	/* Switch the status received from parsePacket */
+
 	switch(status) {
 		case -1: /* Error case */
 			return;
@@ -431,8 +431,8 @@ void PacketDissector::processPacket(void * const args,
 			}
 			break;
 
-		case 1: /* Already done some search and value was not found */
-			if(this->addVal(reader, flow, pkt_infos) != 0) {
+	/*	case 1: /* Already done some search and value was not found */
+	/*		if(this->addVal(reader, flow, pkt_infos) != 0) {
 				this->captured_stats.discarded_bytes += pkt_infos.ip_offset + pkt_infos.eth_offset;
 				return;
 			}
@@ -440,11 +440,11 @@ void PacketDissector::processPacket(void * const args,
 			break;
 
 		case 2: /* Already done some search and value was found */
-			pkt_infos.flow_to_process = *(FlowInfo **)pkt_infos.tree_result;
+	/*		pkt_infos.flow_to_process = *(FlowInfo **)pkt_infos.tree_result;
 			break;
-	}
+*/	}
 
-	if (pkt_infos.flow_to_process->l4_protocol == IPPROTO_UDP)
+/*	if (pkt_infos.flow_to_process->l4_protocol == IPPROTO_UDP)
 		this->captured_stats.udp_pkts++;
 	else
 		this->captured_stats.tcp_pkts++;
@@ -457,6 +457,7 @@ void PacketDissector::processPacket(void * const args,
 	}
 
 	/* Updates timers and counters */
+
 	this->captured_stats.packets_processed++;
 	pkt_infos.flow_to_process->packets_processed++;
 	pkt_infos.flow_to_process->bytes_processed += pkt_infos.ip_size;
@@ -467,10 +468,14 @@ void PacketDissector::processPacket(void * const args,
 	}
 	pkt_infos.flow_to_process->last_seen = pkt_infos.time_ms;
 
+	if(pkt_infos.flow_to_process->ended_dpi) {
+            return;
+        }
+
 	char src_addr_str[INET6_ADDRSTRLEN+1];
 	char dst_addr_str[INET6_ADDRSTRLEN+1];
 
-	pkt_infos.flow_to_process->ipTupleToString(src_addr_str, sizeof(src_addr_str), dst_addr_str, sizeof(dst_addr_str));	
+//	pkt_infos.flow_to_process->ipTupleToString(src_addr_str, sizeof(src_addr_str), dst_addr_str, sizeof(dst_addr_str));	
 
 	/* Try to detect the protocol */
 	if (pkt_infos.flow_to_process->ndpi_flow->num_processed_pkts == 0xFF) {
@@ -497,11 +502,11 @@ void PacketDissector::processPacket(void * const args,
 			this->captured_stats.protos_cnt[pkt_infos.flow_to_process->guessed_protocol.master_protocol]++;
 			this->captured_stats.guessed_flow_protocols++;
 
-
 			if(pkt_infos.flow_to_process->ndpi_flow->risk) {
 				uint32_t j = mask & pkt_infos.flow_to_process->ndpi_flow->risk;
 				for(int i=NDPI_NO_RISK; i<NDPI_MAX_RISK; i++)
 					if(NDPI_ISSET_BIT(j, i) != 0) {
+
 						tracer->traceEvent(1, "[** %s ** | flow %lu ] src ip: %s | dst ip: %s | src port: %u | dst port: %u\n",
 								ndpi_risk2str((ndpi_risk_enum) i), pkt_infos.flow_to_process->flow_id, src_addr_str, 
 								dst_addr_str, pkt_infos.flow_to_process->src_port, pkt_infos.flow_to_process->dst_port);
@@ -528,16 +533,15 @@ void PacketDissector::processPacket(void * const args,
 						pkt_infos.flow_to_process->flow_id);
 				return;
 			}
-	}
+	} else {
 
-	pkt_infos.flow_to_process->detected_l7_protocol =
+	    pkt_infos.flow_to_process->detected_l7_protocol =
 		ndpi_detection_process_packet(reader->getNdpiStruct(), pkt_infos.flow_to_process->ndpi_flow,
 				pkt_infos.ip != nullptr ? (uint8_t *)pkt_infos.ip : (uint8_t *)pkt_infos.ip6,
 				pkt_infos.ip_size, pkt_infos.time_ms, pkt_infos.ndpi_src, pkt_infos.ndpi_dst);
 
-	if (ndpi_is_protocol_detected(reader->getNdpiStruct(), pkt_infos.flow_to_process->detected_l7_protocol) != 0 &&
-			pkt_infos.flow_to_process->detection_completed == 0)
-	{
+	    if (ndpi_is_protocol_detected(reader->getNdpiStruct(), pkt_infos.flow_to_process->detected_l7_protocol))
+	    {
 		if (pkt_infos.flow_to_process->detected_l7_protocol.master_protocol != NDPI_PROTOCOL_UNKNOWN ||
 				pkt_infos.flow_to_process->detected_l7_protocol.app_protocol != NDPI_PROTOCOL_UNKNOWN) {
 			// Protocol detected
@@ -554,7 +558,7 @@ void PacketDissector::processPacket(void * const args,
 					ndpi_get_proto_name(reader->getNdpiStruct(), pkt_infos.flow_to_process->detected_l7_protocol.app_protocol),
 					ndpi_category_get_name(reader->getNdpiStruct(), pkt_infos.flow_to_process->detected_l7_protocol.category));
 
-			if(pkt_infos.flow_to_process->ndpi_flow->risk) {
+			if(pkt_infos.flow_to_process->ndpi_flow->risk != 0) {
 				uint32_t j = mask & pkt_infos.flow_to_process->ndpi_flow->risk;
 				for(int i=NDPI_NO_RISK; i<NDPI_MAX_RISK; i++)               
 					if(NDPI_ISSET_BIT(j, i) != 0) {
@@ -577,6 +581,7 @@ void PacketDissector::processPacket(void * const args,
                 tracer->traceEvent(0, "Error while creating the record of flow %lu\n",
                                         pkt_infos.flow_to_process->flow_id);
                 return;
+                }
             }
         }
     }

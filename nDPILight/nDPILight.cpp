@@ -411,8 +411,15 @@ static int stop_reader()
 		    printCustomStats();
 		break;
 	}
-
-	return 0;
+/*	for(int i = 0; i < thread_number; i++) {
+   	     reader_thread[i].close();
+        }
+*/   
+        tracer->~Trace();
+	for(int i = 0; i < thread_number; i++)
+   	    reader_thread[i].~ReaderThread();
+	
+	exit(0);
 }
 
 /* ********************************** */
@@ -659,12 +666,12 @@ int main(int argc, char * argv[])
         return 1;
     }
 
-    for(int i = 0; i < thread_number; i++) {
-        reader_thread[i].close();
+   /* for(int i = 0; i < thread_number; i++) {
+   //     reader_thread[i].close();
     }
 
     tracer->~Trace();
     reader_thread->~ReaderThread();
-
+*/
     return 0;
 }

@@ -74,10 +74,9 @@ void ReaderThread::printStats()
 
 void ReaderThread::close()
 {
-    if(this->rdr != nullptr)
-        delete(this->rdr);
-
-    this->rdr->~Reader();
+    if (this->rdr != nullptr)
+    	this->rdr->~Reader();
+    delete(this);
 }
 
 /* ********************************** */

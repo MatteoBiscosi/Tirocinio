@@ -34,7 +34,7 @@ class NapatechReader : public Reader {
 	    unsigned long long int init_pkts;
         unsigned long long int init_bytes;
     public:
-        NapatechReader(char *log_path, const char *type, int streamId) : Reader(log_path, type);
+        NapatechReader(char *log_path, const char *type, int streamId);
         ~NapatechReader();
 
         int initConfig(int stream_number);

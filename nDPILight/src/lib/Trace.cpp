@@ -88,7 +88,7 @@ void Trace::open_log() {
 void Trace::set_log_file(const char* log_file) {
   if(log_file && log_file[0] != '\0') {
     rotate_logs(true);
-    if(logFile != nullptr) free(logFile);
+//    if(logFile != nullptr) free(logFile);
     logFile = strndup(log_file, MAX_PATH);
     open_log();
   }
