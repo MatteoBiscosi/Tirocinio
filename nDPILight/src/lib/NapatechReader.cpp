@@ -58,8 +58,8 @@ void nt_idle_scan_walker(void const * const A, ndpi_VISIT which, int depth, void
             flow->last_seen + max_time  < workflow->getLastTime())
             /*  New flow that need to be added to idle flows    */
         {
-	    if(flow->ended_dpi == 0)
-		workflow->getParser()->printFlow(workflow, flow);
+	    	if(flow->ended_dpi == 0)
+				workflow->getParser()->printFlow(workflow, flow);
 
             char src_addr_str[INET6_ADDRSTRLEN+1];
             char dst_addr_str[INET6_ADDRSTRLEN+1];
@@ -123,7 +123,7 @@ void taskReceiverUnh(const char* streamName, NapatechReader *reader)
         }
 
         if(reader->getParser() != nullptr)
-	    reader->getParser()->incrUnhaPkts();
+	    	reader->getParser()->incrUnhaPkts();
 
         NT_NetRxRelease(* reader->getUnhStream(), * reader->getUnhBuffer());
     }	
@@ -294,7 +294,7 @@ void NapatechReader::newPacket(void * header)
     /*  Scan done every 15000 ms more or less   */    
         
     /*  Check if at least IDLE_SCAN_PERIOD passed since last scan   */
-	if (this->last_idle_scan_time + IDLE_SCAN_PERIOD * 10000 < this->last_time) { 
+	if (this->last_idle_scan_time + IDLE_SCAN_PERIOD * 1000000LL < this->last_time) { 
 		for (this->idle_scan_index; this->idle_scan_index < this->max_idle_scan_index; ++this->idle_scan_index) {
 			if(this->ndpi_flows_active[this->idle_scan_index] == nullptr)
 				continue;
@@ -335,7 +335,7 @@ void NapatechReader::newPacket(void * header)
         if (this->max_idle_scan_index > this->max_active_flows)
             this->max_idle_scan_index = 0;	
 
-	printFlowStreamInfo(this->flowStream);
+		printFlowStreamInfo(this->flowStream);
 	}
 }
 
@@ -383,9 +383,10 @@ void taskReceiverAny(const char* streamName, NapatechReader *reader)
 	    // Get package from rx stream.
 	    
 	    status = NT_NetRxGet(* reader->getMissStream(), reader->getMissBuffer(), 5000);
+		
 	    if(status == NT_STATUS_TIMEOUT || status == NT_STATUS_TRYAGAIN) {
-		printFlowStreamInfo(flowStream); 
-		continue;
+			printFlowStreamInfo(flowStream); 
+			continue;
 	    }
 	    
 	    if(status == NT_ERROR_NT_TERMINATING)
@@ -393,14 +394,9 @@ void taskReceiverAny(const char* streamName, NapatechReader *reader)
 
 	    if(handleErrorStatus(status, "Error while sniffing next packet") != 0)
 		    continue;
-	    tmp->incrPktsCaptured();
-/*	    if(reader->getNewFlow())
-	    	printf("true\n");
-	    else
-		printf("false\n"); 
-*/	    tmp->processPacket(reader, reader->getMissBuffer(), nullptr);
 
-//	    reader->setNewFlow(true);
+	    tmp->processPacket(reader, reader->getMissBuffer(), nullptr);
+
 	    if(reader->getNewFlow() == true) {   
 			n_flows++;   
 		    // Here a package has successfully been received, and the parameters for the
@@ -465,8 +461,6 @@ void taskReceiverAny(const char* streamName, NapatechReader *reader)
 	    if(handleErrorStatus(status, "Error while releasing packet") != 0)
 		    continue;
     }
-
-	    printf("%d\n", n_flows);     
 }
 
 /* ********************************** */
