@@ -89,8 +89,12 @@ int NtDissector::parsePacket(FlowInfo & flow,
             this->captured_stats.udp_pkts++;
         }
 
-        flow.ip_tuple.v4.src = pkt_infos.ip->saddr;
+        
+	flow.ip_tuple.v4.src = pkt_infos.ip->saddr;
         flow.ip_tuple.v4.dst = pkt_infos.ip->daddr;
+
+        flow.hashval = flow.ip_tuple.v4.src + flow.ip_tuple.v4.dst;
+        flow.second_hashval = fibonacci_hash(flow.hashval);
 
         flow.hashval += flow.l4_protocol + flow.src_port + flow.dst_port;
 
@@ -145,8 +149,10 @@ int NtDissector::parsePacket(FlowInfo & flow,
 
         flow.hashval = flow.ip_tuple.v6.src[0] + flow.ip_tuple.v6.src[1];
 		flow.hashval += flow.ip_tuple.v6.dst[0] + flow.ip_tuple.v6.dst[1];
-
+	flow.second_hashval = fibonacci_hash(flow.hashval);
         flow.hashval += flow.l4_protocol + flow.src_port + flow.dst_port;
+
+	//flow.second_hashval = fibonacci_hash(flow.hashval);
 
         pkt_infos.hashed_index = (uint64_t) flow.hashval % reader->getMaxActiveFlows();
         pkt_infos.tree_result = ndpi_tfind(&flow, &reader->getActiveFlows()[pkt_infos.hashed_index], ndpi_workflow_node_cmp);
@@ -196,11 +202,13 @@ int NtDissector::parsePacket(FlowInfo & flow,
         flow.ip_tuple.v4.dst = pkt_infos.ip->daddr;
 
         flow.hashval = flow.ip_tuple.v4.src + flow.ip_tuple.v4.dst;
-
+	flow.second_hashval = fibonacci_hash(flow.hashval);
         this->captured_stats.ip_pkts++;
         this->captured_stats.ip_bytes += pkt_infos.ip_size;
 
         flow.hashval += flow.l4_protocol + flow.src_port + flow.dst_port;
+
+	flow.second_hashval = fibonacci_hash(flow.hashval);
 
         pkt_infos.hashed_index = (uint64_t) flow.hashval % reader->getMaxActiveFlows();
         pkt_infos.tree_result = ndpi_tfind(&flow, &reader->getActiveFlows()[pkt_infos.hashed_index], ndpi_workflow_node_cmp);
@@ -250,10 +258,10 @@ int NtDissector::parsePacket(FlowInfo & flow,
 
         flow.hashval = flow.ip_tuple.v6.src[0] + flow.ip_tuple.v6.src[1];
 		flow.hashval += flow.ip_tuple.v6.dst[0] + flow.ip_tuple.v6.dst[1];
-
+	flow.second_hashval = fibonacci_hash(flow.hashval);
         flow.hashval += flow.l4_protocol + flow.src_port + flow.dst_port;
 
-        flow.second_hashval = fibonacci_hash(flow.hashval);
+        //flow.second_hashval = fibonacci_hash(flow.hashval);
 
         pkt_infos.hashed_index = (uint64_t) flow.hashval % reader->getMaxActiveFlows();
         pkt_infos.tree_result = ndpi_tfind(&flow, &reader->getActiveFlows()[pkt_infos.hashed_index], ndpi_workflow_node_cmp);

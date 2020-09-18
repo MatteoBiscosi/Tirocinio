@@ -3,9 +3,9 @@
 
 
 
-inline uint64_t fibonacci_hash(uint64_t hash) {
+/*inline uint64_t fibonacci_hash(uint64_t hash) {
     return hash * 11400714819323198485llu;
-}
+}*/
 
 /* ********************************** */
 
@@ -58,6 +58,9 @@ int ndpi_workflow_node_cmp(void const * const A, void const * const B)
     } else if (flow_info_a->second_hashval > flow_info_b->second_hashval) {
         return(1);
     }
+
+    //printf("%llu, %llu | %llu, %llu\n", flow_info_a->hashval, flow_info_b->hashval, flow_info_a->second_hashval, flow_info_b->second_hashval);
+    //return 0;
 
     /*  Have same hashval and l4, check l3 ip   */
     if(flow_info_a->l3_type == L3_IP && flow_info_b->l3_type == L3_IP) { /* IPv4 */
