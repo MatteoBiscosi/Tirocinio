@@ -59,9 +59,6 @@ int ndpi_workflow_node_cmp(void const * const A, void const * const B)
         return(1);
     }
 
-    //printf("%llu, %llu | %llu, %llu\n", flow_info_a->hashval, flow_info_b->hashval, flow_info_a->second_hashval, flow_info_b->second_hashval);
-    //return 0;
-
     /*  Have same hashval and l4, check l3 ip   */
     if(flow_info_a->l3_type == L3_IP && flow_info_b->l3_type == L3_IP) { /* IPv4 */
         if (flow_info_a->ip_tuple.v4.src == flow_info_b->ip_tuple.v4.src &&  /* Check if A->src == flow_info_b->src */

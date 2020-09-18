@@ -118,7 +118,10 @@ void taskReceiverUnh(const char* streamName, NapatechReader *reader)
         if(status == NT_ERROR_NT_TERMINATING)
 	        break;
 
-        if(handleErrorStatus(status, "Error while sniffing next packet") != 0) {
+        if(status != NT_SUCCESS) {
+			char errorBuffer[NT_ERRBUF_SIZE];
+			NT_ExplainError(status, errorBuffer, sizeof(errorBuffer));
+			tracer->traceEvent(0, "%s: %s\n", message, errorBuffer);
             continue;
         }
 
@@ -392,8 +395,12 @@ void taskReceiverAny(const char* streamName, NapatechReader *reader)
 	    if(status == NT_ERROR_NT_TERMINATING)
 		    break;
 
-	    if(handleErrorStatus(status, "Error while sniffing next packet") != 0)
-		    continue;
+	    if(status != NT_SUCCESS) {
+			char errorBuffer[NT_ERRBUF_SIZE];
+			NT_ExplainError(status, errorBuffer, sizeof(errorBuffer));
+			tracer->traceEvent(0, "%s: %s\n", message, errorBuffer);
+            continue;
+        }
 
 	    tmp->processPacket(reader, reader->getMissBuffer(), nullptr);
 
@@ -453,13 +460,17 @@ void taskReceiverAny(const char* streamName, NapatechReader *reader)
 		    }
 		    // Program the flow into the adapter.
 		    status = NT_FlowWrite(flowStream, &flow, -1);
-		    handleErrorStatus(status, "NT_FlowWrite() failed");
+		    if(status != NT_SUCCESS) {
+				char errorBuffer[NT_ERRBUF_SIZE];
+				NT_ExplainError(status, errorBuffer, sizeof(errorBuffer));
+				tracer->traceEvent(0, "%s: %s\n", message, errorBuffer);
+				continue;
+			}
+
 		    reader->setNewFlow(false);            
 	    }
 	    
-	    status = NT_NetRxRelease(*reader->getMissStream(), *reader->getMissBuffer());
-	    if(handleErrorStatus(status, "Error while releasing packet") != 0)
-		    continue;
+	    NT_NetRxRelease(*reader->getMissStream(), *reader->getMissBuffer());
     }
 }
 
