@@ -16,8 +16,7 @@ class Reader {
         size_t idle_scan_index;
         size_t max_idle_scan_index;
         
-        void **ndpi_flows_active;
-        void **ndpi_flows_idle;
+        std::unordered_map<KeyInfo, FlowInfo, KeyHasher> *ndpi_flows_active;
 
         unsigned long long int max_active_flows;
         unsigned long long int max_idle_flows;
@@ -109,9 +108,9 @@ class Reader {
          */
         uint8_t getErrorOfEof() { return this->error_or_eof; };
 
-        void ** getActiveFlows() { return this->ndpi_flows_active; };
+        std::unordered_map<KeyInfo, FlowInfo, KeyHasher> *getActiveFlows() { return this->ndpi_flows_active; };
 
-        void ** getIdleFlows() { return this->ndpi_flows_idle; };
+        //void ** getIdleFlows() { return this->ndpi_flows_idle; };
 
         unsigned long long int getMaxActiveFlows() {return this->max_active_flows; };
 
@@ -129,7 +128,7 @@ class Reader {
 
         uint64_t getLastTime() { return this->last_time; };
 
-        void **getNdpiFlowsIdle() { return this->ndpi_flows_idle; }; 
+        //void **getNdpiFlowsIdle() { return this->ndpi_flows_idle; }; 
 
         void setNewFlow(bool flow) { newFlowCheck = flow; };
 
@@ -176,7 +175,4 @@ void ndpi_idle_scan_walker(void const * const A,
 int ndpi_workflow_node_cmp(void const * const A, 
                             void const * const B);                 
 
-inline uint64_t fibonacci_hash(uint64_t hash) {
-    return hash * 11400714819323198485llu;
-}
 #endif //NDPILIGHT_READER_H

@@ -9,6 +9,7 @@
 #include <cstdlib>
 #include <fstream>
 #include <algorithm>
+#include <unordered_map>
 #include <memory>
 #include <thread>
 #include <mutex>
@@ -28,6 +29,7 @@
 
 #include <nt.h>
 
+#include "SupportStructs.h"
 #include "ndpi_main.h"
 #include "ndpi_typedefs.h"
 #include "ndpi_classify.h"
@@ -35,7 +37,6 @@
 #include "FlowInfo.h"
 #include "PacketInfo.h"
 #include "Reader.h"
-#include "SupportStructs.h"
 #include "PacketDissector.h"
 #include "PcapReader.h"
 #include "PcapDissector.h"

@@ -24,7 +24,7 @@ class PacketInfo {
         const uint8_t * l4_ptr;
         uint16_t l4_len;
 
-        void * tree_result;
+        std::unordered_map<KeyInfo, FlowInfo, KeyHasher>::const_iterator tree_result;
 
         FlowInfo * flow_to_process;
         

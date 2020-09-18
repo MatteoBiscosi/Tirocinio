@@ -137,7 +137,7 @@ Reader::Reader(char *log_path, const char *type)
     	this->log_path = log_path;
     this->type = type;
     this->ndpi_flows_active = nullptr;
-    this->ndpi_flows_idle = nullptr;
+    //this->ndpi_flows_idle = nullptr;
     this->error_or_eof = 0;
     this->ndpi_struct = nullptr;
     this->last_idle_scan_time = 0;
@@ -157,7 +157,7 @@ Reader::~Reader()
         ndpi_exit_detection_module(this->ndpi_struct);
     }
 
-    if(this->ndpi_flows_active != nullptr) {
+/*    if(this->ndpi_flows_active != nullptr) {
         for(size_t i = 0; i < this->max_active_flows; i++) {
             ndpi_tdestroy(this->ndpi_flows_active[i], flowFreer);
         }
@@ -167,7 +167,7 @@ Reader::~Reader()
         ndpi_free(this->ndpi_flows_active);
 
     if(this->ndpi_flows_idle != nullptr)
-        ndpi_free(this->ndpi_flows_idle);
+        ndpi_free(this->ndpi_flows_idle);*/
 }   
 
 /* ********************************** */
@@ -179,7 +179,7 @@ int Reader::newFlow(FlowInfo * & flow_to_process) {
         return -1;
     }
 
-    flow_to_process = (FlowInfo *)ndpi_malloc(sizeof(*flow_to_process));
+    flow_to_process = new FlowInfo();
     if (flow_to_process == nullptr) {
         tracer->traceEvent(0, "[10] Not enough memory for flow info\n");
         return -1;

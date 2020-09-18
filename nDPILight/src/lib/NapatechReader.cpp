@@ -246,18 +246,19 @@ int NapatechReader::initInfos()
     this->max_active_flows = MAX_FLOW_ROOTS_PER_THREAD;
     this->max_idle_scan_index = MAX_FLOW_ROOTS_PER_THREAD / 8;
 
-    this->ndpi_flows_active = (void **)ndpi_calloc(this->max_active_flows, sizeof(void *));
+	this->ndpi_flows_active = new std::unordered_map<KeyInfo, FlowInfo, KeyHasher>();
+ /*   this->ndpi_flows_active = (void **)ndpi_calloc(this->max_active_flows, sizeof(void *));
     if (this->ndpi_flows_active == nullptr) {
 	    return -1;
     }
-
+*/
     this->total_idle_flows = 0; /* Then initialize idle flow's infos */
     this->max_idle_flows = MAX_IDLE_FLOWS_PER_THREAD;
-    this->ndpi_flows_idle = (void **)ndpi_calloc(this->max_idle_flows, sizeof(void *));
+/*    this->ndpi_flows_idle = (void **)ndpi_calloc(this->max_idle_flows, sizeof(void *));
     if (this->ndpi_flows_idle == nullptr) {
         return -1;
     }
-
+*/
     NDPI_PROTOCOL_BITMASK protos; /* In the end initialize bitmask's infos */
     NDPI_BITMASK_SET_ALL(protos);
     ndpi_set_protocol_detection_bitmask2(this->ndpi_struct, &protos);
@@ -295,9 +296,9 @@ void NapatechReader::newPacket(void * header)
     this->pkt_parser->incrWireBytes(NT_NET_GET_PKT_CAP_LENGTH(* hNetBuffer) - NT_NET_GET_PKT_DESCR_LENGTH(* hNetBuffer));
     
     /*  Scan done every 15000 ms more or less   */    
-        
+	return;
     /*  Check if at least IDLE_SCAN_PERIOD passed since last scan   */
-	if (this->last_idle_scan_time + IDLE_SCAN_PERIOD * 1000000LL < this->last_time) { 
+/*	if (this->last_idle_scan_time + IDLE_SCAN_PERIOD * 1000000LL < this->last_time) { 
 		for (this->idle_scan_index; this->idle_scan_index < this->max_idle_scan_index; ++this->idle_scan_index) {
 			if(this->ndpi_flows_active[this->idle_scan_index] == nullptr)
 				continue;
@@ -305,9 +306,9 @@ void NapatechReader::newPacket(void * header)
 			ndpi_twalk(this->ndpi_flows_active[this->idle_scan_index], nt_idle_scan_walker, this);
 
 			/*  Removes all idle flows that were copied into ndpi_flows_idle from the ndpi_twalk    */
-			while (this->cur_idle_flows > 0) {
+/*			while (this->cur_idle_flows > 0) {
 				/*  Get the flow    */
-				FlowInfo * const tmp_f =
+	/*			FlowInfo * const tmp_f =
 					(FlowInfo *)this->ndpi_flows_idle[--this->cur_idle_flows];
 
 				if(tmp_f == nullptr)
@@ -320,7 +321,7 @@ void NapatechReader::newPacket(void * header)
 				}
 
 				/*  Removes it from the active flows    */
-				ndpi_tdelete(tmp_f, &this->ndpi_flows_active[this->idle_scan_index],
+	/*			ndpi_tdelete(tmp_f, &this->ndpi_flows_active[this->idle_scan_index],
 						ndpi_workflow_node_cmp);
 
 				if(tmp_f != nullptr)
@@ -334,12 +335,12 @@ void NapatechReader::newPacket(void * header)
 		this->last_packets_scan = pkt_parser->getPktsCaptured();
 
 		/* Updating next max_idle_scan_index */
-        this->max_idle_scan_index = this->max_idle_scan_index + (this->max_active_flows / 4);
+   /*     this->max_idle_scan_index = this->max_idle_scan_index + (this->max_active_flows / 4);
         if (this->max_idle_scan_index > this->max_active_flows)
             this->max_idle_scan_index = 0;	
 
 		printFlowStreamInfo(this->flowStream);
-	}
+	}*/
 }
 
 /* ********************************** */

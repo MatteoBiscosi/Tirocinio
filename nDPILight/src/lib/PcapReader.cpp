@@ -172,7 +172,7 @@ int PcapReader::checkEnd()
 void PcapReader::checkForIdleFlows()
 {
     /*  Check if at least IDLE_SCAN_PERIOD passed since last scan   */
-    if (this->last_idle_scan_time + IDLE_SCAN_PERIOD < this->last_time) {
+    /*if (this->last_idle_scan_time + IDLE_SCAN_PERIOD < this->last_time) {
 
         for (this->idle_scan_index; this->idle_scan_index < this->max_idle_scan_index; ++this->idle_scan_index) {
             if(this->ndpi_flows_active[this->idle_scan_index] == nullptr)
@@ -181,9 +181,9 @@ void PcapReader::checkForIdleFlows()
             ndpi_twalk(this->ndpi_flows_active[this->idle_scan_index], ndpi_idle_scan_walker, this);
 
             /*  Removes all idle flows that were copied into ndpi_flows_idle from the ndpi_twalk    */
-            while (this->cur_idle_flows > 0) {
+      /*      while (this->cur_idle_flows > 0) {
                 /*  Get the flow    */
-                FlowInfo * const tmp_f =
+      /*          FlowInfo * const tmp_f =
                         (FlowInfo *)this->ndpi_flows_idle[--this->cur_idle_flows];
 
                 if(tmp_f == nullptr)
@@ -198,7 +198,7 @@ void PcapReader::checkForIdleFlows()
                 pkt_parser->printFlow(this, tmp_f);
 
                 /*  Removes it from the active flows    */
-                ndpi_tdelete(tmp_f, &this->ndpi_flows_active[this->idle_scan_index],
+      /*          ndpi_tdelete(tmp_f, &this->ndpi_flows_active[this->idle_scan_index],
                              ndpi_workflow_node_cmp);
 
                 if(tmp_f != nullptr)
@@ -212,9 +212,9 @@ void PcapReader::checkForIdleFlows()
         this->last_packets_scan = pkt_parser->getPktsCaptured();
 
         /* Updating next max_idle_scan_index */
-        this->max_idle_scan_index = this->max_idle_scan_index + (this->max_active_flows / 4);
+     /*   this->max_idle_scan_index = this->max_idle_scan_index + (this->max_active_flows / 4);
         if (this->max_idle_scan_index > this->max_active_flows)
-            this->max_idle_scan_index = 0;
+            this->max_idle_scan_index = 0;*/
     }
 }
 

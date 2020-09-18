@@ -4,11 +4,6 @@
 #include "ndpi_light_includes.h"
 
 
-enum flow_l3_type {
-        L3_IP, L3_IP6
-};
-
-
 
 class FlowInfo {
 public:

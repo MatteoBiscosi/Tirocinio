@@ -342,6 +342,7 @@ void PacketDissector::processPacket(void * const args,
 		void * header_tmp,
 		void * packet_tmp)
 {
+	KeyInfo key = KeyInfo();
 	FlowInfo flow = FlowInfo();
 	Reader * reader = (Reader *) args;
 	PacketInfo pkt_infos = PacketInfo();
@@ -349,10 +350,10 @@ void PacketDissector::processPacket(void * const args,
 	/* Parsing the packet */
 	this->captured_stats.packets_captured++;
 
-	if(this->parsePacket(flow, reader, header_tmp, packet_tmp, pkt_infos) == -1)	
+	if(this->parsePacket(key, flow, reader, header_tmp, packet_tmp, pkt_infos) == -1)	
 		return;
 		
-	if(pkt_infos.tree_result == nullptr) {
+	if(pkt_infos.tree_result == reader->getActiveFlows()->end()) {
 
 		/* Adding new flow to the hashtable */
 		if (reader->getCurActiveFlows() == reader->getMaxActiveFlows()) {
@@ -362,7 +363,7 @@ void PacketDissector::processPacket(void * const args,
         		return;
     		}
 
-    		pkt_infos.flow_to_process = (FlowInfo *)ndpi_malloc(sizeof(*pkt_infos.flow_to_process));
+    		pkt_infos.flow_to_process = new FlowInfo();
     		if (pkt_infos.flow_to_process == nullptr) {
         		tracer->traceEvent(0, "[10] Not enough memory for flow info\n");
 			this->captured_stats.discarded_bytes += pkt_infos.ip_offset + pkt_infos.eth_offset;
@@ -403,11 +404,13 @@ void PacketDissector::processPacket(void * const args,
 
 		tracer->traceEvent(4, "[%8llu, %4u] new flow\n", this->captured_stats.packets_captured, pkt_infos.flow_to_process->flow_id);
 
-		if (ndpi_tsearch(pkt_infos.flow_to_process, &reader->getActiveFlows()[pkt_infos.hashed_index], ndpi_workflow_node_cmp) == nullptr) {
+		reader->getActiveFlows()->insert({key, flow});
+
+		/*if (ndpi_tsearch(pkt_infos.flow_to_process, &reader->getActiveFlows()[pkt_infos.hashed_index], ndpi_workflow_node_cmp) == nullptr) {
 			/* Possible Leak */
-			this->captured_stats.discarded_bytes += pkt_infos.ip_offset + pkt_infos.eth_offset;
+		/*	this->captured_stats.discarded_bytes += pkt_infos.ip_offset + pkt_infos.eth_offset;
 			return;  
-		}
+		}*/
 
 		pkt_infos.ndpi_src = pkt_infos.flow_to_process->ndpi_src;
 		pkt_infos.ndpi_dst = pkt_infos.flow_to_process->ndpi_dst;

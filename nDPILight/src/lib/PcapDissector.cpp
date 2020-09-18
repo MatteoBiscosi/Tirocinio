@@ -231,7 +231,8 @@ int PcapDissector::processL4(FlowInfo& flow,
 
 /* ********************************** */
 
-int PcapDissector::parsePacket(FlowInfo & flow,
+int PcapDissector::parsePacket(KeyInfo key,
+                                FlowInfo & flow,
                                 Reader * & args,
                                 void * header_tmp,
                                 void * packet_tmp,
@@ -272,12 +273,24 @@ int PcapDissector::parsePacket(FlowInfo & flow,
         this->captured_stats.discarded_bytes += header->len;
         return -1;
     }
+    if(flow.getFlowL3Type() == L3_IP) {
+        key.l3_type = L3_IP;
+        key.ip_tuple.v4.src = pkt_infos.ip->saddr;
+        key.ip_tuple.v4.dst = pkt_infos.ip->daddr;
+    } else {
+        key.l3_type = L3_IP6;
+        flow.ip_tuple.v6.src[0] = pkt_infos.ip6->ip6_src.u6_addr.u6_addr64[0];
+        flow.ip_tuple.v6.src[1] = pkt_infos.ip6->ip6_src.u6_addr.u6_addr64[1];
+        flow.ip_tuple.v6.dst[0] = pkt_infos.ip6->ip6_dst.u6_addr.u6_addr64[0];
+        flow.ip_tuple.v6.dst[1] = pkt_infos.ip6->ip6_dst.u6_addr.u6_addr64[1];
+    }
 
-    flow.hashval += flow.l4_protocol + flow.src_port + flow.dst_port;
-    flow.second_hashval = fibonacci_hash(flow.hashval);
+    key.hashval += flow.l4_protocol + flow.src_port + flow.dst_port;
+    //flow.second_hashval = fibonacci_hash(flow.hashval);
 
-    pkt_infos.hashed_index = (uint64_t) flow.hashval % reader->getMaxActiveFlows();
-    pkt_infos.tree_result = ndpi_tfind(&flow, &reader->getActiveFlows()[pkt_infos.hashed_index], ndpi_workflow_node_cmp);
+    //pkt_infos.hashed_index = (uint64_t) flow.hashval % reader->getMaxActiveFlows();
+    //pkt_infos.tree_result = ndpi_tfind(&flow, &reader->getActiveFlows()[pkt_infos.hashed_index], ndpi_workflow_node_cmp);
+    pkt_infos.tree_result = reader->getActiveFlows()->find(key);
 
     return 0;
 }
