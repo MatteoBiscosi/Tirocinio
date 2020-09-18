@@ -179,11 +179,6 @@ int PcapDissector::processL3(FlowInfo& flow,
     this->captured_stats.ip_pkts++;
     this->captured_stats.ip_bytes += (header->len - 14);
 
-    flow.hashval += flow.l4_protocol + flow.src_port + flow.dst_port;
-
-    pkt_infos.hashed_index = (uint64_t) flow.hashval % reader->getMaxActiveFlows();
-    pkt_infos.tree_result = ndpi_tfind(&flow, &reader->getActiveFlows()[pkt_infos.hashed_index], ndpi_workflow_node_cmp);
-
     return 0;
 }
 
@@ -277,6 +272,11 @@ int PcapDissector::parsePacket(FlowInfo & flow,
         this->captured_stats.discarded_bytes += header->len;
         return -1;
     }
+
+    flow.hashval += flow.l4_protocol + flow.src_port + flow.dst_port;
+
+    pkt_infos.hashed_index = (uint64_t) flow.hashval % reader->getMaxActiveFlows();
+    pkt_infos.tree_result = ndpi_tfind(&flow, &reader->getActiveFlows()[pkt_infos.hashed_index], ndpi_workflow_node_cmp);
 
     return 0;
 }

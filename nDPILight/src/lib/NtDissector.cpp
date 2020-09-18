@@ -153,6 +153,8 @@ int NtDissector::parsePacket(FlowInfo & flow,
 
         this->captured_stats.ip_pkts++;
         this->captured_stats.ip_bytes += pkt_infos.ip_size;
+
+	return 0;
     }
     case 2: { // Tunneled IPv4
         pkt_infos.ethernet = (struct ndpi_ethhdr *) &packet[pkt_infos.eth_offset];
@@ -256,8 +258,11 @@ int NtDissector::parsePacket(FlowInfo & flow,
 
         this->captured_stats.ip_pkts++;
         this->captured_stats.ip_bytes += pkt_infos.ip_size;
+ 	return 0;
     }
     }
+
+    return -1;
 }
 
 /* ********************************** */

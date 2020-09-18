@@ -124,6 +124,8 @@ int ndpi_workflow_node_cmp(void const * const A, void const * const B)
         /*  Major   */
         return 1;
     }
+
+    return 0;
 }
 
 /* ********************************** */

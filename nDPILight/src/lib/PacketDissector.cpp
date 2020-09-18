@@ -342,28 +342,35 @@ void PacketDissector::processPacket(void * const args,
 		void * header_tmp,
 		void * packet_tmp)
 {
-	int status;
 	FlowInfo flow = FlowInfo();
 	Reader * reader = (Reader *) args;
 	PacketInfo pkt_infos = PacketInfo();
 
 	/* Parsing the packet */
 	this->captured_stats.packets_captured++;
-	status = this->parsePacket(flow, reader, header_tmp, packet_tmp, pkt_infos);	
-	/* Switch the status received from parsePacket */
 
-	if(status == -1) /* Error case */
+	if(this->parsePacket(flow, reader, header_tmp, packet_tmp, pkt_infos) == -1)	
 		return;
-
-	pkt_infos.flow_to_process = *(FlowInfo **)pkt_infos.tree_result;
-
-	if(pkt_infos.flow_to_process == nullptr) {
+		
+	if(pkt_infos.tree_result == nullptr) {
 
 		/* Adding new flow to the hashtable */
-		if(reader->newFlow(pkt_infos.flow_to_process) != 0) {
+		if (reader->getCurActiveFlows() == reader->getMaxActiveFlows()) {
+        	tracer->traceEvent(0, "[10] max flows to track reached: %llu, idle: %llu\n",
+                                	reader->getMaxActiveFlows(), reader->getCurIdleFlows());
 			this->captured_stats.discarded_bytes += pkt_infos.ip_offset + pkt_infos.eth_offset;
-			return;   
-		}
+        		return;
+    		}
+
+    		pkt_infos.flow_to_process = (FlowInfo *)ndpi_malloc(sizeof(*pkt_infos.flow_to_process));
+    		if (pkt_infos.flow_to_process == nullptr) {
+        		tracer->traceEvent(0, "[10] Not enough memory for flow info\n");
+			this->captured_stats.discarded_bytes += pkt_infos.ip_offset + pkt_infos.eth_offset;
+        		return;
+    		}
+
+    		reader->incrCurActiveFlows();
+    		reader->incrTotalActiveFlows();
 
 		memcpy(pkt_infos.flow_to_process, &flow, sizeof(*pkt_infos.flow_to_process));
 		pkt_infos.flow_to_process->flow_id = flow_id++;
@@ -406,7 +413,8 @@ void PacketDissector::processPacket(void * const args,
 		pkt_infos.ndpi_dst = pkt_infos.flow_to_process->ndpi_dst;
 
 		this->captured_stats.total_flows_captured++;
-	}
+	} else
+	     pkt_infos.flow_to_process = *(FlowInfo **)pkt_infos.tree_result;
 
 	/* Updates timers and counters */
 
@@ -421,14 +429,10 @@ void PacketDissector::processPacket(void * const args,
 		return;
 	}
 
-
-	/* Detection protocol phase */
-	/*if (pkt_infos.flow_to_process->ndpi_flow->num_processed_pkts == 0xFF) {
-		reader->setNewFlow(true);
-		reader->setIdFlow(pkt_infos.flow_to_process->flow_id);
-		return;
-	} */
-	
+	char src_addr_str[INET6_ADDRSTRLEN+1];
+	char dst_addr_str[INET6_ADDRSTRLEN+1];
+//       return; 	
+	/* Detection protocol phase */	
 	if (pkt_infos.flow_to_process->ndpi_flow->num_processed_pkts == 0xFE) {
 		/* last chance to guess something, better then nothing */
 		uint8_t protocol_was_guessed = 0;
@@ -441,22 +445,24 @@ void PacketDissector::processPacket(void * const args,
 		
 		if (protocol_was_guessed != 0) {
 			/*  Protocol guessed    */
-			/*tracer->traceEvent(3, "\t[%8llu, %4d][GUESSED] protocol: %s | app protocol: %s | category: %s\n",
+			tracer->traceEvent(3, "\t[%8llu, %4d][GUESSED] protocol: %s | app protocol: %s | category: %s\n",
 					this->captured_stats.packets_captured,
 					pkt_infos.flow_to_process->flow_id,
 					ndpi_get_proto_name(reader->getNdpiStruct(), pkt_infos.flow_to_process->guessed_protocol.master_protocol),
 					ndpi_get_proto_name(reader->getNdpiStruct(), pkt_infos.flow_to_process->guessed_protocol.app_protocol),
 					ndpi_category_get_name(reader->getNdpiStruct(), pkt_infos.flow_to_process->guessed_protocol.category));
-			*/
+			
 			this->captured_stats.protos_cnt[pkt_infos.flow_to_process->guessed_protocol.master_protocol]++;
 			this->captured_stats.guessed_flow_protocols++;
+
+			pkt_infos.flow_to_process->ipTupleToString(src_addr_str, sizeof(src_addr_str), dst_addr_str, sizeof(dst_addr_str));
 
 			if(pkt_infos.flow_to_process->ndpi_flow->risk) {
 				uint32_t j = mask & pkt_infos.flow_to_process->ndpi_flow->risk;
 
 				for(int i=NDPI_NO_RISK; i<NDPI_MAX_RISK; i++)
 					if(NDPI_ISSET_BIT(j, i) != 0) {
-
+						
 						tracer->traceEvent(1, "[** %s ** | flow %lu ] src ip: %s | dst ip: %s | src port: %u | dst port: %u\n",
 								ndpi_risk2str((ndpi_risk_enum) i), pkt_infos.flow_to_process->flow_id, src_addr_str, 
 								dst_addr_str, pkt_infos.flow_to_process->src_port, pkt_infos.flow_to_process->dst_port);
@@ -505,16 +511,18 @@ void PacketDissector::processPacket(void * const args,
 				pkt_infos.flow_to_process->detection_completed = 1;
 				pkt_infos.flow_to_process->ended_dpi = 1;
 
+				pkt_infos.flow_to_process->ipTupleToString(src_addr_str, sizeof(src_addr_str), dst_addr_str, sizeof(dst_addr_str));
+
 				reader->setNewFlow(true);
 				reader->setIdFlow(pkt_infos.flow_to_process->flow_id);
 
-				/*tracer->traceEvent(3, "\t[%8llu, %4d][DETECTED] protocol: %s | app protocol: %s | category: %s\n",
+				tracer->traceEvent(3, "\t[%8llu, %4d][DETECTED] protocol: %s | app protocol: %s | category: %s\n",
 						this->captured_stats.packets_captured,
 						pkt_infos.flow_to_process->flow_id,
 						ndpi_get_proto_name(reader->getNdpiStruct(), pkt_infos.flow_to_process->detected_l7_protocol.master_protocol),
 						ndpi_get_proto_name(reader->getNdpiStruct(), pkt_infos.flow_to_process->detected_l7_protocol.app_protocol),
 						ndpi_category_get_name(reader->getNdpiStruct(), pkt_infos.flow_to_process->detected_l7_protocol.category));
-				*/
+				
 				if(pkt_infos.flow_to_process->ndpi_flow->risk != 0) {
 					uint32_t j = mask & pkt_infos.flow_to_process->ndpi_flow->risk;
 					for(int i=NDPI_NO_RISK; i<NDPI_MAX_RISK; i++)               

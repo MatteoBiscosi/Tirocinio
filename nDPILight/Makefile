@@ -8,7 +8,7 @@ LIB_DIR         :=      /opt/napatech3/lib
 LIBNT           :=      /opt/napatech3/include
 LIBNDPI		:=	$(NDPILIB)/lib/libndpi.a
 LIBFLAGS	:=	$(LIBNDPI)
-CFLAGS		:=	-fPIC -DPIC -I$(LIBNT) -I$(SRCHOME) -I$(NDPILIB)/include -g -O2
+CFLAGS		:=	-fPIC -DPIC -I$(LIBNT) -I$(SRCHOME) -I$(NDPILIB)/include -g -O2 -pg
 LDFLAGS		:=	-lntapi -lpcap -lpthread
 SRC      	:=	$(wildcard src/lib/*.cpp)	\
                	$(wildcard nDPILight.cpp)
