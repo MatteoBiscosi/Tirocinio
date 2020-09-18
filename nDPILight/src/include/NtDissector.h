@@ -9,7 +9,7 @@ class NtDissector : public PacketDissector{
     public:
         NtDissector(char *log_path, const char *type) : PacketDissector(log_path, type) {};
         NtDissector(const char *type) : PacketDissector(type) {};	
-        int parsePacket(KeyInfo key,
+        int parsePacket(KeyInfo & key,
                             FlowInfo & flow,
                             Reader * &args,
                             void * header_tmp,

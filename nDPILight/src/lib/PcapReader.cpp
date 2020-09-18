@@ -92,17 +92,18 @@ int PcapReader::initInfos()
     this->total_active_flows = 0; /* First initialize active flow's infos */
     this->max_active_flows = MAX_FLOW_ROOTS_PER_THREAD;
     this->max_idle_scan_index = MAX_FLOW_ROOTS_PER_THREAD / 8;
-    this->ndpi_flows_active = (void **)ndpi_calloc(this->max_active_flows, sizeof(void *));
+    /*this->ndpi_flows_active = (void **)ndpi_calloc(this->max_active_flows, sizeof(void *));
     if (this->ndpi_flows_active == nullptr) {
         return -1;
-    }
+    }*/
 
     this->total_idle_flows = 0; /* Then initialize idle flow's infos */
     this->max_idle_flows = MAX_IDLE_FLOWS_PER_THREAD;
-    this->ndpi_flows_idle = (void **)ndpi_calloc(this->max_idle_flows, sizeof(void *));
+    /*this->ndpi_flows_idle = (void **)ndpi_calloc(this->max_idle_flows, sizeof(void *));
     if (this->ndpi_flows_idle == nullptr) {
         return -1;
-    }
+    }*/
+    this->ndpi_flows_active = new std::unordered_map<KeyInfo, FlowInfo, KeyHasher>();
 
     NDPI_PROTOCOL_BITMASK protos; /* In the end initialize bitmask's infos */
     NDPI_BITMASK_SET_ALL(protos);
@@ -215,7 +216,7 @@ void PcapReader::checkForIdleFlows()
      /*   this->max_idle_scan_index = this->max_idle_scan_index + (this->max_active_flows / 4);
         if (this->max_idle_scan_index > this->max_active_flows)
             this->max_idle_scan_index = 0;*/
-    }
+//    }
 }
 
 /* ********************************** */
@@ -257,7 +258,7 @@ uint64_t PcapReader::getLastTime()
 
 void **PcapReader::getNdpiFlowsIdle()
 {
-    return this->ndpi_flows_idle;
+    return nullptr;//this->ndpi_flows_idle;
 }
 
 /* ********************************** */

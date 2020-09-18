@@ -205,7 +205,7 @@ void PacketDissector::printFlow(Reader* reader,
 /* ********************************** */
 
 int PacketDissector::flowToJson(Reader* reader,
-		FlowInfo* & flow_infos,
+		FlowInfo* flow_infos,
 		int guessed_or_detected)
 {
 	char src_addr_str[INET6_ADDRSTRLEN+1];
@@ -404,7 +404,7 @@ void PacketDissector::processPacket(void * const args,
 
 		tracer->traceEvent(4, "[%8llu, %4u] new flow\n", this->captured_stats.packets_captured, pkt_infos.flow_to_process->flow_id);
 
-		reader->getActiveFlows()->insert({key, flow});
+		//reader->getActiveFlows()->insert({key, flow});
 
 		/*if (ndpi_tsearch(pkt_infos.flow_to_process, &reader->getActiveFlows()[pkt_infos.hashed_index], ndpi_workflow_node_cmp) == nullptr) {
 			/* Possible Leak */
@@ -414,83 +414,93 @@ void PacketDissector::processPacket(void * const args,
 
 		pkt_infos.ndpi_src = pkt_infos.flow_to_process->ndpi_src;
 		pkt_infos.ndpi_dst = pkt_infos.flow_to_process->ndpi_dst;
-
+			
 		this->captured_stats.total_flows_captured++;
-	} else
-	     pkt_infos.flow_to_process = *(FlowInfo **)pkt_infos.tree_result;
 
+		reader->getActiveFlows()->insert({key, flow});
+
+		pkt_infos.tree_result = reader->getActiveFlows()->find(key);
+	} 
 	/* Updates timers and counters */
+	FlowInfo* tmp = &pkt_infos.tree_result->second;
+tmp->packets_processed++;
+	printf("%llu\n", pkt_infos.tree_result->second.packets_processed);
 
 	this->captured_stats.packets_processed++;
-	pkt_infos.flow_to_process->packets_processed++;
-	pkt_infos.flow_to_process->bytes_processed += pkt_infos.ip_size;
+	pkt_infos.tree_result->second.packets_processed++;
+	pkt_infos.tree_result->second.bytes_processed += pkt_infos.ip_size;
 
 	/* update timestamp, important for timeout handling */
-	pkt_infos.flow_to_process->last_seen = pkt_infos.time_ms;
+	pkt_infos.tree_result->second.last_seen = pkt_infos.time_ms;
 
-	if(pkt_infos.flow_to_process->ended_dpi) {
+	if(pkt_infos.tree_result->second.ended_dpi) {
 		return;
 	}
-
+printf("prova\n");
 	char src_addr_str[INET6_ADDRSTRLEN+1];
 	char dst_addr_str[INET6_ADDRSTRLEN+1];
-//       return; 	
+if(pkt_infos.tree_result->second.ndpi_flow == nullptr)
+	printf("NULL\n");
+if(pkt_infos.flow_to_process->ndpi_flow == nullptr)
+	printf("2 null\n");
+       //return; 	
 	/* Detection protocol phase */	
-	if (pkt_infos.flow_to_process->ndpi_flow->num_processed_pkts == 0xFE) {
+	if (pkt_infos.tree_result->second.ndpi_flow->num_processed_pkts == 0xFE) {
 		/* last chance to guess something, better then nothing */
 		uint8_t protocol_was_guessed = 0;
-		pkt_infos.flow_to_process->ended_dpi = 1;
+		pkt_infos.tree_result->second.ended_dpi = 1;
 		reader->setNewFlow(true);
-		reader->setIdFlow(pkt_infos.flow_to_process->flow_id);
-
-		pkt_infos.flow_to_process->guessed_protocol =
-			ndpi_detection_giveup(reader->getNdpiStruct(), pkt_infos.flow_to_process->ndpi_flow, 1, &protocol_was_guessed);
-		
+		reader->setIdFlow(pkt_infos.tree_result->second.flow_id);
+		printf("prova3\n");
+		pkt_infos.tree_result->second.guessed_protocol =
+			ndpi_detection_giveup(reader->getNdpiStruct(), pkt_infos.tree_result->second.ndpi_flow, 1, &protocol_was_guessed);
+		printf("prova1\n");	
 		if (protocol_was_guessed != 0) {
 			/*  Protocol guessed    */
 			tracer->traceEvent(3, "\t[%8llu, %4d][GUESSED] protocol: %s | app protocol: %s | category: %s\n",
 					this->captured_stats.packets_captured,
-					pkt_infos.flow_to_process->flow_id,
-					ndpi_get_proto_name(reader->getNdpiStruct(), pkt_infos.flow_to_process->guessed_protocol.master_protocol),
-					ndpi_get_proto_name(reader->getNdpiStruct(), pkt_infos.flow_to_process->guessed_protocol.app_protocol),
-					ndpi_category_get_name(reader->getNdpiStruct(), pkt_infos.flow_to_process->guessed_protocol.category));
+					pkt_infos.tree_result->second.flow_id,
+					ndpi_get_proto_name(reader->getNdpiStruct(), pkt_infos.tree_result->second.guessed_protocol.master_protocol),
+					ndpi_get_proto_name(reader->getNdpiStruct(), pkt_infos.tree_result->second.guessed_protocol.app_protocol),
+					ndpi_category_get_name(reader->getNdpiStruct(), pkt_infos.tree_result->second.guessed_protocol.category));
 			
-			this->captured_stats.protos_cnt[pkt_infos.flow_to_process->guessed_protocol.master_protocol]++;
+			this->captured_stats.protos_cnt[pkt_infos.tree_result->second.guessed_protocol.master_protocol]++;
 			this->captured_stats.guessed_flow_protocols++;
 
-			pkt_infos.flow_to_process->ipTupleToString(src_addr_str, sizeof(src_addr_str), dst_addr_str, sizeof(dst_addr_str));
+			pkt_infos.tree_result->second.ipTupleToString(src_addr_str, sizeof(src_addr_str), dst_addr_str, sizeof(dst_addr_str));
 
-			if(pkt_infos.flow_to_process->ndpi_flow->risk) {
-				uint32_t j = mask & pkt_infos.flow_to_process->ndpi_flow->risk;
+			if(pkt_infos.tree_result->second.ndpi_flow->risk) {
+				uint32_t j = mask & pkt_infos.tree_result->second.ndpi_flow->risk;
 
 				for(int i=NDPI_NO_RISK; i<NDPI_MAX_RISK; i++)
 					if(NDPI_ISSET_BIT(j, i) != 0) {
 						
 						tracer->traceEvent(1, "[** %s ** | flow %lu ] src ip: %s | dst ip: %s | src port: %u | dst port: %u\n",
-								ndpi_risk2str((ndpi_risk_enum) i), pkt_infos.flow_to_process->flow_id, src_addr_str, 
-								dst_addr_str, pkt_infos.flow_to_process->src_port, pkt_infos.flow_to_process->dst_port);
+								ndpi_risk2str((ndpi_risk_enum) i), pkt_infos.tree_result->second.flow_id, src_addr_str, 
+								dst_addr_str, pkt_infos.tree_result->second.src_port, pkt_infos.tree_result->second.dst_port);
 
-						if(this->flowToJson(reader, pkt_infos.flow_to_process, 0) != 0) 
+						if(this->flowToJson(reader, &pkt_infos.tree_result->second, 0) != 0) 
 							tracer->traceEvent(0, "Error while creating the record of flow %lu\n",
-									pkt_infos.flow_to_process->flow_id);
+									pkt_infos.tree_result->second.flow_id);
 
 						return;
 					}
 			} 
 			else 
 				tracer->traceEvent(3, "[ flow %lu ] src ip: %s | dst ip: %s | src port: %u | dst port: %u\n", 
-						pkt_infos.flow_to_process->flow_id, src_addr_str, dst_addr_str, 
-						pkt_infos.flow_to_process->src_port, pkt_infos.flow_to_process->dst_port);
+						pkt_infos.tree_result->second.flow_id, src_addr_str, dst_addr_str, 
+						pkt_infos.tree_result->second.src_port, pkt_infos.tree_result->second.dst_port);
 		} else {
+			printf("prova2\n");
 			tracer->traceEvent(3, "\t[%8llu, %d, %4d][FLOW NOT CLASSIFIED]\n",
-					this->captured_stats.packets_captured, pkt_infos.flow_to_process->flow_id);
+					this->captured_stats.packets_captured, pkt_infos.tree_result->second.flow_id);
 			this->captured_stats.unclassified_flow_protocols++;
 		}
 
 		if(generate_logs != 0) {
-			if(this->flowToJson(reader, pkt_infos.flow_to_process, 0) != 0) {
+			if(this->flowToJson(reader, &pkt_infos.tree_result->second, 0) != 0) {
 				tracer->traceEvent(0, "Error while creating the record of flow %lu\n",
-						pkt_infos.flow_to_process->flow_id);
+						pkt_infos.tree_result->second.flow_id);
 				return;
 			}
 		}	
@@ -498,56 +508,56 @@ void PacketDissector::processPacket(void * const args,
 	
 	else {
 
-	    pkt_infos.flow_to_process->detected_l7_protocol =
-		ndpi_detection_process_packet(reader->getNdpiStruct(), pkt_infos.flow_to_process->ndpi_flow,
+	    pkt_infos.tree_result->second.detected_l7_protocol =
+		ndpi_detection_process_packet(reader->getNdpiStruct(), pkt_infos.tree_result->second.ndpi_flow,
 				pkt_infos.ip != nullptr ? (uint8_t *)pkt_infos.ip : (uint8_t *)pkt_infos.ip6,
 				pkt_infos.ip_size, pkt_infos.time_ms, pkt_infos.ndpi_src, pkt_infos.ndpi_dst);
 
-	    if (ndpi_is_protocol_detected(reader->getNdpiStruct(), pkt_infos.flow_to_process->detected_l7_protocol)) {
-			if (pkt_infos.flow_to_process->detected_l7_protocol.master_protocol != NDPI_PROTOCOL_UNKNOWN ||
-					pkt_infos.flow_to_process->detected_l7_protocol.app_protocol != NDPI_PROTOCOL_UNKNOWN) {
+	    if (ndpi_is_protocol_detected(reader->getNdpiStruct(), pkt_infos.tree_result->second.detected_l7_protocol)) {
+			if (pkt_infos.tree_result->second.detected_l7_protocol.master_protocol != NDPI_PROTOCOL_UNKNOWN ||
+					pkt_infos.tree_result->second.detected_l7_protocol.app_protocol != NDPI_PROTOCOL_UNKNOWN) {
 
 				// Protocol detected
-				this->captured_stats.protos_cnt[pkt_infos.flow_to_process->detected_l7_protocol.master_protocol]++;
+				this->captured_stats.protos_cnt[pkt_infos.tree_result->second.detected_l7_protocol.master_protocol]++;
 				this->captured_stats.detected_flow_protocols++;
 
-				pkt_infos.flow_to_process->detection_completed = 1;
-				pkt_infos.flow_to_process->ended_dpi = 1;
+				pkt_infos.tree_result->second.detection_completed = 1;
+				pkt_infos.tree_result->second.ended_dpi = 1;
 
-				pkt_infos.flow_to_process->ipTupleToString(src_addr_str, sizeof(src_addr_str), dst_addr_str, sizeof(dst_addr_str));
+				pkt_infos.tree_result->second.ipTupleToString(src_addr_str, sizeof(src_addr_str), dst_addr_str, sizeof(dst_addr_str));
 
 				reader->setNewFlow(true);
-				reader->setIdFlow(pkt_infos.flow_to_process->flow_id);
+				reader->setIdFlow(pkt_infos.tree_result->second.flow_id);
 
 				tracer->traceEvent(3, "\t[%8llu, %4d][DETECTED] protocol: %s | app protocol: %s | category: %s\n",
 						this->captured_stats.packets_captured,
-						pkt_infos.flow_to_process->flow_id,
-						ndpi_get_proto_name(reader->getNdpiStruct(), pkt_infos.flow_to_process->detected_l7_protocol.master_protocol),
-						ndpi_get_proto_name(reader->getNdpiStruct(), pkt_infos.flow_to_process->detected_l7_protocol.app_protocol),
-						ndpi_category_get_name(reader->getNdpiStruct(), pkt_infos.flow_to_process->detected_l7_protocol.category));
+						pkt_infos.tree_result->second.flow_id,
+						ndpi_get_proto_name(reader->getNdpiStruct(), pkt_infos.tree_result->second.detected_l7_protocol.master_protocol),
+						ndpi_get_proto_name(reader->getNdpiStruct(), pkt_infos.tree_result->second.detected_l7_protocol.app_protocol),
+						ndpi_category_get_name(reader->getNdpiStruct(), pkt_infos.tree_result->second.detected_l7_protocol.category));
 				
 				if(pkt_infos.flow_to_process->ndpi_flow->risk != 0) {
-					uint32_t j = mask & pkt_infos.flow_to_process->ndpi_flow->risk;
+					uint32_t j = mask & pkt_infos.tree_result->second.ndpi_flow->risk;
 					for(int i=NDPI_NO_RISK; i<NDPI_MAX_RISK; i++)               
 						if(NDPI_ISSET_BIT(j, i) != 0) {
 							tracer->traceEvent(1, "[** %s ** | flow %lu ] src ip: %s | dst ip: %s | src port: %u | dst port: %u\n",
-									ndpi_risk2str((ndpi_risk_enum) i), pkt_infos.flow_to_process->flow_id, src_addr_str, 
-									dst_addr_str, pkt_infos.flow_to_process->src_port, pkt_infos.flow_to_process->dst_port);
-							if(this->flowToJson(reader, pkt_infos.flow_to_process, 1) != 0) 
+									ndpi_risk2str((ndpi_risk_enum) i), pkt_infos.tree_result->second.flow_id, src_addr_str, 
+									dst_addr_str, pkt_infos.tree_result->second.src_port, pkt_infos.tree_result->second.dst_port);
+							if(this->flowToJson(reader, &pkt_infos.tree_result->second, 1) != 0) 
 								tracer->traceEvent(0, "Error while creating the record of flow %lu\n",
-										pkt_infos.flow_to_process->flow_id);
+										pkt_infos.tree_result->second.flow_id);
 
 							return;
 						} else
 							tracer->traceEvent(3, "[ flow %lu ] src ip: %s | dst ip: %s | src port: %u | dst port: %u\n",
-									pkt_infos.flow_to_process->flow_id, src_addr_str, dst_addr_str,
-									pkt_infos.flow_to_process->src_port, pkt_infos.flow_to_process->dst_port);
+									pkt_infos.tree_result->second.flow_id, src_addr_str, dst_addr_str,
+									pkt_infos.tree_result->second.src_port, pkt_infos.tree_result->second.dst_port);
 				}
 
 				if(generate_logs != 0) {
-					if(this->flowToJson(reader, pkt_infos.flow_to_process, 1) != 0) {
+					if(this->flowToJson(reader, &pkt_infos.tree_result->second, 1) != 0) {
 					tracer->traceEvent(0, "Error while creating the record of flow %lu\n",
-											pkt_infos.flow_to_process->flow_id);
+											pkt_infos.tree_result->second.flow_id);
 					return;
 					}
 				}

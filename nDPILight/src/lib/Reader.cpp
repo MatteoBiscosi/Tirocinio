@@ -29,7 +29,7 @@ void ndpi_idle_scan_walker(void const * const A, ndpi_VISIT which, int depth, vo
             char dst_addr_str[INET6_ADDRSTRLEN+1];
             flow->ipTupleToString(src_addr_str, sizeof(src_addr_str), dst_addr_str, sizeof(dst_addr_str));
             workflow->incrCurIdleFlows();
-            workflow->getNdpiFlowsIdle()[workflow->getCurIdleFlows()] = flow;
+            //workflow->getNdpiFlowsIdle()[workflow->getCurIdleFlows()] = flow;
             workflow->incrTotalIdleFlows();
         }
     }

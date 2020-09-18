@@ -65,7 +65,7 @@ void nt_idle_scan_walker(void const * const A, ndpi_VISIT which, int depth, void
             char dst_addr_str[INET6_ADDRSTRLEN+1];
             flow->ipTupleToString(src_addr_str, sizeof(src_addr_str), dst_addr_str, sizeof(dst_addr_str));
             workflow->incrCurIdleFlows();
-            workflow->getNdpiFlowsIdle()[workflow->getCurIdleFlows()] = flow;
+            //workflow->getNdpiFlowsIdle()[workflow->getCurIdleFlows()] = flow;
             workflow->incrTotalIdleFlows();
         }
     }
@@ -107,7 +107,7 @@ void taskReceiverUnh(const char* streamName, NapatechReader *reader)
     int status;
 
     while(reader->getErrorOfEof() == 0) { 
-	status = NT_NetRxGetNextPacket(* reader->getUnhStream(), reader->getUnhBuffer(), 5000);      
+	status = NT_NetRxGet(* reader->getUnhStream(), reader->getUnhBuffer(), 5000);      
         if(status == NT_STATUS_TIMEOUT || status == NT_STATUS_TRYAGAIN) {
             if(reader->getErrorOfEof() != 0)
                     return;	
@@ -121,7 +121,7 @@ void taskReceiverUnh(const char* streamName, NapatechReader *reader)
         if(status != NT_SUCCESS) {
 			char errorBuffer[NT_ERRBUF_SIZE];
 			NT_ExplainError(status, errorBuffer, sizeof(errorBuffer));
-			tracer->traceEvent(0, "%s: %s\n", message, errorBuffer);
+			tracer->traceEvent(0, "Get Packet: %s\n", errorBuffer);
             continue;
         }
 
@@ -399,7 +399,7 @@ void taskReceiverAny(const char* streamName, NapatechReader *reader)
 	    if(status != NT_SUCCESS) {
 			char errorBuffer[NT_ERRBUF_SIZE];
 			NT_ExplainError(status, errorBuffer, sizeof(errorBuffer));
-			tracer->traceEvent(0, "%s: %s\n", message, errorBuffer);
+			tracer->traceEvent(0, "Get Packet: %s\n", errorBuffer);
             continue;
         }
 
@@ -464,7 +464,7 @@ void taskReceiverAny(const char* streamName, NapatechReader *reader)
 		    if(status != NT_SUCCESS) {
 				char errorBuffer[NT_ERRBUF_SIZE];
 				NT_ExplainError(status, errorBuffer, sizeof(errorBuffer));
-				tracer->traceEvent(0, "%s: %s\n", message, errorBuffer);
+				tracer->traceEvent(0, "Write new Flow: %s\n", errorBuffer);
 				continue;
 			}
 

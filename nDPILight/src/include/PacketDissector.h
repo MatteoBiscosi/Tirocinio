@@ -162,7 +162,7 @@ class PacketDissector {
          *
          */
         int flowToJson(Reader* reader,
-                        FlowInfo* & flow_infos,
+                        FlowInfo* flow_infos,
 			int guessed_or_detected);
 
         /**

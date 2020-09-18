@@ -77,8 +77,8 @@ int NtDissector::parsePacket(KeyInfo & key,
 
             flow.src_port = ntohs(tcp->source);
             flow.dst_port = ntohs(tcp->dest);
-            key.src_port = ntohs(udp->source);
-            key.dst_port = ntohs(udp->dest);
+            key.src_port = ntohs(tcp->source);
+            key.dst_port = ntohs(tcp->dest);
 
             this->captured_stats.tcp_pkts++;
         } else {

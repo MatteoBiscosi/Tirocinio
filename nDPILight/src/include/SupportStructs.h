@@ -5,6 +5,13 @@
 
 
 
+
+inline uint64_t fibonacci_hash(uint64_t hash) {
+    return hash * 11400714819323198485llu;
+};
+
+/* ********************************** */
+
 enum flow_l3_type {
         L3_IP, L3_IP6
 };
@@ -69,12 +76,6 @@ struct KeyHasher {
     }
 };
 
-
-/* ********************************** */
-
-inline uint64_t fibonacci_hash(uint64_t hash) {
-    return hash * 11400714819323198485llu;
-}
 
 
 #endif //NDPILIGHT_SUPPORT_STRUCTS_H
