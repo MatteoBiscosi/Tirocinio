@@ -176,5 +176,6 @@ void ndpi_idle_scan_walker(void const * const A,
 int ndpi_workflow_node_cmp(void const * const A, 
                             void const * const B);                 
 
+inline uint64_t fibonacci_hash(uint64_t hash);
 
 #endif //NDPILIGHT_READER_H

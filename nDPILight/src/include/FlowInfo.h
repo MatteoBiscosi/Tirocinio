@@ -18,6 +18,7 @@ public:
     uint64_t first_seen;
     uint64_t last_seen;
     uint64_t hashval;
+    uint64_t second_hashval;
 
     flow_l3_type l3_type;
     union {

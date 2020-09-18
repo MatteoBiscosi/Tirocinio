@@ -253,6 +253,8 @@ int NtDissector::parsePacket(FlowInfo & flow,
 
         flow.hashval += flow.l4_protocol + flow.src_port + flow.dst_port;
 
+        flow.second_hashval = fibonacci_hash(flow.hashval);
+
         pkt_infos.hashed_index = (uint64_t) flow.hashval % reader->getMaxActiveFlows();
         pkt_infos.tree_result = ndpi_tfind(&flow, &reader->getActiveFlows()[pkt_infos.hashed_index], ndpi_workflow_node_cmp);
 
