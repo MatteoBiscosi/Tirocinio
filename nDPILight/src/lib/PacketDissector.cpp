@@ -418,14 +418,15 @@ void PacketDissector::processPacket(void * const args,
 			
 		this->captured_stats.total_flows_captured++;
 
-		reader->getActiveFlows()->insert({key, flow});
-		tmp_flow = flow;
-		
+		reader->getActiveFlows()->insert({key, *pkt_infos.flow_to_process});
+		//tmp_flow = pkt_infos.flow_to_process;
+		//tmp_flow->packets_processed++;
 		pkt_infos.tree_result = reader->getActiveFlows()->find(key);
 
-		printf("%llu\n", pkt_infos.tree_result->second.packets_processed);
-	} else
-		tmp_flow = &pkt_infos.tree_result->second;
+		//printf("%llu\n", pkt_infos.tree_result->second.packets_processed);
+	}
+	
+	tmp_flow = &pkt_infos.tree_result->second;
 
 	//printf("%llu\n", tmp_flow->packets_processed);
 
@@ -435,7 +436,7 @@ void PacketDissector::processPacket(void * const args,
 	tmp_flow->bytes_processed += pkt_infos.ip_size;
 
 	/* update timestamp, important for timeout handling */
-	tmp_flow->second.last_seen = pkt_infos.time_ms;
+	tmp_flow->last_seen = pkt_infos.time_ms;
 
 	if(tmp_flow->ended_dpi) {
 		return;
@@ -451,10 +452,10 @@ void PacketDissector::processPacket(void * const args,
 		tmp_flow->ended_dpi = 1;
 		reader->setNewFlow(true);
 		reader->setIdFlow(tmp_flow->flow_id);
-		printf("prova3\n");
+		//printf("prova3\n");
 		tmp_flow->guessed_protocol =
 			ndpi_detection_giveup(reader->getNdpiStruct(), tmp_flow->ndpi_flow, 1, &protocol_was_guessed);
-		printf("prova1\n");	
+		//printf("prova1\n");	
 		if (protocol_was_guessed != 0) {
 			/*  Protocol guessed    */
 			tracer->traceEvent(3, "\t[%8llu, %4d][GUESSED] protocol: %s | app protocol: %s | category: %s\n",
@@ -491,7 +492,7 @@ void PacketDissector::processPacket(void * const args,
 						tmp_flow->flow_id, src_addr_str, dst_addr_str, 
 						tmp_flow->src_port, tmp_flow->dst_port);
 		} else {
-			printf("prova2\n");
+			//printf("prova2\n");
 			tracer->traceEvent(3, "\t[%8llu, %d, %4d][FLOW NOT CLASSIFIED]\n",
 					this->captured_stats.packets_captured, tmp_flow->flow_id);
 			this->captured_stats.unclassified_flow_protocols++;

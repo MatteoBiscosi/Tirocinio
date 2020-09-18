@@ -65,6 +65,14 @@ struct KeyInfo {
                     ip_tuple.v4.dst == other.ip_tuple.v4.dst &&
                     src_port == other.src_port &&
                     dst_port == other.dst_port);
+	else
+	    return (hashval == other.hashval &&
+                    ip_tuple.v6.src[0] == other.ip_tuple.v6.src[0] &&
+		    ip_tuple.v6.src[1] == other.ip_tuple.v6.src[1] &&
+                    ip_tuple.v6.dst[0] == other.ip_tuple.v6.dst[0] &&
+                    ip_tuple.v6.dst[1] == other.ip_tuple.v6.dst[1] &&
+                    src_port == other.src_port &&
+                    dst_port == other.dst_port);
     };
 };
 
