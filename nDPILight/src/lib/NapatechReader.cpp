@@ -148,6 +148,12 @@ NapatechReader::~NapatechReader()
 {
     // Closes rx stream
     NT_NetRxClose(hNetRxMiss);
+
+
+	u_int64_t n = num_packets;
+	for (u_int i = 0; i < PROFILING_NUM_SECTIONS; i++)
+		if(PROFILING_SECTION_LABEL(i) != NULL)
+			printf("[PROFILING] Section #%d '%s': AVG %llu ticks\n", i, PROFILING_SECTION_LABEL(i), PROFILING_SECTION_AVG(i, n));
 }  
 
 /* ********************************** */
@@ -351,7 +357,6 @@ void taskReceiverAny(const char* streamName, NapatechReader *reader)
     NtFlowStream_t  flowStream;
     NtStatistics_t hStat;
     int status;
-    int n_flows = 0;   
  
     std::string nt_log = std::string("nt_");
     nt_log = nt_log + std::to_string(reader->getStreamId());
@@ -387,6 +392,8 @@ void taskReceiverAny(const char* streamName, NapatechReader *reader)
 	    // Get package from rx stream.
 	    
 	    status = NT_NetRxGet(* reader->getMissStream(), reader->getMissBuffer(), 5000);
+
+		PROFILING_SECTION_ENTER("Napatech parsing", 0 /* section id */);
 		
 	    if(status == NT_STATUS_TIMEOUT || status == NT_STATUS_TRYAGAIN) {
 			printFlowStreamInfo(flowStream); 
@@ -402,11 +409,17 @@ void taskReceiverAny(const char* streamName, NapatechReader *reader)
 			tracer->traceEvent(0, "Get Packet: %s\n", errorBuffer);
             continue;
         }
+		
+		PROFILING_SECTION_ENTER("New packet parsing", 2 /* section id */);
 
 	    tmp->processPacket(reader, reader->getMissBuffer(), nullptr);
+		PROFILING_SECTION_EXIT(5 /* section id */);	
+
+		PROFILING_SECTION_EXIT(2 /* section id */);    
 
 	    if(reader->getNewFlow() == true) {   
-			n_flows++;   
+			PROFILING_SECTION_ENTER("New hardware flow", 1 /* section id */);
+  
 		    // Here a package has successfully been received, and the parameters for the
 		    // next flow to be learned will be set up.
 		    NtFlow_t flow = NtFlow_t();
@@ -468,10 +481,14 @@ void taskReceiverAny(const char* streamName, NapatechReader *reader)
 				continue;
 			}
 
-		    reader->setNewFlow(false);            
+		    reader->setNewFlow(false);   
+
+			PROFILING_SECTION_EXIT(1 /* section id */);         
 	    }
 	    
 	    NT_NetRxRelease(*reader->getMissStream(), *reader->getMissBuffer());
+
+		PROFILING_SECTION_EXIT(0 /* section id */);
     }
 }
 

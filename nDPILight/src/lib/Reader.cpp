@@ -147,6 +147,8 @@ Reader::Reader(char *log_path, const char *type)
     this->cur_active_flows = 0;
     this->max_active_flows = MAX_FLOW_ROOTS_PER_THREAD; 
     this->max_idle_scan_index = MAX_FLOW_ROOTS_PER_THREAD / 8;
+
+    PROFILING_INIT();
 }
 
 /* ********************************** */

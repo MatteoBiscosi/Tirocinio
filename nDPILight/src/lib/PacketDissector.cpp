@@ -351,11 +351,13 @@ void PacketDissector::processPacket(void * const args,
 	/* Parsing the packet */
 	this->captured_stats.packets_captured++;
 
+	PROFILING_SECTION_ENTER("parsing 4 lvls", 3 /* section id */);
 	if(this->parsePacket(key, flow, reader, header_tmp, packet_tmp, pkt_infos) == -1)	
 		return;
-		
-	if(pkt_infos.tree_result == reader->getActiveFlows()->end()) {
+	PROFILING_SECTION_EXIT(3 /* section id */);	
 
+	if(pkt_infos.tree_result == reader->getActiveFlows()->end()) {
+		PROFILING_SECTION_ENTER("New software flow", 4 /* section id */);
 		/* Adding new flow to the hashtable */
 		if (reader->getCurActiveFlows() == reader->getMaxActiveFlows()) {
         	tracer->traceEvent(0, "[10] max flows to track reached: %llu, idle: %llu\n",
@@ -423,6 +425,7 @@ void PacketDissector::processPacket(void * const args,
 		//tmp_flow->packets_processed++;
 		pkt_infos.tree_result = reader->getActiveFlows()->find(key);
 
+		PROFILING_SECTION_EXIT(4 /* section id */);	
 		//printf("%llu\n", pkt_infos.tree_result->second.packets_processed);
 	}
 	
@@ -446,6 +449,7 @@ void PacketDissector::processPacket(void * const args,
 	char dst_addr_str[INET6_ADDRSTRLEN+1];
        //return; 	
 	/* Detection protocol phase */	
+	PROFILING_SECTION_ENTER("Detection phase", 5 /* section id */);
 	if (tmp_flow->ndpi_flow->num_processed_pkts == 0xFE) {
 		/* last chance to guess something, better then nothing */
 		uint8_t protocol_was_guessed = 0;

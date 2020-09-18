@@ -32,6 +32,8 @@ class Reader {
         unsigned long long int idFlow;
 
         struct ndpi_detection_module_struct * ndpi_struct;
+
+        PROFILING_DECLARE(20 /* max number of sections */);
     public:
 	    Reader() {};
         Reader(char *log_path, const char *type);
