@@ -150,11 +150,11 @@ NapatechReader::~NapatechReader()
     NT_NetRxClose(hNetRxMiss);
 
 
-	u_int64_t n = num_packets;
+	/*u_int64_t n = this->num_packets;
 	for (u_int i = 0; i < PROFILING_NUM_SECTIONS; i++)
 		if(PROFILING_SECTION_LABEL(i) != NULL)
 			printf("[PROFILING] Section #%d '%s': AVG %llu ticks\n", i, PROFILING_SECTION_LABEL(i), PROFILING_SECTION_AVG(i, n));
-}  
+*/}  
 
 /* ********************************** */
 

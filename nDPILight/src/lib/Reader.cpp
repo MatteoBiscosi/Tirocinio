@@ -159,6 +159,10 @@ Reader::~Reader()
         ndpi_exit_detection_module(this->ndpi_struct);
     }
 
+    u_int64_t n = num_packets;
+for (u_int i = 0; i < PROFILING_NUM_SECTIONS; i++)
+  if(PROFILING_SECTION_LABEL(i) != NULL)
+    printf("[PROFILING] Section #%d '%s': AVG %llu ticks\n", i, PROFILING_SECTION_LABEL(i), PROFILING_SECTION_AVG(i, n));
 /*    if(this->ndpi_flows_active != nullptr) {
         for(size_t i = 0; i < this->max_active_flows; i++) {
             ndpi_tdestroy(this->ndpi_flows_active[i], flowFreer);

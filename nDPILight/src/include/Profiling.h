@@ -1,3 +1,9 @@
+#ifndef NDPILIGHT_PROFILING_H
+#define NDPILIGHT_PROFILING_H
+
+#include "ndpi_light_includes.h"
+
+
 #define PROFILING_DECLARE(n) \
         ticks __profiling_sect_start[n]; \
         const char *__profiling_sect_label[n]; \
@@ -10,3 +16,5 @@
 #define PROFILING_SECTION_AVG(i,n) (__profiling_sect_tot[i] / (n + 1))
 #define PROFILING_SECTION_TICKS(i) (__profiling_sect_tot[i] / (__profiling_sect_counter[i] + 1))
 #define PROFILING_SECTION_LABEL(i) __profiling_sect_label[i]
+
+#endif

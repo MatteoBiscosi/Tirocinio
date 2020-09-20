@@ -22,7 +22,7 @@ uint8_t type {0};
 
 unsigned long long int previous_pkts = 0;
 time_t time_start, time_end;
-
+PROFILING_DECLARE(20 /* max number of sections */);
 
 
 

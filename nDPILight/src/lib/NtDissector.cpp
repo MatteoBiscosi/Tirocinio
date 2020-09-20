@@ -1,5 +1,6 @@
 #include "ndpi_light_includes.h"
 
+#include "Profiling.h"
 
 
 /* ********************************** */
@@ -111,8 +112,9 @@ int NtDissector::parsePacket(KeyInfo & key,
 
         //pkt_infos.hashed_index = (uint64_t) flow.hashval % reader->getMaxActiveFlows();
         //pkt_infos.tree_result = ndpi_tfind(&flow, &reader->getActiveFlows()[pkt_infos.hashed_index], ndpi_workflow_node_cmp);
-
+	//PROFILING_SECTION_ENTER("Searching flow", 6 /* section id */);
         pkt_infos.tree_result = reader->getActiveFlows()->find(key);
+	//PROFILING_SECTION_EXIT(6 /* section id */);
 
         this->captured_stats.ip_pkts++;
         this->captured_stats.ip_bytes += pkt_infos.ip_size;

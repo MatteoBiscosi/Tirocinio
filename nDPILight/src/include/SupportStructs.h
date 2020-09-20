@@ -6,6 +6,10 @@
 
 
 
+typedef unsigned long long ticks;
+
+/* ********************************** */
+
 inline uint64_t fibonacci_hash(uint64_t hash) {
     return hash * 11400714819323198485llu;
 };

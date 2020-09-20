@@ -30,6 +30,7 @@
 #include <nt.h>
 
 #include "SupportStructs.h"
+#include "Profiling.h"
 #include "ndpi_main.h"
 #include "ndpi_typedefs.h"
 #include "ndpi_classify.h"
