@@ -37,40 +37,6 @@ int ntplCall(NtConfigStream_t& hCfgStream, const char* str)
 
 /* ********************************** */
 
-void nt_idle_scan_walker(void const * const A, ndpi_VISIT which, int depth, void * const user_data)
-/**
- * Function used to check for idle flows instead of
- * ndpi_idle_scan_walker
- */
-{   
-    NapatechReader * const workflow = (NapatechReader *)user_data;
-    FlowInfo * const flow = *(FlowInfo **)A;
-    uint64_t max_time = MAX_IDLE_TIME * 1000000LL;
-
-    (void)depth;
-
-    if (workflow == nullptr || flow == nullptr) {
-        return;
-    }
-
-    if (which == ndpi_preorder || which == ndpi_leaf) {
-        if ((flow->flow_fin_ack_seen == 1 && flow->flow_ack_seen == 1) ||
-            flow->last_seen + max_time  < workflow->getLastTime())
-            /*  New flow that need to be added to idle flows    */
-        {
-	    	if(flow->ended_dpi == 0)
-				workflow->getParser()->printFlow(workflow, flow);
-
-            char src_addr_str[INET6_ADDRSTRLEN+1];
-            char dst_addr_str[INET6_ADDRSTRLEN+1];
-            flow->ipTupleToString(src_addr_str, sizeof(src_addr_str), dst_addr_str, sizeof(dst_addr_str));
-            workflow->incrCurIdleFlows();
-            //workflow->getNdpiFlowsIdle()[workflow->getCurIdleFlows()] = flow;
-            workflow->incrTotalIdleFlows();
-        }
-    }
-}
-
 void printFlowStreamInfo(NtFlowStream_t flowStream)
 {
     const char* ip;
@@ -253,18 +219,7 @@ int NapatechReader::initInfos()
     this->max_idle_scan_index = MAX_FLOW_ROOTS_PER_THREAD / 8;
 
 	this->ndpi_flows_active = new std::unordered_map<KeyInfo, FlowInfo, KeyHasher>();
- /*   this->ndpi_flows_active = (void **)ndpi_calloc(this->max_active_flows, sizeof(void *));
-    if (this->ndpi_flows_active == nullptr) {
-	    return -1;
-    }
-*/
-    this->total_idle_flows = 0; /* Then initialize idle flow's infos */
-    this->max_idle_flows = MAX_IDLE_FLOWS_PER_THREAD;
-/*    this->ndpi_flows_idle = (void **)ndpi_calloc(this->max_idle_flows, sizeof(void *));
-    if (this->ndpi_flows_idle == nullptr) {
-        return -1;
-    }
-*/
+
     NDPI_PROTOCOL_BITMASK protos; /* In the end initialize bitmask's infos */
     NDPI_BITMASK_SET_ALL(protos);
     ndpi_set_protocol_detection_bitmask2(this->ndpi_struct, &protos);
@@ -302,51 +257,23 @@ void NapatechReader::newPacket(void * header)
     this->pkt_parser->incrWireBytes(NT_NET_GET_PKT_CAP_LENGTH(* hNetBuffer) - NT_NET_GET_PKT_DESCR_LENGTH(* hNetBuffer));
     
     /*  Scan done every 15000 ms more or less   */    
-	return;
-    /*  Check if at least IDLE_SCAN_PERIOD passed since last scan   */
-/*	if (this->last_idle_scan_time + IDLE_SCAN_PERIOD * 1000000LL < this->last_time) { 
-		for (this->idle_scan_index; this->idle_scan_index < this->max_idle_scan_index; ++this->idle_scan_index) {
-			if(this->ndpi_flows_active[this->idle_scan_index] == nullptr)
-				continue;
 
-			ndpi_twalk(this->ndpi_flows_active[this->idle_scan_index], nt_idle_scan_walker, this);
+	if (this->last_idle_scan_time + IDLE_SCAN_PERIOD * 1000000 < this->last_time) {
+		std::for_each(this->ndpi_flows_active.begin(), this->ndpi_flows_active.end() , [](std::pair<std::string, int > element){
 
-			/*  Removes all idle flows that were copied into ndpi_flows_idle from the ndpi_twalk    */
-/*			while (this->cur_idle_flows > 0) {
-				/*  Get the flow    */
-	/*			FlowInfo * const tmp_f =
-					(FlowInfo *)this->ndpi_flows_idle[--this->cur_idle_flows];
+			if ((element.second->flow_fin_ack_seen == 1 && element.second->flow_ack_seen == 1) ||
+				element.second->last_seen + max_time  < this->getLastTime())
+				/*  New flow that need to be added to idle flows    */
+			{
+				if(element.second->ended_dpi == 0)
+					this->getParser()->printFlow(workflow, flow);
 
-				if(tmp_f == nullptr)
-					continue;
-
-				if (tmp_f->flow_fin_ack_seen == 1) {
-					tracer->traceEvent(4, "[%4u] Freeing flow due to fin\n", tmp_f->flow_id);
-				} else {
-					tracer->traceEvent(4, "[%4u] Freeing idle flow\n", tmp_f->flow_id);
-				}
-
-				/*  Removes it from the active flows    */
-	/*			ndpi_tdelete(tmp_f, &this->ndpi_flows_active[this->idle_scan_index],
-						ndpi_workflow_node_cmp);
-
-				if(tmp_f != nullptr)
-					flowFreer(tmp_f);
-
-				this->cur_active_flows--;
+				this->ndpi_flows_active.erase(element);
 			}
-		}
+		});
 
-		this->last_idle_scan_time = this->last_time;
-		this->last_packets_scan = pkt_parser->getPktsCaptured();
-
-		/* Updating next max_idle_scan_index */
-   /*     this->max_idle_scan_index = this->max_idle_scan_index + (this->max_active_flows / 4);
-        if (this->max_idle_scan_index > this->max_active_flows)
-            this->max_idle_scan_index = 0;	
-
-		printFlowStreamInfo(this->flowStream);
-	}*/
+		printFlowStreamInfo(this->flowStream); 
+	}
 }
 
 /* ********************************** */

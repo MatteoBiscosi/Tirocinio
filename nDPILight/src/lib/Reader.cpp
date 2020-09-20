@@ -137,7 +137,6 @@ Reader::Reader(char *log_path, const char *type)
     	this->log_path = log_path;
     this->type = type;
     this->ndpi_flows_active = nullptr;
-    //this->ndpi_flows_idle = nullptr;
     this->error_or_eof = 0;
     this->ndpi_struct = nullptr;
     this->last_idle_scan_time = 0;

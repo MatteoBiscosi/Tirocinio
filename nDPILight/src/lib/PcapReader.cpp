@@ -172,51 +172,22 @@ int PcapReader::checkEnd()
 
 void PcapReader::checkForIdleFlows()
 {
-    /*  Check if at least IDLE_SCAN_PERIOD passed since last scan   */
-    /*if (this->last_idle_scan_time + IDLE_SCAN_PERIOD < this->last_time) {
+    if (this->last_idle_scan_time + IDLE_SCAN_PERIOD < this->last_time) {
+		std::for_each(this->ndpi_flows_active.begin(), this->ndpi_flows_active.end() , [](std::pair<std::string, int > element){
 
-        for (this->idle_scan_index; this->idle_scan_index < this->max_idle_scan_index; ++this->idle_scan_index) {
-            if(this->ndpi_flows_active[this->idle_scan_index] == nullptr)
-                continue;
-		
-            ndpi_twalk(this->ndpi_flows_active[this->idle_scan_index], ndpi_idle_scan_walker, this);
+			if ((element.second->flow_fin_ack_seen == 1 && element.second->flow_ack_seen == 1) ||
+				element.second->last_seen + max_time  < this->getLastTime())
+				/*  New flow that need to be added to idle flows    */
+			{
+				if(element.second->ended_dpi == 0)
+					this->getParser()->printFlow(workflow, flow);
 
-            /*  Removes all idle flows that were copied into ndpi_flows_idle from the ndpi_twalk    */
-      /*      while (this->cur_idle_flows > 0) {
-                /*  Get the flow    */
-      /*          FlowInfo * const tmp_f =
-                        (FlowInfo *)this->ndpi_flows_idle[--this->cur_idle_flows];
+				this->ndpi_flows_active.erase(element);
+			}
+		});
 
-                if(tmp_f == nullptr)
-                    continue;
-
-                if (tmp_f->flow_fin_ack_seen == 1) {
-                    tracer->traceEvent(4, "[%4u] Freeing flow due to fin\n", tmp_f->flow_id);
-                } else {
-                    tracer->traceEvent(4, "[%4u] Freeing idle flow\n", tmp_f->flow_id);
-                }
-
-                pkt_parser->printFlow(this, tmp_f);
-
-                /*  Removes it from the active flows    */
-      /*          ndpi_tdelete(tmp_f, &this->ndpi_flows_active[this->idle_scan_index],
-                             ndpi_workflow_node_cmp);
-
-                if(tmp_f != nullptr)
-                    flowFreer(tmp_f);
-
-                this->cur_active_flows--;
-            }
-        }
-
-        this->last_idle_scan_time = this->last_time;
-        this->last_packets_scan = pkt_parser->getPktsCaptured();
-
-        /* Updating next max_idle_scan_index */
-     /*   this->max_idle_scan_index = this->max_idle_scan_index + (this->max_active_flows / 4);
-        if (this->max_idle_scan_index > this->max_active_flows)
-            this->max_idle_scan_index = 0;*/
-//    }
+		printFlowStreamInfo(this->flowStream); 
+	}
 }
 
 /* ********************************** */
