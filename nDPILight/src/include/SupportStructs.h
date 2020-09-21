@@ -81,12 +81,12 @@ struct KeyInfo {
 };
 
 /* ********************************** */
-
+/*
 struct KeyHasher {
-    std::uint64_t operator()(const KeyInfo& k) const {
+    std::uint64_t operator()(const FlowInfo& k) const {
         return (std::hash<uint64_t>()(fibonacci_hash(k.hashval)));
     }
-};
+};*/
 
 
 

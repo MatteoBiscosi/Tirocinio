@@ -107,13 +107,14 @@ int NtDissector::parsePacket(KeyInfo & key,
         key.ip_tuple.v4.dst = pkt_infos.ip->daddr;
 
         key.hashval = flow.ip_tuple.v4.src + flow.ip_tuple.v4.dst + flow.l4_protocol + flow.src_port + flow.dst_port;
-
+	flow.hashval = key.hashval;
+        pkt_infos.tree_result = reader->getActiveFlows()->find(flow);
         //flow.hashval += flow.l4_protocol + flow.src_port + flow.dst_port;
 
         //pkt_infos.hashed_index = (uint64_t) flow.hashval % reader->getMaxActiveFlows();
         //pkt_infos.tree_result = ndpi_tfind(&flow, &reader->getActiveFlows()[pkt_infos.hashed_index], ndpi_workflow_node_cmp);
 	//PROFILING_SECTION_ENTER("Searching flow", 6 /* section id */);
-        pkt_infos.tree_result = reader->getActiveFlows()->find(key);
+        //pkt_infos.tree_result = reader->getActiveFlows()->find(key);
 	//PROFILING_SECTION_EXIT(6 /* section id */);
 
         this->captured_stats.ip_pkts++;
@@ -180,8 +181,9 @@ int NtDissector::parsePacket(KeyInfo & key,
 
         //pkt_infos.hashed_index = (uint64_t) flow.hashval % reader->getMaxActiveFlows();
         //pkt_infos.tree_result = ndpi_tfind(&flow, &reader->getActiveFlows()[pkt_infos.hashed_index], ndpi_workflow_node_cmp);
-
-        pkt_infos.tree_result = reader->getActiveFlows()->find(key);
+	flow.hashval = key.hashval;
+        pkt_infos.tree_result = reader->getActiveFlows()->find(flow);
+       // pkt_infos.tree_result = reader->getActiveFlows()->find(key);
 
         //pkt_infos.hashed_index = (uint64_t) flow.hashval % reader->getMaxActiveFlows();
         //pkt_infos.tree_result = ndpi_tfind(&flow, &reader->getActiveFlows()[pkt_infos.hashed_index], ndpi_workflow_node_cmp);
@@ -245,8 +247,9 @@ int NtDissector::parsePacket(KeyInfo & key,
 
         //pkt_infos.hashed_index = (uint64_t) flow.hashval % reader->getMaxActiveFlows();
         //pkt_infos.tree_result = ndpi_tfind(&flow, &reader->getActiveFlows()[pkt_infos.hashed_index], ndpi_workflow_node_cmp);
-
-        pkt_infos.tree_result = reader->getActiveFlows()->find(key);
+	flow.hashval = key.hashval;
+        pkt_infos.tree_result = reader->getActiveFlows()->find(flow);
+        //pkt_infos.tree_result = reader->getActiveFlows()->find(key);
         return 0;
     }
     case 3: { // Tunneled IPv6
@@ -304,12 +307,14 @@ int NtDissector::parsePacket(KeyInfo & key,
         key.hashval = flow.ip_tuple.v6.dst[0] + flow.ip_tuple.v6.dst[1] + flow.ip_tuple.v6.src[0] + flow.ip_tuple.v6.src[1] +
                         flow.l4_protocol + flow.src_port + flow.dst_port;
 
+	flow.hashval = key.hashval;
+
         //flow.hashval += flow.l4_protocol + flow.src_port + flow.dst_port;
 
         //pkt_infos.hashed_index = (uint64_t) flow.hashval % reader->getMaxActiveFlows();
         //pkt_infos.tree_result = ndpi_tfind(&flow, &reader->getActiveFlows()[pkt_infos.hashed_index], ndpi_workflow_node_cmp);
 
-        pkt_infos.tree_result = reader->getActiveFlows()->find(key);
+        pkt_infos.tree_result = reader->getActiveFlows()->find(flow);
 
         //pkt_infos.hashed_index = (uint64_t) flow.hashval % reader->getMaxActiveFlows();
         //pkt_infos.tree_result = ndpi_tfind(&flow, &reader->getActiveFlows()[pkt_infos.hashed_index], ndpi_workflow_node_cmp);

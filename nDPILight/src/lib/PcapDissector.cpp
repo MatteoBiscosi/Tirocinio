@@ -296,7 +296,7 @@ int PcapDissector::parsePacket(KeyInfo& key,
 
     //pkt_infos.hashed_index = (uint64_t) flow.hashval % reader->getMaxActiveFlows();
     //pkt_infos.tree_result = ndpi_tfind(&flow, &reader->getActiveFlows()[pkt_infos.hashed_index], ndpi_workflow_node_cmp);
-    pkt_infos.tree_result = reader->getActiveFlows()->find(key);
+    //pkt_infos.tree_result = reader->getActiveFlows()->find(key);
 
     return 0;
 }

@@ -420,16 +420,16 @@ void PacketDissector::processPacket(void * const args,
 			
 		this->captured_stats.total_flows_captured++;
 
-		reader->getActiveFlows()->insert({key, *pkt_infos.flow_to_process});
+		reader->getActiveFlows()->insert(*pkt_infos.flow_to_process);
 		//tmp_flow = pkt_infos.flow_to_process;
 		//tmp_flow->packets_processed++;
-		pkt_infos.tree_result = reader->getActiveFlows()->find(key);
+		pkt_infos.tree_result = reader->getActiveFlows()->find(*pkt_infos.flow_to_process);
 
 //		PROFILING_SECTION_EXIT(4 /* section id */);	
 		//printf("%llu\n", pkt_infos.tree_result->second.packets_processed);
 	}
 	
-	tmp_flow = &pkt_infos.tree_result->second;
+		tmp_flow = (FlowInfo *)  &(*pkt_infos.tree_result);
 
 	//printf("%llu\n", tmp_flow->packets_processed);
 

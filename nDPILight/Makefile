@@ -4,11 +4,14 @@ BUILD		:= 	./build
 OBJ_DIR		:= 	$(BUILD)/objects
 SRCHOME		:=	./src/include
 NDPILIB		:=	../../nDPI/src
+TSLLIB		:=	../../robin-map
 LIB_DIR         :=      /opt/napatech3/lib
 LIBNT           :=      /opt/napatech3/include
 LIBNDPI		:=	$(NDPILIB)/lib/libndpi.a
+TESSILHASH	:=	$(TSLLIB)
+LIBROBINHASH	:=	$(TESSILHASH)
 LIBFLAGS	:=	$(LIBNDPI)
-CFLAGS		:=	-fPIC -DPIC -I$(LIBNT) -I$(SRCHOME) -I$(NDPILIB)/include -g -O2 
+CFLAGS		:=	-fPIC -DPIC -I$(LIBNT) -I$(SRCHOME) -I$(NDPILIB)/include -I$(LIBROBINHASH)/include -g -O2 
 LDFLAGS		:=	-lntapi -lpcap -lpthread
 SRC      	:=	$(wildcard src/lib/*.cpp)	\
                	$(wildcard nDPILight.cpp)

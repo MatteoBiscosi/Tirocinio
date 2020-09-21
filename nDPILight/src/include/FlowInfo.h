@@ -47,6 +47,23 @@ public:
 
 public:
 
+    bool operator==(const FlowInfo &other) const {
+        if(l3_type == L3_IP)
+            return (hashval == other.hashval &&
+                    ip_tuple.v4.src == other.ip_tuple.v4.src &&
+                    ip_tuple.v4.dst == other.ip_tuple.v4.dst &&
+                    src_port == other.src_port &&
+                    dst_port == other.dst_port);
+        else
+            return (hashval == other.hashval &&
+                    ip_tuple.v6.src[0] == other.ip_tuple.v6.src[0] &&
+                    ip_tuple.v6.src[1] == other.ip_tuple.v6.src[1] &&
+                    ip_tuple.v6.dst[0] == other.ip_tuple.v6.dst[0] &&
+                    ip_tuple.v6.dst[1] == other.ip_tuple.v6.dst[1] &&
+                    src_port == other.src_port &&
+                    dst_port == other.dst_port);
+    };
+
     /**
      * Function used to convert this src_ip and this dst_ip to a String
      * and save them into src_addr_str and dst_addr_str respectively 
@@ -93,5 +110,11 @@ static void flowFreer(void * const node)
     if(flow != nullptr)
         ndpi_free(flow);
 }
+
+struct KeyHasher {
+    std::uint64_t operator()(const FlowInfo& k) const {
+        return (std::hash<uint64_t>()(k.hashval));
+    }
+};
 
 #endif //NDPILIGHT_FLOW_INFO_H

@@ -16,7 +16,7 @@ class Reader {
         size_t idle_scan_index;
         size_t max_idle_scan_index;
         
-        std::unordered_map<KeyInfo, FlowInfo, KeyHasher> *ndpi_flows_active;
+        std::unordered_set<FlowInfo, KeyHasher> *ndpi_flows_active;
 
         unsigned long long int max_active_flows;
         unsigned long long int max_idle_flows;
@@ -110,7 +110,7 @@ class Reader {
          */
         uint8_t getErrorOfEof() { return this->error_or_eof; };
 
-        std::unordered_map<KeyInfo, FlowInfo, KeyHasher> *getActiveFlows() { return this->ndpi_flows_active; };
+        std::unordered_set<FlowInfo, KeyHasher> *getActiveFlows() { return this->ndpi_flows_active; };
 
         //void ** getIdleFlows() { return this->ndpi_flows_idle; };
 

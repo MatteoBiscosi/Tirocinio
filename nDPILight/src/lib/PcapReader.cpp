@@ -103,7 +103,7 @@ int PcapReader::initInfos()
     if (this->ndpi_flows_idle == nullptr) {
         return -1;
     }*/
-    this->ndpi_flows_active = new std::unordered_map<KeyInfo, FlowInfo, KeyHasher>();
+    this->ndpi_flows_active = new std::unordered_set<FlowInfo, KeyHasher>();
 
     NDPI_PROTOCOL_BITMASK protos; /* In the end initialize bitmask's infos */
     NDPI_BITMASK_SET_ALL(protos);
@@ -173,20 +173,22 @@ int PcapReader::checkEnd()
 void PcapReader::checkForIdleFlows()
 {
     if (this->last_idle_scan_time + IDLE_SCAN_PERIOD < this->last_time) {
-		std::for_each(this->ndpi_flows_active.begin(), this->ndpi_flows_active.end() , [](std::pair<std::string, int > element){
+		uint64_t max_time = MAX_IDLE_TIME;
 
-			if ((element.second->flow_fin_ack_seen == 1 && element.second->flow_ack_seen == 1) ||
-				element.second->last_seen + max_time  < this->getLastTime())
+		for (auto element = this->ndpi_flows_active->begin(); element != this->ndpi_flows_active->end(); element++) {	
+/*
+			if ((element->second.flow_fin_ack_seen == 1 && element->second.flow_ack_seen == 1) ||
+				element->second.last_seen + max_time  < this->getLastTime())
 				/*  New flow that need to be added to idle flows    */
-			{
-				if(element.second->ended_dpi == 0)
-					this->getParser()->printFlow(workflow, flow);
+/*			{
+				if(element->second.ended_dpi == 0)
+					this->getParser()->printFlow(this, &(element->second));
 
-				this->ndpi_flows_active.erase(element);
+				this->ndpi_flows_active->erase(element);
 			}
-		});
+*/		}
 
-		printFlowStreamInfo(this->flowStream); 
+		//printFlowStreamInfo(this->flowStream); 
 	}
 }
 

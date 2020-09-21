@@ -211,6 +211,7 @@ int NapatechReader::initInfos()
 {
     /* Actual time */
     struct timeval actual_time;
+    FlowInfo key;
     gettimeofday(&actual_time, nullptr);
     this->last_idle_scan_time = (uint64_t) actual_time.tv_sec * TICK_RESOLUTION + actual_time.tv_usec / (1000000 / TICK_RESOLUTION);
 
@@ -218,7 +219,8 @@ int NapatechReader::initInfos()
     this->max_active_flows = MAX_FLOW_ROOTS_PER_THREAD;
     this->max_idle_scan_index = MAX_FLOW_ROOTS_PER_THREAD / 8;
 
-	this->ndpi_flows_active = new std::unordered_map<KeyInfo, FlowInfo, KeyHasher>();
+
+    this->ndpi_flows_active = new std::unordered_set<FlowInfo, KeyHasher>();    
 
     NDPI_PROTOCOL_BITMASK protos; /* In the end initialize bitmask's infos */
     NDPI_BITMASK_SET_ALL(protos);
@@ -250,7 +252,8 @@ int NapatechReader::initFileOrDevice()
 /* ********************************** */
 
 void NapatechReader::newPacket(void * header) 
-{    
+{   
+//    printf("Inside new Packet\n"); 
     NtNetBuf_t * hNetBuffer = (NtNetBuf_t *) header;   
 
     this->last_time = (uint64_t) NT_NET_GET_PKT_TIMESTAMP(* hNetBuffer);
@@ -258,21 +261,23 @@ void NapatechReader::newPacket(void * header)
     
     /*  Scan done every 15000 ms more or less   */    
 
-	if (this->last_idle_scan_time + IDLE_SCAN_PERIOD * 1000000 < this->last_time) {
-		std::for_each(this->ndpi_flows_active.begin(), this->ndpi_flows_active.end() , [](std::pair<std::string, int > element){
+	if (this->last_idle_scan_time + IDLE_SCAN_PERIOD * 1000000ULL < this->last_time) {
+                uint64_t max_time = MAX_IDLE_TIME * 1000000ULL;
+		//printf("Inside new Packet\n");
+                for (auto element = this->ndpi_flows_active->begin(); element != this->ndpi_flows_active->end(); element++) { 
+/*
+                        if (element->second.last_seen + max_time  < this->getLastTime())
+                                /*  New flow that need to be added to idle flows    */
+  /*                      {
+                                if(element->second.ended_dpi == 0)
+                                        this->getParser()->printFlow(this, &(element->second));
 
-			if ((element.second->flow_fin_ack_seen == 1 && element.second->flow_ack_seen == 1) ||
-				element.second->last_seen + max_time  < this->getLastTime())
-				/*  New flow that need to be added to idle flows    */
-			{
-				if(element.second->ended_dpi == 0)
-					this->getParser()->printFlow(workflow, flow);
-
-				this->ndpi_flows_active.erase(element);
-			}
-		});
-
-		printFlowStreamInfo(this->flowStream); 
+                                this->ndpi_flows_active->erase(element);
+                        }
+    */            }
+		
+                printFlowStreamInfo(this->flowStream); 
+        	this->last_idle_scan_time = this->last_time;
 	}
 }
 
@@ -320,7 +325,7 @@ void taskReceiverAny(const char* streamName, NapatechReader *reader)
 	    
 	    status = NT_NetRxGet(* reader->getMissStream(), reader->getMissBuffer(), 5000);
 
-		PROFILING_SECTION_ENTER("Napatech parsing", 0 /* section id */);
+//		PROFILING_SECTION_ENTER("Napatech parsing", 0 /* section id */);
 		
 	    if(status == NT_STATUS_TIMEOUT || status == NT_STATUS_TRYAGAIN) {
 			printFlowStreamInfo(flowStream); 
@@ -337,15 +342,15 @@ void taskReceiverAny(const char* streamName, NapatechReader *reader)
             continue;
         }
 		
-		PROFILING_SECTION_ENTER("New packet parsing", 2 /* section id */);
+//		PROFILING_SECTION_ENTER("New packet parsing", 2 /* section id */);
 
 	    tmp->processPacket(reader, reader->getMissBuffer(), nullptr);
-		PROFILING_SECTION_EXIT(5 /* section id */);	
+//		PROFILING_SECTION_EXIT(5 /* section id */);	
 
-		PROFILING_SECTION_EXIT(2 /* section id */);    
+//		PROFILING_SECTION_EXIT(2 /* section id */);    
 
 	    if(reader->getNewFlow() == true) {   
-			PROFILING_SECTION_ENTER("New hardware flow", 1 /* section id */);
+//			PROFILING_SECTION_ENTER("New hardware flow", 1 /* section id */);
   
 		    // Here a package has successfully been received, and the parameters for the
 		    // next flow to be learned will be set up.
@@ -410,12 +415,12 @@ void taskReceiverAny(const char* streamName, NapatechReader *reader)
 
 		    reader->setNewFlow(false);   
 
-			PROFILING_SECTION_EXIT(1 /* section id */);         
+//			PROFILING_SECTION_EXIT(1 /* section id */);         
 	    }
 	    
 	    NT_NetRxRelease(*reader->getMissStream(), *reader->getMissBuffer());
 
-		PROFILING_SECTION_EXIT(0 /* section id */);
+//		PROFILING_SECTION_EXIT(0 /* section id */);
     }
 }
 
