@@ -104,7 +104,6 @@ void taskReceiverUnh(const char* streamName, NapatechReader *reader)
 
 NapatechReader::NapatechReader(char *log_path, const char *type, int streamId) : Reader(log_path, type)
 {
-//    this->newFlowCheck = false;
     this->streamId = streamId;  
 }
 
@@ -114,13 +113,7 @@ NapatechReader::~NapatechReader()
 {
     // Closes rx stream
     NT_NetRxClose(hNetRxMiss);
-
-
-	/*u_int64_t n = this->num_packets;
-	for (u_int i = 0; i < PROFILING_NUM_SECTIONS; i++)
-		if(PROFILING_SECTION_LABEL(i) != NULL)
-			printf("[PROFILING] Section #%d '%s': AVG %llu ticks\n", i, PROFILING_SECTION_LABEL(i), PROFILING_SECTION_AVG(i, n));
-*/}  
+}  
 
 /* ********************************** */
 
@@ -253,7 +246,6 @@ int NapatechReader::initFileOrDevice()
 
 void NapatechReader::newPacket(void * header) 
 {   
-//    printf("Inside new Packet\n"); 
     NtNetBuf_t * hNetBuffer = (NtNetBuf_t *) header;   
 
     this->last_time = (uint64_t) NT_NET_GET_PKT_TIMESTAMP(* hNetBuffer);
@@ -262,22 +254,22 @@ void NapatechReader::newPacket(void * header)
     /*  Scan done every 15000 ms more or less   */    
 
 	if (this->last_idle_scan_time + IDLE_SCAN_PERIOD * 1000000ULL < this->last_time) {
-                uint64_t max_time = MAX_IDLE_TIME * 1000000ULL;
-		//printf("Inside new Packet\n");
-                for (auto element = this->ndpi_flows_active->begin(); element != this->ndpi_flows_active->end(); element++) { 
-/*
-                        if (element->second.last_seen + max_time  < this->getLastTime())
-                                /*  New flow that need to be added to idle flows    */
-  /*                      {
-                                if(element->second.ended_dpi == 0)
-                                        this->getParser()->printFlow(this, &(element->second));
+		uint64_t max_time = MAX_IDLE_TIME * 1000000ULL;
 
-                                this->ndpi_flows_active->erase(element);
-                        }
-    */            }
+		for (auto element = this->ndpi_flows_active->begin(); element != this->ndpi_flows_active->end(); element++) { 
+
+			if (element.last_seen + max_time  < this->getLastTime())
+					/*  New flow that need to be added to idle flows    */
+			{
+				if(element.ended_dpi == 0)
+					this->getParser()->printFlow(this, &(element));
+
+				this->ndpi_flows_active->erase(element);
+			}
+		}
 		
-                printFlowStreamInfo(this->flowStream); 
-        	this->last_idle_scan_time = this->last_time;
+		printFlowStreamInfo(this->flowStream); 
+		this->last_idle_scan_time = this->last_time;
 	}
 }
 
@@ -324,8 +316,6 @@ void taskReceiverAny(const char* streamName, NapatechReader *reader)
 	    // Get package from rx stream.
 	    
 	    status = NT_NetRxGet(* reader->getMissStream(), reader->getMissBuffer(), 5000);
-
-//		PROFILING_SECTION_ENTER("Napatech parsing", 0 /* section id */);
 		
 	    if(status == NT_STATUS_TIMEOUT || status == NT_STATUS_TRYAGAIN) {
 			printFlowStreamInfo(flowStream); 
@@ -341,17 +331,10 @@ void taskReceiverAny(const char* streamName, NapatechReader *reader)
 			tracer->traceEvent(0, "Get Packet: %s\n", errorBuffer);
             continue;
         }
-		
-//		PROFILING_SECTION_ENTER("New packet parsing", 2 /* section id */);
 
 	    tmp->processPacket(reader, reader->getMissBuffer(), nullptr);
-//		PROFILING_SECTION_EXIT(5 /* section id */);	
 
-//		PROFILING_SECTION_EXIT(2 /* section id */);    
-
-	    if(reader->getNewFlow() == true) {   
-//			PROFILING_SECTION_ENTER("New hardware flow", 1 /* section id */);
-  
+	    if(reader->getNewFlow() == true) {     
 		    // Here a package has successfully been received, and the parameters for the
 		    // next flow to be learned will be set up.
 		    NtFlow_t flow = NtFlow_t();
@@ -413,14 +396,10 @@ void taskReceiverAny(const char* streamName, NapatechReader *reader)
 				continue;
 			}
 
-		    reader->setNewFlow(false);   
-
-//			PROFILING_SECTION_EXIT(1 /* section id */);         
+		    reader->setNewFlow(false);          
 	    }
 	    
 	    NT_NetRxRelease(*reader->getMissStream(), *reader->getMissBuffer());
-
-//		PROFILING_SECTION_EXIT(0 /* section id */);
     }
 }
 

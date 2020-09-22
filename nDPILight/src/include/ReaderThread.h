@@ -75,7 +75,7 @@ class ReaderThread {
          */
         void setThreadId(pthread_t tmp_thread_id) { this->thread_id = tmp_thread_id; };
 
-	void setType(uint8_t type) { this->type = type; };
+	    void setType(uint8_t type) { this->type = type; };
 
         pthread_t* getThreadIdPtr() { return &this->thread_id; };
 

@@ -148,33 +148,6 @@ class Reader {
 
         const char * getType() { return this->type; };
 };
-
-
-/**
- * Function used to scan the hashtable and see if
- * idle flows are present
- *
- * @par    A         = pointer to a FlowInfo node
- * @par    which     = type of ndpi node
- * @par    depth     =
- * @par    user_data = pointer to Reader
- *
- */
-void ndpi_idle_scan_walker(void const * const A, 
-                            ndpi_VISIT which, 
-                            int depth, 
-                            void * const user_data);
-
-/**
- * Function used compare 2 FlowInfo nodes
- *
- * @par    A     = pointer to a FlowInfo
- * @par    B     = pointer to a FlowInfo
- * @return 0 if they are equals, -1 if A < B,
- *         1 otherwise
- *
- */
-int ndpi_workflow_node_cmp(void const * const A, 
-                            void const * const B);                 
+              
 
 #endif //NDPILIGHT_READER_H

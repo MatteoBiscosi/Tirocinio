@@ -104,8 +104,7 @@ class PacketDissector {
          *         2 in case flow is found inside the hashtable
          *
          */ 
-        virtual int parsePacket(KeyInfo & key,
-                                FlowInfo & flow,
+        virtual int parsePacket(FlowInfo & flow,
                                 Reader * &args,
                                 void * header_tmp,
                                 void * packet_tmp,

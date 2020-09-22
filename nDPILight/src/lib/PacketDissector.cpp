@@ -342,7 +342,6 @@ void PacketDissector::processPacket(void * const args,
 		void * header_tmp,
 		void * packet_tmp)
 {
-	KeyInfo key = KeyInfo();
 	FlowInfo flow = FlowInfo();
 	Reader * reader = (Reader *) args;
 	PacketInfo pkt_infos = PacketInfo();
@@ -351,13 +350,10 @@ void PacketDissector::processPacket(void * const args,
 	/* Parsing the packet */
 	this->captured_stats.packets_captured++;
 
-//	PROFILING_SECTION_ENTER("parsing 4 lvls", 3 /* section id */);
 	if(this->parsePacket(key, flow, reader, header_tmp, packet_tmp, pkt_infos) == -1)	
 		return;
-//	PROFILING_SECTION_EXIT(3 /* section id */);	
 
 	if(pkt_infos.tree_result == reader->getActiveFlows()->end()) {
-//		PROFILING_SECTION_ENTER("New software flow", 4 /* section id */);
 		/* Adding new flow to the hashtable */
 		if (reader->getCurActiveFlows() == reader->getMaxActiveFlows()) {
         	tracer->traceEvent(0, "[10] max flows to track reached: %llu, idle: %llu\n",
@@ -407,31 +403,17 @@ void PacketDissector::processPacket(void * const args,
 
 		tracer->traceEvent(4, "[%8llu, %4u] new flow\n", this->captured_stats.packets_captured, pkt_infos.flow_to_process->flow_id);
 
-		//reader->getActiveFlows()->insert({key, flow});
-
-		/*if (ndpi_tsearch(pkt_infos.flow_to_process, &reader->getActiveFlows()[pkt_infos.hashed_index], ndpi_workflow_node_cmp) == nullptr) {
-			/* Possible Leak */
-		/*	this->captured_stats.discarded_bytes += pkt_infos.ip_offset + pkt_infos.eth_offset;
-			return;  
-		}*/
-
 		pkt_infos.ndpi_src = pkt_infos.flow_to_process->ndpi_src;
 		pkt_infos.ndpi_dst = pkt_infos.flow_to_process->ndpi_dst;
 			
 		this->captured_stats.total_flows_captured++;
 
-		reader->getActiveFlows()->insert(*pkt_infos.flow_to_process);
-		//tmp_flow = pkt_infos.flow_to_process;
-		//tmp_flow->packets_processed++;
-		pkt_infos.tree_result = reader->getActiveFlows()->find(*pkt_infos.flow_to_process);
+		std::pair<iterator, bool> tmp = reader->getActiveFlows()->insert(*pkt_infos.flow_to_process);
 
-//		PROFILING_SECTION_EXIT(4 /* section id */);	
-		//printf("%llu\n", pkt_infos.tree_result->second.packets_processed);
+		pkt_infos.tree_result = tmp.first;
 	}
 	
-		tmp_flow = (FlowInfo *)  &(*pkt_infos.tree_result);
-
-	//printf("%llu\n", tmp_flow->packets_processed);
+	tmp_flow = (FlowInfo *)  &(*pkt_infos.tree_result);
 
 	/* Updates timers and counters */
 	this->captured_stats.packets_processed++;
@@ -447,9 +429,8 @@ void PacketDissector::processPacket(void * const args,
 
 	char src_addr_str[INET6_ADDRSTRLEN+1];
 	char dst_addr_str[INET6_ADDRSTRLEN+1];
-       //return; 	
+
 	/* Detection protocol phase */	
-//	PROFILING_SECTION_ENTER("Detection phase", 5 /* section id */);
 
 	if (tmp_flow->ndpi_flow->num_processed_pkts == 0xFE) {
 		/* last chance to guess something, better then nothing */
@@ -457,10 +438,10 @@ void PacketDissector::processPacket(void * const args,
 		tmp_flow->ended_dpi = 1;
 		reader->setNewFlow(true);
 		reader->setIdFlow(tmp_flow->flow_id);
-		//printf("prova3\n");
+
 		tmp_flow->guessed_protocol =
 			ndpi_detection_giveup(reader->getNdpiStruct(), tmp_flow->ndpi_flow, 1, &protocol_was_guessed);
-		//printf("prova1\n");	
+		
 		if (protocol_was_guessed != 0) {
 			/*  Protocol guessed    */
 			tracer->traceEvent(3, "\t[%8llu, %4d][GUESSED] protocol: %s | app protocol: %s | category: %s\n",
@@ -497,7 +478,6 @@ void PacketDissector::processPacket(void * const args,
 						tmp_flow->flow_id, src_addr_str, dst_addr_str, 
 						tmp_flow->src_port, tmp_flow->dst_port);
 		} else {
-			//printf("prova2\n");
 			tracer->traceEvent(3, "\t[%8llu, %d, %4d][FLOW NOT CLASSIFIED]\n",
 					this->captured_stats.packets_captured, tmp_flow->flow_id);
 			this->captured_stats.unclassified_flow_protocols++;

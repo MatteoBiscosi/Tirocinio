@@ -171,24 +171,20 @@ int PcapReader::checkEnd()
 /* ********************************** */
 
 void PcapReader::checkForIdleFlows()
-{
+{		
     if (this->last_idle_scan_time + IDLE_SCAN_PERIOD < this->last_time) {
 		uint64_t max_time = MAX_IDLE_TIME;
 
-		for (auto element = this->ndpi_flows_active->begin(); element != this->ndpi_flows_active->end(); element++) {	
-/*
-			if ((element->second.flow_fin_ack_seen == 1 && element->second.flow_ack_seen == 1) ||
-				element->second.last_seen + max_time  < this->getLastTime())
-				/*  New flow that need to be added to idle flows    */
-/*			{
-				if(element->second.ended_dpi == 0)
-					this->getParser()->printFlow(this, &(element->second));
+		for (auto element = this->ndpi_flows_active->begin(); element != this->ndpi_flows_active->end(); element++) { 
+
+			if (element.last_seen + max_time  < this->getLastTime())
+			{
+				this->getParser()->printFlow(this, &(element));
 
 				this->ndpi_flows_active->erase(element);
 			}
-*/		}
-
-		//printFlowStreamInfo(this->flowStream); 
+		}
+		this->last_idle_scan_time = this->last_time;
 	}
 }
 
