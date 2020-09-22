@@ -12,7 +12,6 @@ Reader::Reader(char *log_path, const char *type)
     	this->log_path = log_path;
 
     this->type = type;
-    this->ndpi_flows_active = nullptr;
     this->error_or_eof = 0;
     this->ndpi_struct = nullptr;
     this->last_idle_scan_time = 0;
@@ -21,7 +20,6 @@ Reader::Reader(char *log_path, const char *type)
     this->newFlowCheck = false;
     this->cur_active_flows = 0;
     this->max_active_flows = MAX_FLOW_ROOTS_PER_THREAD; 
-    this->max_idle_scan_index = MAX_FLOW_ROOTS_PER_THREAD / 8;
 }
 
 /* ********************************** */

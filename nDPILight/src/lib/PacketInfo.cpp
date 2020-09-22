@@ -20,7 +20,7 @@ PacketInfo::PacketInfo() {
     l4_ptr = nullptr;
     l4_len = 0;
 
-    tree_result = nullptr;
+    //tree_result = nullptr;
 
     flow_to_process = nullptr;
 }

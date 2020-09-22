@@ -213,7 +213,8 @@ int NapatechReader::initInfos()
     this->max_idle_scan_index = MAX_FLOW_ROOTS_PER_THREAD / 8;
 
 
-    this->ndpi_flows_active = new std::unordered_set<FlowInfo, KeyHasher>();    
+    this->ndpi_flows_active = new std::unordered_set<FlowInfo, KeyHasher>(this->max_active_flows);    
+    //this->ndpi_flows_active->reserve(this->max_active_flows);
 
     NDPI_PROTOCOL_BITMASK protos; /* In the end initialize bitmask's infos */
     NDPI_BITMASK_SET_ALL(protos);
@@ -258,11 +259,11 @@ void NapatechReader::newPacket(void * header)
 
 		for (auto element = this->ndpi_flows_active->begin(); element != this->ndpi_flows_active->end(); element++) { 
 
-			if (element.last_seen + max_time  < this->getLastTime())
+			if ((*element).last_seen + max_time  < this->getLastTime())
 					/*  New flow that need to be added to idle flows    */
 			{
-				if(element.ended_dpi == 0)
-					this->getParser()->printFlow(this, &(element));
+				if((*element).ended_dpi == 0)
+					this->getParser()->printFlow(this, (FlowInfo *) &(*element));
 
 				this->ndpi_flows_active->erase(element);
 			}

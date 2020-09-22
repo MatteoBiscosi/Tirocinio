@@ -48,6 +48,7 @@ public:
 public:
 
     bool operator==(const FlowInfo &other) const {
+	return hashval == other.hashval;
         if(l3_type == L3_IP)
             return (hashval == other.hashval &&
                     ip_tuple.v4.src == other.ip_tuple.v4.src &&
@@ -112,6 +113,10 @@ static void flowFreer(void * const node)
 }
 
 struct KeyHasher {
+    std::uint64_t operator()(const FlowInfo& k, const FlowInfo& k2) const {
+        return (std::hash<uint64_t>()(k.hashval) + std::hash<uint64_t>()(k2.hashval));
+    }
+
     std::uint64_t operator()(const FlowInfo& k) const {
         return (std::hash<uint64_t>()(k.hashval));
     }

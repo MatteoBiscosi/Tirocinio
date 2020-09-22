@@ -33,7 +33,6 @@ class Reader {
 
         struct ndpi_detection_module_struct * ndpi_struct;
 
-        PROFILING_DECLARE(6);
     public:
 	    Reader() {};
         Reader(char *log_path, const char *type);

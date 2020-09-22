@@ -350,7 +350,7 @@ void PacketDissector::processPacket(void * const args,
 	/* Parsing the packet */
 	this->captured_stats.packets_captured++;
 
-	if(this->parsePacket(key, flow, reader, header_tmp, packet_tmp, pkt_infos) == -1)	
+	if(this->parsePacket(flow, reader, header_tmp, packet_tmp, pkt_infos) == -1)	
 		return;
 
 	if(pkt_infos.tree_result == reader->getActiveFlows()->end()) {
@@ -408,7 +408,7 @@ void PacketDissector::processPacket(void * const args,
 			
 		this->captured_stats.total_flows_captured++;
 
-		std::pair<iterator, bool> tmp = reader->getActiveFlows()->insert(*pkt_infos.flow_to_process);
+		std::pair<std::unordered_set<FlowInfo, KeyHasher>::iterator, bool > tmp = reader->getActiveFlows()->insert(*pkt_infos.flow_to_process);
 
 		pkt_infos.tree_result = tmp.first;
 	}
@@ -429,7 +429,7 @@ void PacketDissector::processPacket(void * const args,
 
 	char src_addr_str[INET6_ADDRSTRLEN+1];
 	char dst_addr_str[INET6_ADDRSTRLEN+1];
-
+	
 	/* Detection protocol phase */	
 
 	if (tmp_flow->ndpi_flow->num_processed_pkts == 0xFE) {
@@ -453,9 +453,9 @@ void PacketDissector::processPacket(void * const args,
 			
 			this->captured_stats.protos_cnt[tmp_flow->guessed_protocol.master_protocol]++;
 			this->captured_stats.guessed_flow_protocols++;
-
+			
 			tmp_flow->ipTupleToString(src_addr_str, sizeof(src_addr_str), dst_addr_str, sizeof(dst_addr_str));
-
+	
 			if(tmp_flow->ndpi_flow->risk) {
 				uint32_t j = mask & tmp_flow->ndpi_flow->risk;
 
