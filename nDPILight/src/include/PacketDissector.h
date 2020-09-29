@@ -47,6 +47,8 @@ class PacketDissector {
                 uint16_t* protos_cnt;
         } captured_stats; 
 
+	PROFILING_DECLARE(5);
+
     private:
 
         /**

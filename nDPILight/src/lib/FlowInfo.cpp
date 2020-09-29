@@ -8,6 +8,19 @@
 
 /* ********************************** */
 
+FlowInfo::FlowInfo()
+{
+    flow_id = 0;
+    packets_processed = 0;
+    bytes_processed = 0;
+    hashval = 0;
+    total_l4_data_len = 0;
+    src_port = 0;
+    dst_port = 0;
+}
+
+/* ********************************** */
+
 int FlowInfo::ipTupleToString(char * const src_addr_str, size_t src_addr_len,
                               char * const dst_addr_str, size_t dst_addr_len)
 {

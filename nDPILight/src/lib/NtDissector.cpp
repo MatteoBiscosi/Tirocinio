@@ -1,6 +1,6 @@
 #include "ndpi_light_includes.h"
 
-#include "Profiling.h"
+
 
 
 /* ********************************** */
@@ -66,6 +66,7 @@ int NtDissector::parsePacket(FlowInfo & flow,
         flow.setFlowL3Type(4);   
 
         pkt_infos.l4_ptr = &packet[pDyn1->offset1];
+	pkt_infos.l4_len = (pkt_infos.l4_ptr - packet);
 
         /* Analyse lvl 4 */
         if (pDyn1->ipProtocol == 6) {
@@ -98,6 +99,7 @@ int NtDissector::parsePacket(FlowInfo & flow,
 	    flow.hashval = flow.ip_tuple.v4.src + flow.ip_tuple.v4.dst + flow.l4_protocol + flow.src_port + flow.dst_port;
 
         pkt_infos.tree_result = reader->getActiveFlows()->find(flow);
+	
 
         this->captured_stats.ip_pkts++;
         this->captured_stats.ip_bytes += pkt_infos.ip_size;
@@ -112,6 +114,7 @@ int NtDissector::parsePacket(FlowInfo & flow,
         pkt_infos.ip6 = (struct ndpi_ipv6hdr *)&packet[pkt_infos.ip_offset];
 
         pkt_infos.ip_size = pDyn1->capLength - pDyn1->descrLength - pkt_infos.ip_offset;
+	pkt_infos.l4_len = (pkt_infos.l4_ptr - packet);
 
         flow.setFlowL3Type(6);   
 
@@ -139,7 +142,8 @@ int NtDissector::parsePacket(FlowInfo & flow,
 
             this->captured_stats.udp_pkts++;
         }
-        
+
+	pkt_infos.l4_len = (pkt_infos.l4_ptr - packet);     
         flow.ip_tuple.v6.src[0] = pkt_infos.ip6->ip6_src.u6_addr.u6_addr64[0];
         flow.ip_tuple.v6.src[1] = pkt_infos.ip6->ip6_src.u6_addr.u6_addr64[1];
         flow.ip_tuple.v6.dst[0] = pkt_infos.ip6->ip6_dst.u6_addr.u6_addr64[0];
@@ -164,6 +168,7 @@ int NtDissector::parsePacket(FlowInfo & flow,
         flow.setFlowL3Type(4);
 
         pkt_infos.l4_ptr = &packet[pDyn1->offset1];
+	pkt_infos.l4_len = (pkt_infos.l4_ptr - packet);
 
         /* Analyse lvl 4 */
         if (pDyn1->ipProtocol == 6) {
@@ -206,6 +211,7 @@ int NtDissector::parsePacket(FlowInfo & flow,
         pkt_infos.ip6 = (struct ndpi_ipv6hdr *)&packet[pkt_infos.ip_offset];
 
         pkt_infos.ip_size = pDyn1->capLength - pDyn1->descrLength - pkt_infos.ip_offset;
+	pkt_infos.l4_len = (pkt_infos.l4_ptr - packet);
 
         flow.setFlowL3Type(6);   
 

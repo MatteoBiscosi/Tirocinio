@@ -644,8 +644,14 @@ int main(int argc, char * argv[])
 	/*  Setting up the sighandler bitmask   */
 	signal(SIGINT, sighandler);
 	signal(SIGTERM, sighandler);
+
+	struct timeval actual_time;
+	uint64_t curr_time = 0, sleep_time = 0;
+
+        gettimeofday(&actual_time, nullptr);
+        curr_time = actual_time.tv_sec * 1000 + actual_time.tv_usec / 1000; 
     
-	sleep(2);
+	sleep(1);
 	/*  have to find a better way of doing this job */
 	while (terminate_thread == 0 && reader_thread[0].getEof() == 0) {
             switch(type) {
@@ -659,7 +665,25 @@ int main(int argc, char * argv[])
 		    break;
 		    }
 	    }
-	    sleep(1);
+
+	    gettimeofday(&actual_time, nullptr);
+	    sleep_time = 1000 - (actual_time.tv_sec * 1000 + actual_time.tv_usec / 1000) - curr_time;
+
+	    //printf("%llu, %llu, %llu\n", curr_time, (actual_time.tv_sec * 1000 + actual_time.tv_usec / 1000), sleep_time);
+
+            if(sleep_time < 0)
+		continue;
+	    
+	    if(sleep_time > 1000)
+		sleep_time = 1000;
+	    
+	    sleep_time = sleep_time / 1000;
+
+	    //printf("%d\n", sleep_time);
+
+	    sleep(sleep_time);
+	    gettimeofday(&actual_time, nullptr);
+	    curr_time = actual_time.tv_sec * 1000 + actual_time.tv_usec / 1000;
     }
 
     if (terminate_thread == 0 && stop_reader() != 0) {

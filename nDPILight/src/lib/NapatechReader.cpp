@@ -262,10 +262,12 @@ void NapatechReader::newPacket(void * header)
 			if ((*element).last_seen + max_time  < this->getLastTime())
 					/*  New flow that need to be added to idle flows    */
 			{
-				if((*element).ended_dpi == 0)
+				if((*element).ended_dpi == 0) {
 					this->getParser()->printFlow(this, (FlowInfo *) &(*element));
-
-				this->ndpi_flows_active->erase(element);
+					this->ndpi_flows_active->erase(element);
+				}
+				else
+					continue;
 			}
 		}
 		

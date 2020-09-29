@@ -168,9 +168,9 @@ void PcapReader::checkForIdleFlows()
 {		
     if (this->last_idle_scan_time + IDLE_SCAN_PERIOD < this->last_time) {
 		uint64_t max_time = MAX_IDLE_TIME;
-
+		int i = 0;
 		for (auto element = this->ndpi_flows_active->begin(); element != this->ndpi_flows_active->end(); element++) { 
-
+			i++;
 			if ((*element).last_seen + max_time  < this->getLastTime())
 			{
 				this->getParser()->printFlow(this, (FlowInfo *) &(*element));
@@ -178,6 +178,7 @@ void PcapReader::checkForIdleFlows()
 				this->ndpi_flows_active->erase(element);
 			}
 		}
+		printf("n. iter: %d\n", i);
 		this->last_idle_scan_time = this->last_time;
 	}
 }

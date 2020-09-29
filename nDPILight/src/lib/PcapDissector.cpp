@@ -226,6 +226,8 @@ int PcapDissector::processL4(FlowInfo& flow,
         this->captured_stats.udp_pkts++;
     }
 
+    pkt_infos.l4_len = (pkt_infos.l4_ptr - packet);
+
     return 0;
 }
 
@@ -247,7 +249,6 @@ int PcapDissector::parsePacket(FlowInfo & flow,
     
     pkt_infos.time_ms = ((uint64_t) actual_time.tv_sec) * TICK_RESOLUTION + actual_time.tv_usec / (1000000 / TICK_RESOLUTION);
 
-    this->captured_stats.packets_captured++;
     reader->newPacket((void *) header);
 
     /*  Process L2  */
@@ -273,8 +274,7 @@ int PcapDissector::parsePacket(FlowInfo & flow,
         return -1;
     }
 
-    flow.hashval = flow.ip_tuple.v6.dst[0] + flow.ip_tuple.v6.dst[1] + flow.ip_tuple.v6.src[0] + flow.ip_tuple.v6.src[1] +
-                        flow.l4_protocol + flow.src_port + flow.dst_port;
+    flow.hashval += flow.l4_protocol + flow.src_port + flow.dst_port;
     
     pkt_infos.tree_result = reader->getActiveFlows()->find(flow);
 

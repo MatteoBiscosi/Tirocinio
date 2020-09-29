@@ -46,6 +46,7 @@ public:
     struct ndpi_id_struct * ndpi_dst;
 
 public:
+    FlowInfo();
 
     bool operator==(const FlowInfo &other) const {
 	return hashval == other.hashval;

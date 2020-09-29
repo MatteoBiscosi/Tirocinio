@@ -47,7 +47,7 @@
 
 /* ********************************** */
 
-#define MAX_FLOW_ROOTS_PER_THREAD 1048576
+#define MAX_FLOW_ROOTS_PER_THREAD 8388608
 #define MAX_IDLE_FLOWS_PER_THREAD 65536
 #define TICK_RESOLUTION 1000
 #define IDLE_SCAN_PERIOD 60000 /* msec */
